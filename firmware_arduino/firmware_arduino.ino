@@ -20,7 +20,9 @@
 //both the follwing libraries use the SPI interface, 
 // and will need to be tested for cross compatibility
 #include <SD.h>         //sd card library
-#include <max6675.h>    //digital thermocouple interface
+#include <SPI.h>        //needed for gameduino
+#include <GD2.h>        //Gameduino (FT810 plus micro sdcard
+#include <GyverMAX6675_SPI.h>    //digital thermocouple interface
 
 #include <Servo.h>      //servo control disables analog write on pins 9 and 10
 
@@ -54,9 +56,13 @@
 // temperature sensor
 #if NO_OF_EGT_SENSORS > 0
   #define SENSOR_TYPE_EGT_1         ST_SPI
-  #define PIN_SPI_EGT_1_CS          9      //abitrary, change as needed
+  #define PIN_SPI_EGT_1_CS          7
   #define SENSOR_MODEL_EGT_1        MAX6675
   #define SENSOR_EGT_1_NAME         "Reactor Exhaust Inlet Temperature"
+
+  #if SENSOR_MODEL_EGT_1 == MAX6675
+GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
+  #endif
 #endif
 
 // servo output configuration
@@ -90,12 +96,34 @@
 
 #define PIN_SENSOR_RPM              3     //ideally should be a timer capture pin
 
+
+
+
+
 void setup() {
   // put your setup code here, to run once:
+  Serial.begin(115200);
 
+  Serial.println("MAX6675 test");
+  // wait for MAX chip to stabilize
+  delay(500);
 }
 
 void loop() {
+  static byte EGT_err = 0;
   // put your main code here, to run repeatedly:
+  if(EGTSensor1.readTemp())
+  {
+    Serial.print("EGT1: ");
+    Serial.print(EGTSensor1.getTemp());
+    Serial.println("°C");
+    EGT_err &= ~(1);
+  }
+  else if ( !(EGT_err & (1)) )
+  {
+    Serial.println("EGT1 disconnected");
+    EGT_err |= (1);
+  }
 
+  delay(1000);
 }
