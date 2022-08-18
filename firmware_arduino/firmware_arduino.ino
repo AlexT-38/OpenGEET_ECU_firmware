@@ -108,26 +108,34 @@ void setup() {
 
   pinMode(10, OUTPUT);
   digitalWrite(10, HIGH);
+
+  GD.begin(0);
   
   // put your setup code here, to run once:
   Serial.begin(115200);
 
   Serial.println("MAX6675 and GameduinoIII test");
 
-  GD.begin(0);
   
+
   // wait for MAX chip to stabilize
   delay(500);
 }
 
 void loop() {
+  Serial.print("loop ");
+  Serial.println(millis());
   static byte EGT_err = 0;
-  
+  static int temperature_degC = 0;
+  static int temperature_degC_frac = 0;
+
   if(EGTSensor1.readTemp())
   {
     Serial.print("EGT1: ");
     Serial.print(EGTSensor1.getTemp());
     Serial.println("°C");
+    temperature_degC = EGTSensor1.getTempInt();
+    temperature_degC_frac = EGTSensor1.getTempFrac();
     EGT_err &= ~(1);
   }
   else if ( !(EGT_err & (1)) )
@@ -135,8 +143,7 @@ void loop() {
     Serial.println("EGT1 disconnected");
     EGT_err |= (1);
   }
-     
-/*
+#if 0
   byte cs_max = digitalRead(7);
   byte cs_ft8 = digitalRead(8);
   byte cs_sdm = digitalRead(9);
@@ -145,7 +152,7 @@ void loop() {
   byte miso = digitalRead(12);
   byte mosi = digitalRead(11);
 
-  Serial.print("cs_max:");
+  Serial.print("\ncs_max:");
   Serial.println(cs_max);
   Serial.print("cs_ft8:");
   Serial.println(cs_ft8);
@@ -160,17 +167,24 @@ void loop() {
   Serial.println(miso);
   Serial.print("mosi:");
   Serial.println(mosi);
-    */
+#endif
+  
+
   delay(500);
   
-  static int colour = 0xFF8000;
-  long int timenow = millis()/1000;
-  GD.ClearColorRGB(colour);
+  int colour_bg = RGB(0x00,0x20,0x40);
+  
+  GD.resume();
+  GD.ClearColorRGB(colour_bg);
   GD.Clear();
 
-  colour = ~colour;
-  //GD.cmd_text(GD.w / 2, GD.h / 2, 31, OPT_CENTER, "Hello world");
-  GD.cmd_number(GD.w / 2, GD.h / 2, 31, OPT_CENTER, timenow);
+  //colour = ~colour;
+  GD.cmd_text(GD.w / 2, (GD.h / 2)+28, 28, OPT_CENTER, "EGT1 degC");
+  
+  GD.cmd_number((GD.w / 2)-4 , GD.h / 2, 31, OPT_RIGHTX | OPT_CENTERY, temperature_degC);
+  GD.cmd_text(GD.w / 2, GD.h / 2, 31, OPT_CENTER, ".");
+  GD.cmd_number((GD.w / 2)+4 , GD.h / 2, 31, OPT_CENTERY, temperature_degC_frac);
+  
   GD.swap();
   
   /* stop comms to FT810, so other devices (ie MAX6675) can use the bus */
