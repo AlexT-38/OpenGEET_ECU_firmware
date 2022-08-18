@@ -22,7 +22,7 @@
 #include <SD.h>         //sd card library
 #include <SPI.h>        //needed for gameduino
 #include <GD2.h>        //Gameduino (FT810 plus micro sdcard
-#include <GyverMAX6675_SPI.h>    //digital thermocouple interface
+#include <GyverMAX6675_SPI.h>    //digital thermocouple interface using SPI port
 
 #include <Servo.h>      //servo control disables analog write on pins 9 and 10
 
@@ -101,17 +101,28 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
 
 
 void setup() {
+
+  //force CS pins high, attempting to debug FT810 and MAX6675 interop
+  pinMode(PIN_SPI_EGT_1_CS, OUTPUT);
+  digitalWrite(PIN_SPI_EGT_1_CS, HIGH);
+
+  pinMode(10, OUTPUT);
+  digitalWrite(10, HIGH);
+  
   // put your setup code here, to run once:
   Serial.begin(115200);
 
-  Serial.println("MAX6675 test");
+  Serial.println("MAX6675 and GameduinoIII test");
+
+  GD.begin(0);
+  
   // wait for MAX chip to stabilize
   delay(500);
 }
 
 void loop() {
   static byte EGT_err = 0;
-  // put your main code here, to run repeatedly:
+  
   if(EGTSensor1.readTemp())
   {
     Serial.print("EGT1: ");
@@ -124,6 +135,46 @@ void loop() {
     Serial.println("EGT1 disconnected");
     EGT_err |= (1);
   }
+     
+/*
+  byte cs_max = digitalRead(7);
+  byte cs_ft8 = digitalRead(8);
+  byte cs_sdm = digitalRead(9);
+  byte cs_sd = digitalRead(10);
+  byte clk = digitalRead(13);
+  byte miso = digitalRead(12);
+  byte mosi = digitalRead(11);
 
-  delay(1000);
+  Serial.print("cs_max:");
+  Serial.println(cs_max);
+  Serial.print("cs_ft8:");
+  Serial.println(cs_ft8);
+  Serial.print("cs_sdm:");
+  Serial.println(cs_sdm);
+  Serial.print("cs_sd:");
+  Serial.println(cs_sd);
+
+  Serial.print("clk:");
+  Serial.println(clk);
+  Serial.print("miso:");
+  Serial.println(miso);
+  Serial.print("mosi:");
+  Serial.println(mosi);
+    */
+  delay(500);
+  
+  static int colour = 0xFF8000;
+  long int timenow = millis()/1000;
+  GD.ClearColorRGB(colour);
+  GD.Clear();
+
+  colour = ~colour;
+  //GD.cmd_text(GD.w / 2, GD.h / 2, 31, OPT_CENTER, "Hello world");
+  GD.cmd_number(GD.w / 2, GD.h / 2, 31, OPT_CENTER, timenow);
+  GD.swap();
+  
+  /* stop comms to FT810, so other devices (ie MAX6675) can use the bus */
+  GD.__end();
+
+  delay(500);
 }
