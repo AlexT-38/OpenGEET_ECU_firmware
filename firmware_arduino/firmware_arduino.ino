@@ -168,22 +168,56 @@ void loop() {
   Serial.print("mosi:");
   Serial.println(mosi);
 #endif
-  
+
+  int A0_value = analogRead(A0);
+  int A1_value = analogRead(A1);
+  int A2_value = analogRead(A2);
+  int A3_value = analogRead(A3);
+
+  int rpm_counter = 0;
 
   delay(500);
   
   int colour_bg = RGB(0x00,0x20,0x40);
-  
+
+  int pos_y;
+  int pos_x;
+
+  /* restart comms with the FT810 */
   GD.resume();
+  
   GD.ClearColorRGB(colour_bg);
   GD.Clear();
 
-  //colour = ~colour;
-  GD.cmd_text(GD.w / 2, (GD.h / 2)+28, 28, OPT_CENTER, "EGT1 degC");
-  
-  GD.cmd_number((GD.w / 2)-4 , GD.h / 2, 31, OPT_RIGHTX | OPT_CENTERY, temperature_degC);
-  GD.cmd_text(GD.w / 2, GD.h / 2, 31, OPT_CENTER, ".");
-  GD.cmd_number((GD.w / 2)+4 , GD.h / 2, 31, OPT_CENTERY, temperature_degC_frac);
+  pos_x = GD.w - 60;
+  pos_y = 32;
+  GD.cmd_number(pos_x-4 , pos_y, 31, OPT_RIGHTX | OPT_CENTERY, temperature_degC);
+  GD.cmd_text(pos_x, pos_y, 31, OPT_CENTER, ".");
+  GD.cmd_number(pos_x+4 , pos_y, 31, OPT_CENTERY, temperature_degC_frac);
+  pos_x = GD.w - 16;
+  GD.cmd_text(pos_x, pos_y+28, 28, OPT_RIGHTX | OPT_CENTERY, "EGT1 degC");
+
+  pos_y += 64;
+  GD.cmd_text(pos_x, pos_y+28, 28, OPT_RIGHTX | OPT_CENTERY, "RPM");
+  GD.cmd_number(pos_x, pos_y, 31, OPT_RIGHTX | OPT_CENTERY, rpm_counter);
+
+
+  pos_x = 16;
+  pos_y = 32;
+  GD.cmd_text(pos_x, pos_y+28, 28, OPT_CENTERY, "A0 value");
+  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, A0_value);
+
+  pos_y += 64;
+  GD.cmd_text(pos_x, pos_y+28, 28, OPT_CENTERY, "A1 value");
+  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, A1_value);
+
+  pos_y += 64;
+  GD.cmd_text(pos_x, pos_y+28, 28, OPT_CENTERY, "A2 value");
+  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, A2_value);
+
+  pos_y += 64;
+  GD.cmd_text(pos_x, pos_y+28, 28, OPT_CENTERY, "A3 value");
+  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, A3_value);
   
   GD.swap();
   
