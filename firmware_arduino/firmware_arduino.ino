@@ -41,16 +41,26 @@
 
 #include <Servo.h>      //servo control disables analog write on pins 9 and 10
 
-// instead of defining string literals like this,
-//#define FIRMWARE_NAME     
-//#define FIRMWARE_VERSION  "0.1"
-//#define FIRMWARE_STRING   (FIRMWARE_NAME ", v" FIRMWARE_VERSION)
+#define DEBUG
 
-//char string[80]; //buffer for extracting strings to
-//ideally make this local with the largest string to be used in the context
+#ifdef DEBUG
+//#define DEBUG_LOOP
+#define DEBUG_SDCARD
+//#define DEBUG_ANALOG
+#endif
 
-//since the buffer should come off the stack after last usage,
-//we could macro the process, placing the string in a buffer with the same name and a _str suffix:
+
+// PROGMEM STRING MACROS
+// see the docs: https://www.nongnu.org/avr-libc/user-manual/group__avr__pgmspace.html
+// string literals consume ram unless they are declared as PROGMEM variables
+// for stricly one off strings being passed to Serial.print(), use F("string literal")
+// otherwise use the following macros to fetch and or initialse a buffer for a given PROGMEM string
+// (further reading of the docs may reveal a less verbose method)
+
+
+// buffers should come off the stack after last usage and once it's reached the top of the stack,
+// we can reuse buffer variable names by placing all calls to init and read that buffer in separate {} blocks
+// keep buffer declarations close to where they are used
 
 #define STRING_BUFFER(STRING_NAME)  char string[strlen_P(STRING_NAME)+1]
 #define MAKE_STRING(STRING_NAME)  char STRING_NAME ## _str[strlen_P(STRING_NAME)+1]; strcpy_P(STRING_NAME ## _str,STRING_NAME)
@@ -61,8 +71,8 @@
 const char FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller";
 const char FIRMWARE_VERSION[]  PROGMEM = "v0.1";
 const char LIST_SEPARATOR[] PROGMEM = ", ";
-const char CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "Card failed, or not present";
-const char CARD_INITIALISED[] PROGMEM = "card initialised.";
+const char CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or not present.";
+const char CARD_INITIALISED[] PROGMEM = "SD Card initialised.";
 const char RECORD_VER_C[] PROGMEM = "Record Ver.: ";
 const char TIMESTAMP_C[] PROGMEM = "Timestamp: ";
 const char A0_C[] PROGMEM = "A0: ";
@@ -73,9 +83,10 @@ const char EGT1_C[] PROGMEM = "EGT1: ";
 const char RPM_AVG[] PROGMEM = "RPM avg: ";
 const char RPM_NO_OF_TICKS[] PROGMEM = "RPM no of ticks: ";
 const char RPM_TICK_TIMES[] PROGMEM = "RPM tick times (ms): ";
-const char UPDATE_TIME[] PROGMEM = "update time(ms): ";
-const char EGT_READ[] PROGMEM = "EGT Read";
-const char ANA_READ[] PROGMEM = "ANA Read";
+const char OUTPUT_FILE_NAME_C[] PROGMEM = "Output File Name: ";
+const char DEFAULT_FILENAME[] PROGMEM = "datalog";
+const char FILE_EXT_TXT[] PROGMEM = ".txt";
+const char FILE_EXT_RAW[] PROGMEM = ".raw";
 
 const char EGT1_DEGC[] PROGMEM = "EGT1 degC";
 const char RPM[] PROGMEM = "RPM";
@@ -84,10 +95,8 @@ const char A1_VALUE[] PROGMEM = "A1 value";
 const char A2_VALUE[] PROGMEM = "A2 value";
 const char A3_VALUE[] PROGMEM = "A3 value";
 /*
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
+
+
 const char NAME[] PROGMEM = "";
 const char NAME[] PROGMEM = "";
 const char NAME[] PROGMEM = "";
@@ -187,7 +196,6 @@ SCREEN_DRAW_FUNC draw_screen_func;
 #define DATA_RECORD_VERSION     1
 typedef struct data_record
 {
-  unsigned int data_record_version;
   long int timestamp;                   // TODO: use the RTC for this
   int A0[ANALOG_SAMPLES_PER_UPDATE];    // TODO: replace these with meaningful values, consider seperate update rates
   int A1[ANALOG_SAMPLES_PER_UPDATE];
@@ -244,6 +252,7 @@ typedef struct {
 
 FLAGS flags;
 
+char output_filename[16];
 
 /* generate a hash for the given data storage struct */
 void hash_data(DATA_STORAGE *data)
@@ -334,7 +343,7 @@ void write_data_record()
     }
     else
     {
-      MAKE_STRING(RECORD_VER_C);    Serial.print(RECORD_VER_C_str);     Serial.println(data_record->data_record_version);
+      MAKE_STRING(RECORD_VER_C);    Serial.print(RECORD_VER_C_str);     Serial.println(DATA_RECORD_VERSION);
       MAKE_STRING(TIMESTAMP_C);     Serial.print(TIMESTAMP_C_str);      Serial.println(data_record->timestamp);
       STRING_BUFFER(A0_C);
       GET_STRING(A0_C);             serial_print_int_array(data_record->A0, ANALOG_SAMPLES_PER_UPDATE, string);
@@ -351,33 +360,46 @@ void write_data_record()
 /* send the data to the SD card, if available */
   if(flags.do_sdcard_write && flags.sd_card_available)
   {
-    int timestamp_ms = millis();
-    File log_data_file = SD.open("datalog.txt", FILE_WRITE);
-    /* replace all these serial calls with SD card file calls */
-    if(flags.do_serial_write_hex)
+#ifdef DEBUG_SDCARD    
+    unsigned int timestamp_ms = millis();
+#endif
+    
+    File log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);
+    if (log_data_file)
     {
-      log_data_file.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
-      log_data_file.write(data_store.hash);                                              //write the hash value
-      log_data_file.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
+      /* replace all these serial calls with SD card file calls */
+      if(flags.do_serial_write_hex)
+      {
+        log_data_file.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
+        log_data_file.write(data_store.hash);                                              //write the hash value
+        log_data_file.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
+      }
+      else
+      {
+        //MAKE_STRING(RECORD_VER_C);    log_data_file.print(RECORD_VER_C_str);    log_data_file.println(DATA_RECORD_VERSION);
+        MAKE_STRING(TIMESTAMP_C);     log_data_file.print(TIMESTAMP_C_str);     log_data_file.println(data_record->timestamp);
+        STRING_BUFFER(A0_C);
+        GET_STRING(A0_C);             file_print_int_array(&log_data_file, data_record->A0, ANALOG_SAMPLES_PER_UPDATE, string);
+        GET_STRING(A1_C);             file_print_int_array(&log_data_file, data_record->A1, ANALOG_SAMPLES_PER_UPDATE, string);
+        GET_STRING(A2_C);             file_print_int_array(&log_data_file, data_record->A2, ANALOG_SAMPLES_PER_UPDATE, string);
+        GET_STRING(A3_C);             file_print_int_array(&log_data_file, data_record->A3, ANALOG_SAMPLES_PER_UPDATE, string);
+        MAKE_STRING(EGT1_C);          file_print_int_array(&log_data_file, data_record->EGT, EGT_SAMPLES_PER_UPDATE, EGT1_C_str);
+        MAKE_STRING(RPM_AVG);         log_data_file.print(RPM_AVG_str);         log_data_file.println(data_record->RPM_avg);
+        MAKE_STRING(RPM_NO_OF_TICKS); log_data_file.print(RPM_NO_OF_TICKS_str); log_data_file.println(data_record->RPM_no_of_ticks);
+        MAKE_STRING(RPM_TICK_TIMES);  file_print_byte_array(&log_data_file, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, RPM_TICK_TIMES_str);
+      }
+      log_data_file.close();
+
+#ifdef DEBUG_SDCARD
+      timestamp_ms = millis() - timestamp_ms;
+      Serial.print(F("SDCard Access Time (ms): "));
+      Serial.println(timestamp_ms);
     }
     else
     {
-      MAKE_STRING(RECORD_VER_C);    log_data_file.print(RECORD_VER_C_str);    log_data_file.println(data_record->data_record_version);
-      MAKE_STRING(TIMESTAMP_C);     log_data_file.print(TIMESTAMP_C_str);     log_data_file.println(data_record->timestamp);
-      STRING_BUFFER(A0_C);
-      GET_STRING(A0_C);             file_print_int_array(&log_data_file, data_record->A0, ANALOG_SAMPLES_PER_UPDATE, string);
-      GET_STRING(A1_C);             file_print_int_array(&log_data_file, data_record->A1, ANALOG_SAMPLES_PER_UPDATE, string);
-      GET_STRING(A2_C);             file_print_int_array(&log_data_file, data_record->A2, ANALOG_SAMPLES_PER_UPDATE, string);
-      GET_STRING(A3_C);             file_print_int_array(&log_data_file, data_record->A3, ANALOG_SAMPLES_PER_UPDATE, string);
-      MAKE_STRING(EGT1_C);          file_print_int_array(&log_data_file, data_record->EGT, EGT_SAMPLES_PER_UPDATE, EGT1_C_str);
-      MAKE_STRING(RPM_AVG);         log_data_file.print(RPM_AVG_str);         log_data_file.println(data_record->RPM_avg);
-      MAKE_STRING(RPM_NO_OF_TICKS); log_data_file.print(RPM_NO_OF_TICKS_str); log_data_file.println(data_record->RPM_no_of_ticks);
-      MAKE_STRING(RPM_TICK_TIMES);  file_print_byte_array(&log_data_file, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, RPM_TICK_TIMES_str);
+      Serial.println(F("Fail: open output file"));
+#endif
     }
-    log_data_file.close();
-    timestamp_ms = millis() - timestamp_ms;
-    Serial.print("SDCard Access Time: ");
-    Serial.println(timestamp_ms);
   }
   
 }
@@ -388,6 +410,14 @@ void setup() {
   //set datalogger SDCard CS pin high, 
   pinMode(PIN_LOG_SDCARD_CS, OUTPUT);
   digitalWrite(PIN_LOG_SDCARD_CS, HIGH);
+  // set Gameduino CS pins high
+  pinMode(9, OUTPUT);
+  digitalWrite(9, HIGH);
+  pinMode(8, OUTPUT);
+  digitalWrite(8, HIGH);
+
+
+  //configure the RPM input
 
   //initialise RTC
 
@@ -404,15 +434,25 @@ void setup() {
   
   //initialise the serial port:
   Serial.begin(115200);
+  Serial.println();
   Serial.println(firwmare_string);
+  Serial.println();
 
   //read configuration from eeprom
+
+  flags.do_serial_write = true;
+  flags.do_sdcard_write = false;
+
+
+
 
   //attempt to initialse the logging SD card. this will include creating a new file from the RTC date for immediate logging
 
   //Serial.print("Initializing SD card...");
   // see if the card is present and can be initialized:
   STRING_BUFFER(CARD_FAILED_OR_NOT_PRESENT);
+  
+  
   if (!SD.begin(PIN_LOG_SDCARD_CS)) {
     GET_STRING(CARD_FAILED_OR_NOT_PRESENT);
     Serial.println(string);
@@ -423,18 +463,55 @@ void setup() {
     GET_STRING(CARD_INITIALISED);
     Serial.println(string);
     flags.sd_card_available = true;
+
+    // generate a filename
+    strcpy_P(output_filename,DEFAULT_FILENAME);
+    char *str_ptr = output_filename + strlen_P(DEFAULT_FILENAME);
+    if(flags.do_sdcard_write_hex) {strcpy_P(str_ptr,FILE_EXT_RAW);}
+    else                          {strcpy_P(str_ptr,FILE_EXT_TXT);}
+    
+    MAKE_STRING(OUTPUT_FILE_NAME_C);
+    Serial.print(OUTPUT_FILE_NAME_C_str);
+    Serial.println(output_filename);
+    
+    File dataFile = SD.open(output_filename, FILE_WRITE);
+    if(dataFile)
+    {
+      MAKE_STRING(RECORD_VER_C);    dataFile.print(RECORD_VER_C_str);    dataFile.println(DATA_RECORD_VERSION);
+      dataFile.close();
+      
+      Serial.println(F("Opened OK"));
+      flags.do_sdcard_write = true;
+    }
   }
 
+  
   //initialise the display
   GD.begin(0);
+  // draw splash screen
   GD.Clear();
-  GD.cmd_text(GD.w/2, GD.h/2-32, 29, OPT_CENTER, firwmare_string);
-  GD.cmd_text(GD.w/2, GD.h/2+32, 27, OPT_CENTER, string);
+  GD.cmd_text(GD.w/2, GD.h/2-32, 29, OPT_CENTER, firwmare_string);  //firmware name and version
+  GD.cmd_text(GD.w/2, GD.h/2+32, 27, OPT_CENTER, string);           //sd card status
+  if (flags.sd_card_available && flags.do_sdcard_write)             //output file name, if valid
+  {
+    MAKE_STRING(OUTPUT_FILE_NAME_C);
+    GD.cmd_text(GD.w/2, GD.h/2+64, 26, OPT_CENTERY | OPT_RIGHTX, OUTPUT_FILE_NAME_C_str);
+    GD.cmd_text(GD.w/2, GD.h/2+64, 26, OPT_CENTERY, output_filename);
+  }
   GD.swap();
   GD.__end();
 
   //set the first screen to be drawn
   draw_screen_func = draw_basic;
+
+  
+  
+  //start the ADC
+  analogRead(A0);
+  analogRead(A1);
+  analogRead(A2);
+  analogRead(A3);
+
 
 
   // wait for MAX chip to stabilize, and to see the splash screen
@@ -475,10 +552,11 @@ void loop() {
     int timelag = elapsed_time%UPDATE_INTERVAL_ms;
     update_timestamp = timenow + UPDATE_INTERVAL_ms + timelag;
 
-    /* emit the timestamp of the current update */
-    MAKE_STRING(UPDATE_TIME);
-    Serial.print(UPDATE_TIME_str);
+    /* emit the timestamp of the current update, if debugging */
+    #ifdef DEBUG_LOOP
+    Serial.print(F("Update Time: "));
     Serial.println(timenow);
+    #endif
 
     // draw the current screen
     draw_screen();
@@ -496,9 +574,9 @@ void loop() {
     egt_timestamp = timenow + EGT_SAMPLE_INTERVAL_ms + timelag;
 
     // debug marker
-    MAKE_STRING(EGT_READ);
-    Serial.println(EGT_READ_str);
-    
+    #ifdef DEBUG_LOOP
+    Serial.println(F("EGT Read"));
+    #endif
     //collect the EGT reading  
     if (Data_Record_Status.egt_sample_index > EGT_SAMPLES_PER_UPDATE)
     {
@@ -524,17 +602,28 @@ void loop() {
     analog_timestamp = timenow + ANALOG_SAMPLE_INTERVAL_ms + timelag;
 
     //debug marker
-    MAKE_STRING(ANA_READ);
-    Serial.println(ANA_READ_str);
+    #ifdef DEBUG_LOOP
+    Serial.println(F("ANA Read"));
+    #endif
     
-    //collect analog inputs the slow arduino way.
+    //collect analog inputs
     if (Data_Record_Status.analog_sample_index < ANALOG_SAMPLES_PER_UPDATE)
     {
+      #ifdef DEBUG_ANALOG
+      unsigned int timestamp_us = micros();
+      #endif
+      
       unsigned int analog_index = Data_Record_Status.analog_sample_index++;
       CURRENT_RECORD.A0[analog_index] = analogRead(A0);
       CURRENT_RECORD.A1[analog_index] = analogRead(A1);
       CURRENT_RECORD.A2[analog_index] = analogRead(A2);
       CURRENT_RECORD.A3[analog_index] = analogRead(A3);
+
+      #ifdef DEBUG_ANALOG
+      timestamp_us = micros() - timestamp_us;
+      Serial.print(F("Analog Read Time (us): "));
+      Serial.println(timestamp_us);
+      #endif
     }  
     
   }
