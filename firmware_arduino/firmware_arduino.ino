@@ -48,14 +48,15 @@
 
 //char string[80]; //buffer for extracting strings to
 //ideally make this local with the largest string to be used in the context
-#define STRING_BUFFER(STRING_NAME)  char string[strlen_P(STRING_NAME)+1]
+
 //since the buffer should come off the stack after last usage,
 //we could macro the process, placing the string in a buffer with the same name and a _str suffix:
-#define MAKE_STRING(STRING_NAME)  char STRING_NAME ## _str[strlen_P(STRING_NAME)+1]; strcpy_P(STRING_NAME ## _str, (char *)pgm_read_word(STRING_NAME))
 
-#define PUT_STRING(STRING_NAME, buffer) strcpy_P(buffer, (char *)pgm_read_word(STRING_NAME));
-// use this macro to extract
-#define GET_STRING(STRING_NAME) strcpy_P(string, (char *)pgm_read_word(STRING_NAME));
+#define STRING_BUFFER(STRING_NAME)  char string[strlen_P(STRING_NAME)+1]
+#define MAKE_STRING(STRING_NAME)  char STRING_NAME ## _str[strlen_P(STRING_NAME)+1]; strcpy_P(STRING_NAME ## _str,STRING_NAME)
+#define PUT_STRING(STRING_NAME, buffer) strcpy_P(buffer, STRING_NAME);
+#define GET_STRING(STRING_NAME) strcpy_P(string, STRING_NAME);
+
 // define them as consts here and delete the original 
 const char FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller";
 const char FIRMWARE_VERSION[]  PROGMEM = "v0.1";
@@ -394,14 +395,12 @@ void setup() {
   //fetch the firmware fersion string
   
   char firwmare_string[strlen_P(FIRMWARE_NAME) + strlen_P(FIRMWARE_VERSION) + strlen_P(LIST_SEPARATOR) + 1];
-  char *string_ptr;
+  char *string_ptr = firwmare_string;
   PUT_STRING(FIRMWARE_NAME, string_ptr);
   string_ptr += strlen_P(FIRMWARE_NAME);
   PUT_STRING(LIST_SEPARATOR, string_ptr);
   string_ptr += strlen_P(LIST_SEPARATOR);
   PUT_STRING(FIRMWARE_VERSION, string_ptr);
-  
-  
   
   //initialise the serial port:
   Serial.begin(115200);
@@ -428,8 +427,9 @@ void setup() {
 
   //initialise the display
   GD.begin(0);
-  GD.cmd_text(GD.w/2, GD.h/2, 31, OPT_CENTER, firwmare_string);
-  GD.cmd_text(GD.w/2, GD.h/2+48, 28, OPT_CENTER, string);
+  GD.Clear();
+  GD.cmd_text(GD.w/2, GD.h/2-32, 29, OPT_CENTER, firwmare_string);
+  GD.cmd_text(GD.w/2, GD.h/2+32, 27, OPT_CENTER, string);
   GD.swap();
   GD.__end();
 
@@ -438,7 +438,7 @@ void setup() {
 
 
   // wait for MAX chip to stabilize, and to see the splash screen
-  delay(1000);
+  delay(4000);
 }
 
 /* opens comms to display chip and calls the current screen's draw function */
