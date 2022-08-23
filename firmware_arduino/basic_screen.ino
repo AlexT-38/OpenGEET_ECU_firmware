@@ -9,12 +9,15 @@ void draw_basic()
   int pos_y;
   int pos_x;
 
+  /* data record to read */
+  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
+
   
   GD.ClearColorRGB(colour_bg);
   GD.Clear();
 
   // fetch the average temperature 
-  int temperature_degC = CURRENT_RECORD.EGT_avg;
+  int temperature_degC = data_record->EGT_avg;
   byte temperature_degC_frac = (25*(temperature_degC&3));
   temperature_degC >>=2;
   
@@ -30,30 +33,35 @@ void draw_basic()
   pos_y += 64;
   MAKE_STRING(RPM);
   GD.cmd_text(pos_x, pos_y+28, 28, OPT_RIGHTX | OPT_CENTERY, RPM_str);
-  GD.cmd_number(pos_x, pos_y, 31, OPT_RIGHTX | OPT_CENTERY, CURRENT_RECORD.RPM_avg);
+  GD.cmd_number(pos_x, pos_y, 31, OPT_RIGHTX | OPT_CENTERY, data_record->RPM_avg);
 
+  pos_y += 64;
+  pos_y += 64;
+  MAKE_STRING(TIMESTAMP_MS);
+  GD.cmd_text(pos_x, pos_y+28, 26, OPT_RIGHTX | OPT_CENTERY, TIMESTAMP_MS_str);
+  GD.cmd_number(pos_x, pos_y, 27, OPT_RIGHTX | OPT_CENTERY, data_record->timestamp);
 
   pos_x = 16;
   pos_y = 32;
   STRING_BUFFER(A0_VALUE);
   GET_STRING(A0_VALUE);
   GD.cmd_text(pos_x, pos_y+28, 28, OPT_CENTERY, string);
-  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, CURRENT_RECORD.A0_avg);
+  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, data_record->A0_avg);
 
   pos_y += 64;
   GET_STRING(A1_VALUE);
   GD.cmd_text(pos_x, pos_y+28, 28, OPT_CENTERY, string);
-  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, CURRENT_RECORD.A1_avg);
+  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, data_record->A1_avg);
 
   pos_y += 64;
   GET_STRING(A2_VALUE);
   GD.cmd_text(pos_x, pos_y+28, 28, OPT_CENTERY, string);
-  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, CURRENT_RECORD.A2_avg);
+  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, data_record->A2_avg);
 
   pos_y += 64;
   GET_STRING(A3_VALUE);
   GD.cmd_text(pos_x, pos_y+28, 28, OPT_CENTERY, string);
-  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, CURRENT_RECORD.A3_avg);
+  GD.cmd_number(pos_x, pos_y, 31, OPT_CENTERY, data_record->A3_avg);
   
 
 }

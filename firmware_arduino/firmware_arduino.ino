@@ -97,6 +97,7 @@ const char A0_VALUE[] PROGMEM = "A0 value";
 const char A1_VALUE[] PROGMEM = "A1 value";
 const char A2_VALUE[] PROGMEM = "A2 value";
 const char A3_VALUE[] PROGMEM = "A3 value";
+const char TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
 /*
 
 
@@ -333,6 +334,7 @@ void file_print_byte_array(File *file, byte *array_data, unsigned int array_size
 void reset_record()
 {
   Data_Record[1-Data_Record_write_idx] = (DATA_RECORD){0};
+  Data_Record[1-Data_Record_write_idx].timestamp = millis();
   /*
   // data record to reset 
   DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
@@ -417,17 +419,29 @@ void write_data_record()
     }
     else
     {
+      Serial.println(F("----------"));
       MAKE_STRING(RECORD_VER_C);    Serial.print(RECORD_VER_C_str);     Serial.println(DATA_RECORD_VERSION);
       MAKE_STRING(TIMESTAMP_C);     Serial.print(TIMESTAMP_C_str);      Serial.println(data_record->timestamp);
+
+      
+      Serial.print(F("A0_avg: "));      Serial.println(data_record->A0_avg);
+      Serial.print(F("A1_avg: "));      Serial.println(data_record->A1_avg);
+      Serial.print(F("A2_avg: "));      Serial.println(data_record->A2_avg);
+      Serial.print(F("A3_avg: "));      Serial.println(data_record->A3_avg);
+
+      Serial.print(F("ANA samples: "));      Serial.println(data_record->ANA_no_of_samples);
       STRING_BUFFER(A0_C);
-      GET_STRING(A0_C);             serial_print_int_array(data_record->A0, ANALOG_SAMPLES_PER_UPDATE, string);
-      GET_STRING(A1_C);             serial_print_int_array(data_record->A1, ANALOG_SAMPLES_PER_UPDATE, string);
-      GET_STRING(A2_C);             serial_print_int_array(data_record->A2, ANALOG_SAMPLES_PER_UPDATE, string);
-      GET_STRING(A3_C);             serial_print_int_array(data_record->A3, ANALOG_SAMPLES_PER_UPDATE, string);
-      MAKE_STRING(EGT1_C);          serial_print_int_array(data_record->EGT, EGT_SAMPLES_PER_UPDATE, EGT1_C_str);
+      GET_STRING(A0_C);             serial_print_int_array(data_record->A0, data_record->ANA_no_of_samples, string);
+      GET_STRING(A1_C);             serial_print_int_array(data_record->A1, data_record->ANA_no_of_samples, string);
+      GET_STRING(A2_C);             serial_print_int_array(data_record->A2, data_record->ANA_no_of_samples, string);
+      GET_STRING(A3_C);             serial_print_int_array(data_record->A3, data_record->ANA_no_of_samples, string);
+      Serial.print(F("EGT_avg"));      Serial.println(data_record->EGT_avg);
+      Serial.print(F("EGT samples: "));      Serial.println(data_record->EGT_no_of_samples);
+      MAKE_STRING(EGT1_C);          serial_print_int_array(data_record->EGT, data_record->EGT_no_of_samples, EGT1_C_str);
       MAKE_STRING(RPM_AVG);         Serial.print(RPM_AVG_str);          Serial.println(data_record->RPM_avg);
       MAKE_STRING(RPM_NO_OF_TICKS); Serial.print(RPM_NO_OF_TICKS_str);  Serial.println(data_record->RPM_no_of_ticks);
       MAKE_STRING(RPM_TICK_TIMES);  serial_print_byte_array(data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, RPM_TICK_TIMES_str);
+      Serial.println(F("----------"));
     }
   }
 
@@ -635,16 +649,22 @@ void loop() {
     Serial.println(timenow);
     #endif
 
+    
     // swap the buffers and finalise averages
     finalise_record();
+    
     // draw the current screen
     draw_screen();
+    
     // write the current data to target media
     write_data_record();
+    
     //reset the record ready for next time
     reset_record();
+    
     //update the time?
     timenow = millis();
+    
   }
 
   /* get time left till next update */
@@ -662,12 +682,11 @@ void loop() {
     #endif
     //collect the EGT reading  
     
-    if (CURRENT_RECORD.EGT_no_of_samples > EGT_SAMPLES_PER_UPDATE)
+    if (CURRENT_RECORD.EGT_no_of_samples < EGT_SAMPLES_PER_UPDATE)
     {
-      int EGT1_value = EGTSensor1.getTempIntRaw();
-      
       if(EGTSensor1.readTemp())
       {
+        int EGT1_value = EGTSensor1.getTempIntRaw();
         CURRENT_RECORD.EGT[CURRENT_RECORD.EGT_no_of_samples++] = EGT1_value;
         CURRENT_RECORD.EGT_avg += EGT1_value;
       }
