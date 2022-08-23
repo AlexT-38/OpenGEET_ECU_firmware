@@ -30,6 +30,8 @@
   *  to avoid the need for a double buffer, we must be able to write the data record to SD card 
   *  and serial port in under 13.3 ms , or else drop data from the rpm counter.
   *  
+  *  SD card access is taking approximately 30ms, so double buffering is required.
+  *  
   *  to avoid string literals, strings must be placed into progmem
   *  and read out into a temporary buffer as per https://www.arduino.cc/reference/en/language/variables/utilities/progmem/
   */
@@ -43,10 +45,11 @@
 
 #define DEBUG
 
-#ifdef DEBUG
-//#define DEBUG_LOOP
-#define DEBUG_SDCARD
-//#define DEBUG_ANALOG
+#ifdef DEBUG            //enable debugging readouts
+//#define DEBUG_LOOP    //mprint out loop markers and update time
+#define DEBUG_UPDATE    //measure how long an update takes
+#define DEBUG_SDCARD    //measure how long SD car access takes
+//#define DEBUG_ANALOG  //measure how long analog read and processing takes
 #endif
 
 
@@ -106,7 +109,12 @@ const char NAME[] PROGMEM = "";
 */
 // sketching out some constants for IO, with future upgradability in mind
 
+//datalogger SD card CS pin
 #define PIN_LOG_SDCARD_CS         10
+
+//rpm counter interrupt pin
+#define PIN_RPM_COUNTER_INPUT     2 //INT0
+
 // control input pins
 #define PIN_CONTROL_INPUT_1       A0
 #define PIN_CONTROL_INPUT_2       A1
@@ -181,11 +189,20 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
 // screen/log file update
 #define UPDATE_INTERVAL_ms          1000
 
+// digital themocouple update rate
 #define EGT_SAMPLE_INTERVAL_ms      250 //max update rate
 #define EGT_SAMPLES_PER_UPDATE    (UPDATE_INTERVAL_ms/EGT_SAMPLE_INTERVAL_ms)
 
+//analog input read rate
 #define ANALOG_SAMPLE_INTERVAL_ms   100   //record analog values this often
 #define ANALOG_SAMPLES_PER_UPDATE   (UPDATE_INTERVAL_ms/ANALOG_SAMPLE_INTERVAL_ms)
+
+//rpm counter params
+#define MAX_RPM                     4500
+#define MIN_RPM_TICK_INTERVAL_ms    (60000/MAX_RPM)
+#define MAX_RPM_TICKS_PER_UPDATE    (UPDATE_INTERVAL_ms/MIN_RPM_TICK_INTERVAL_ms)
+#define MAX_RPM_TICK_INTERVAL_ms     250
+#define MIN_RPM                     (60000/MAX_RPM_TICK_INTERVAL_ms)
 
 typedef void(*SCREEN_DRAW_FUNC)(void);
 
@@ -194,25 +211,27 @@ SCREEN_DRAW_FUNC draw_screen_func;
 
 /* struct for storing sensor samples over the update period */
 #define DATA_RECORD_VERSION     1
+
 typedef struct data_record
 {
   long int timestamp;                   // TODO: use the RTC for this
-  int A0[ANALOG_SAMPLES_PER_UPDATE];    // TODO: replace these with meaningful values, consider seperate update rates
-  int A1[ANALOG_SAMPLES_PER_UPDATE];
-  int A2[ANALOG_SAMPLES_PER_UPDATE];
-  int A3[ANALOG_SAMPLES_PER_UPDATE];
+  unsigned int A0[ANALOG_SAMPLES_PER_UPDATE];    // TODO: replace these with meaningful values, consider seperate update rates
+  unsigned int A1[ANALOG_SAMPLES_PER_UPDATE];
+  unsigned int A2[ANALOG_SAMPLES_PER_UPDATE];
+  unsigned int A3[ANALOG_SAMPLES_PER_UPDATE];
+  unsigned int A0_avg;
+  unsigned int A1_avg;
+  unsigned int A2_avg;
+  unsigned int A3_avg;
+  byte ANA_no_of_samples;
   int EGT[EGT_SAMPLES_PER_UPDATE];
+  int EGT_avg;
+  byte EGT_no_of_samples;
   int RPM_avg;                          //average rpm over this time period
   byte RPM_no_of_ticks;                 //so we can use bytes for storage here and have 15.3RPM as the slowest measurable rpm.
-  byte RPM_tick_times_ms[75];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
+  byte RPM_tick_times_ms[MAX_RPM_TICKS_PER_UPDATE];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
 } DATA_RECORD; //... bytes per record with current settings
 
-typedef struct data_record_status
-{
-  unsigned int analog_sample_index;
-  unsigned char egt_sample_index;
-  unsigned char rpm_tick_index;
-}DATA_RECORD_STATUS;
 /* struct for wrapping around any data */ //this is unneccesarily general
 typedef struct data_storage
 {
@@ -223,11 +242,9 @@ typedef struct data_storage
 
 
 /* the records to write to */
-DATA_RECORD Data_Record[2];// = {{DATA_RECORD_VERSION}, {DATA_RECORD_VERSION}};
+DATA_RECORD Data_Record[2];
 /* the index of the currently written record */
 byte Data_Record_write_idx = 0;
-
-DATA_RECORD_STATUS Data_Record_Status;
 
 #define CURRENT_RECORD    Data_Record[Data_Record_write_idx]
 
@@ -311,25 +328,82 @@ void file_print_byte_array(File *file, byte *array_data, unsigned int array_size
   }
   file->println();
 }
+
+/* reset the back record after use */
+void reset_record()
+{
+  Data_Record[1-Data_Record_write_idx] = (DATA_RECORD){0};
+  /*
+  // data record to reset 
+  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
+  // reset counters 
+  data_record->EGT_no_of_samples = 0;
+  data_record->ANA_no_of_samples = 0;
+  data_record->RPM_no_of_ticks = 0;
+  // reset averages 
+  data_record->A0_avg;
+  data_record->A1_avg;
+  data_record->A2_avg;
+  data_record->A3_avg;
+  data_record->EGT_avg = 0;
+  data_record->RPM_avg = 0;  
+  */
+}
+/* swap records and calculate averages */
+void finalise_record()
+{
+  /* switch the records */
+  Data_Record_write_idx = 1-Data_Record_write_idx; 
+  
+  /* data record to read */
+  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
+  
+  
+  /* calculate averages */
+  if(data_record->ANA_no_of_samples > 0)
+  {
+    int rounding = data_record->ANA_no_of_samples/2;
+    data_record->A0_avg += rounding;
+    data_record->A1_avg += rounding;
+    data_record->A2_avg += rounding;
+    data_record->A3_avg += rounding;
+    
+    data_record->A0_avg /= data_record->ANA_no_of_samples;
+    data_record->A1_avg /= data_record->ANA_no_of_samples;
+    data_record->A2_avg /= data_record->ANA_no_of_samples;
+    data_record->A3_avg /= data_record->ANA_no_of_samples;
+  }
+  if(data_record->EGT_no_of_samples > 0)
+  {
+    unsigned int rounding = data_record->EGT_no_of_samples/2;
+    data_record->EGT_avg += rounding;
+    data_record->EGT_avg /= data_record->EGT_no_of_samples;
+  }
+//  if(data_record->RPM_no_of_samples > 0)
+//  {
+    // for rpm, we can approximate by the number of ticks
+    data_record->RPM_avg = data_record->RPM_no_of_ticks * 60000/UPDATE_INTERVAL_ms;
+    // for a more acurate reading, we must sum all tick intervals
+    // and divide by number of ticks
+    // but this should be sufficient
+    
+    //unsigned int rounding = data_record->RPM_no_of_samples/2;
+    //data_record->RPM_avg += rounding;
+    //data_record->RPM_avg = (unsigned int)(60000*(unsigned long int)data_record->RPM_no_of_samples/data_record->RPM_avg);  
+//  }
+}
 /* writes the current data record to serial port and SD card as required */
 void write_data_record()
 {
-  /* switch the records */
-  byte Data_Record_read_idx = Data_Record_write_idx;
-  Data_Record_write_idx = 1-Data_Record_write_idx;
-
   /* data record to read */
-  DATA_RECORD *data_record = &Data_Record[Data_Record_read_idx];
+  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
 
-  /* reset the array indices */
-  Data_Record_Status.egt_sample_index = 0;
-  Data_Record_Status.analog_sample_index = 0;
-
-  data_record->RPM_no_of_ticks = 0;
-
-  /* hash the data */
-  DATA_STORAGE data_store = {&Data_Record[Data_Record_read_idx], sizeof(DATA_STORAGE), 0};
-//  hash_data(&data_store);
+  /* we can break this down into subsections if the overall process time
+   * is greater than the shortest snesor read interval */
+   
+  /* hash the data for hex storage*/
+  DATA_STORAGE data_store = {data_record, sizeof(DATA_STORAGE), 0};
+  hash_data(&data_store);
 
   /* send the data to the serial port */
   if(flags.do_serial_write)
@@ -404,6 +478,25 @@ void write_data_record()
   
 }
 
+/* opens comms to display chip and calls the current screen's draw function */
+void draw_screen()
+{
+  if (draw_screen_func != NULL)
+  {
+    /* restart comms with the FT810 */
+    GD.resume();
+    /* draw the current screen */
+    draw_screen_func();
+    /* display the screen */
+    GD.swap();
+    /* stop comms to FT810, so other devices (ie MAX6675, SD CARD) can use the bus */
+    GD.__end();
+  }
+}
+
+static long int update_timestamp = 0; //not much I can do easily about these timestamps
+static long int analog_timestamp = 0; //could be optimised by using a timer and a progmem table of func calls
+static long int egt_timestamp = 0;    //more optimal if all intervals have large common root
 
 void setup() {
 
@@ -418,7 +511,8 @@ void setup() {
 
 
   //configure the RPM input
-
+  congiure_rpm_counter();
+  
   //initialise RTC
 
 
@@ -512,33 +606,16 @@ void setup() {
   analogRead(A2);
   analogRead(A3);
 
-
+  
 
   // wait for MAX chip to stabilize, and to see the splash screen
   delay(4000);
 }
 
-/* opens comms to display chip and calls the current screen's draw function */
-void draw_screen()
-{
-  if (draw_screen_func != NULL)
-  {
-    /* restart comms with the FT810 */
-    GD.resume();
-    /* draw the current screen */
-    draw_screen_func();
-    /* display the screen */
-    GD.swap();
-    /* stop comms to FT810, so other devices (ie MAX6675, SD CARD) can use the bus */
-    GD.__end();
-  }
-}
+
 
 
 void loop() {
-  static long int update_timestamp = 0; //not much I can do easily about these timestamps
-  static long int analog_timestamp = 0; //could be optimised by using a timer and a progmem table of func calls
-  static long int egt_timestamp = 0;    //more optimal if all intervals have large common root
 
   long int elapsed_time;
   long int timenow = millis();
@@ -558,10 +635,16 @@ void loop() {
     Serial.println(timenow);
     #endif
 
+    // swap the buffers and finalise averages
+    finalise_record();
     // draw the current screen
     draw_screen();
     // write the current data to target media
     write_data_record();
+    //reset the record ready for next time
+    reset_record();
+    //update the time?
+    timenow = millis();
   }
 
   /* get time left till next update */
@@ -578,18 +661,20 @@ void loop() {
     Serial.println(F("EGT Read"));
     #endif
     //collect the EGT reading  
-    if (Data_Record_Status.egt_sample_index > EGT_SAMPLES_PER_UPDATE)
+    
+    if (CURRENT_RECORD.EGT_no_of_samples > EGT_SAMPLES_PER_UPDATE)
     {
+      int EGT1_value = EGTSensor1.getTempIntRaw();
+      
       if(EGTSensor1.readTemp())
       {
-        CURRENT_RECORD.EGT[Data_Record_Status.egt_sample_index++] = EGTSensor1.getTempIntRaw();
+        CURRENT_RECORD.EGT[CURRENT_RECORD.EGT_no_of_samples++] = EGT1_value;
+        CURRENT_RECORD.EGT_avg += EGT1_value;
       }
-      else
-      {
-        CURRENT_RECORD.EGT[Data_Record_Status.egt_sample_index++] = 0;
-      }      
+      
     }
-    
+    //update the time?
+    timenow = millis();
   }
   
   /* get time left till next update */
@@ -607,26 +692,30 @@ void loop() {
     #endif
     
     //collect analog inputs
-    if (Data_Record_Status.analog_sample_index < ANALOG_SAMPLES_PER_UPDATE)
+    if (CURRENT_RECORD.ANA_no_of_samples < ANALOG_SAMPLES_PER_UPDATE)
     {
       #ifdef DEBUG_ANALOG
       unsigned int timestamp_us = micros();
       #endif
       
-      unsigned int analog_index = Data_Record_Status.analog_sample_index++;
+      unsigned int analog_index = CURRENT_RECORD.ANA_no_of_samples++;
       CURRENT_RECORD.A0[analog_index] = analogRead(A0);
       CURRENT_RECORD.A1[analog_index] = analogRead(A1);
       CURRENT_RECORD.A2[analog_index] = analogRead(A2);
       CURRENT_RECORD.A3[analog_index] = analogRead(A3);
-
+      CURRENT_RECORD.A0_avg += CURRENT_RECORD.A0[analog_index];
+      CURRENT_RECORD.A1_avg += CURRENT_RECORD.A1[analog_index];
+      CURRENT_RECORD.A2_avg += CURRENT_RECORD.A2[analog_index];
+      CURRENT_RECORD.A3_avg += CURRENT_RECORD.A3[analog_index];
+      
       #ifdef DEBUG_ANALOG
       timestamp_us = micros() - timestamp_us;
       Serial.print(F("Analog Read Time (us): "));
       Serial.println(timestamp_us);
       #endif
     }  
-    
+    //update the time?
+    //timenow = millis();
   }
-  
   
 }
