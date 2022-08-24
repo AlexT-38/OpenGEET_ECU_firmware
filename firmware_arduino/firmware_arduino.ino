@@ -679,7 +679,6 @@ void setup() {
   servo1.writeMicroseconds(map(1,0,2,SERVO_1_MIN, SERVO_1_MAX));
   servo2.writeMicroseconds(map(1,0,2,SERVO_2_MIN, SERVO_2_MAX));
   
-  while(1);
   // wait for MAX chip to stabilize, and to see the splash screen
   delay(4000);
 
