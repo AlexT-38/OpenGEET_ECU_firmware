@@ -35,13 +35,17 @@
   *  to avoid string literals, strings must be placed into progmem
   *  and read out into a temporary buffer as per https://www.arduino.cc/reference/en/language/variables/utilities/progmem/
   */
-
+#include <EEPROM.h>
 #include <SD.h>         //sd card library
 #include <SPI.h>        //needed for gameduino
 #include <GD2.h>        //Gameduino (FT810 plus micro sdcard
 #include <GyverMAX6675_SPI.h>    //digital thermocouple interface using SPI port
 
 #include <Servo.h>      //servo control disables analog write on pins 9 and 10
+
+#include <Wire.h>
+#include "RTClib.h"
+DS1307 rtc;
 
 #define DEBUG
 
@@ -108,6 +112,54 @@ const char NAME[] PROGMEM = "";
 const char NAME[] PROGMEM = "";
 const char NAME[] PROGMEM = "";
 */
+// eeprom addresses
+/* as there is no way of incrementing a macro using the preprocessesor,
+ * an altternative method of assigning eeprom addresses is required
+ * my best guess just now is to define a struct and use some built in 
+ * function to get the offsets
+ * indeed, the following concludes with the same:
+ * https://forum.arduino.cc/t/solved-how-to-structure-data-in-eeprom-variable-address/196538
+ * the function is __builtin_offsetof also defined as offsetof (type, member | .member | [expr])
+ */
+
+/* flags for controlling log destination and format */
+
+#define GET_FLAG(flag)  ((flags&(1<<flag)) != 0)
+#define SET_FLAG(flag)  (flags |= (1<<flag))
+#define CLR_FLAG(flag)  (flags &= ~(1<<flag))
+#define TOG_FLAG(flag)  (flags ^= (1<<flag))
+//byte flags;
+//#define FLAG_...       1
+
+//alternatively, use bitfields
+typedef struct {
+    byte do_serial_write:1;
+    byte do_serial_write_hex:1;
+    byte do_sdcard_write:1;
+    byte do_sdcard_write_hex:1;
+    byte sd_card_available:1;
+}FLAGS;
+
+FLAGS flags;
+
+#define EEP_VERSION 0
+struct eeprom
+{
+    byte         eep_version;
+    unsigned int servo0_min_us, servo0_max_us;
+    unsigned int servo1_min_us, servo1_max_us;
+    unsigned int servo2_min_us, servo2_max_us;
+    unsigned int map_cal_zero, map_cal_min;
+    unsigned int knob_0_min, knob_0_max;
+    unsigned int knob_1_min, knob_1_max;
+    unsigned int knob_2_min, knob_2_max;
+    FLAGS        flags;
+    
+};
+#define EEP_ADDR(member)      offsetof(struct eeprom, member)
+#define EEP_GET(member,dst)   EEPROM.get(EEP_ADDR(member), dst);
+#define EEP_PUT(member,src)   EEPROM.put(EEP_ADDR(member), src);
+
 // sketching out some constants for IO, with future upgradability in mind
 
 //datalogger SD card CS pin
@@ -135,6 +187,8 @@ const char NAME[] PROGMEM = "";
 #define SENSOR_TYPE_MAP_1         ST_ANALOG
 #define PIN_INPUT_MAP_1           A2
 //#define SENSOR_MAP_1_NAME         "Reactor Fuel Inlet Pressure"
+#define SENSOR_MAP_1_MIN          1000    //analog sample value for absolute zero pressure
+#define SENSOR_MAP_1_ZERO         80      //analog sample value for 1 atm pressure
 
 // temperature sensor configuration
 #define NO_OF_EGT_SENSORS         1
@@ -153,57 +207,71 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
   #endif
 #endif
 
+//min max values for the control knobs
+#define KNOB_0_MIN 90
+#define KNOB_0_MAX 930
+#define KNOB_1_MIN 10
+#define KNOB_1_MAX 1014
+#define KNOB_2_MIN 10
+#define KNOB_2_MAX 1014
+
 // servo output configuration
-#define NO_OF_SERVOS              2
+#define NO_OF_SERVOS              3
 
 // servo 1
 #if NO_OF_SERVOS > 0
-  #define PIN_SERVO_1               4
-  #define SERVO_1_MAX               2300
-  #define SERVO_1_MIN               750
-//  #define SERVO_1_NAME              "Reactor Inlet Valve Servo"
+  #define PIN_SERVO_0               3
+  #define SERVO_0_MAX               750     //signal to move valve to 'closed' position
+  #define SERVO_0_MIN               2300    //signal to move valve to 'open' position
+//  #define SERVO_0_NAME              "Reactor Inlet Valve Servo"
+Servo servo0;
 #endif
 
 // servo 2
 #if NO_OF_SERVOS > 1
-  #define PIN_SERVO_2               5
-  #define SERVO_2_MAX               2300
-  #define SERVO_2_MIN               750
-//  #define SERVO_2_NAME              "Engine Inlet Valve Servo"
+  #define PIN_SERVO_1               5
+  #define SERVO_1_MAX               750     //signal to move valve to 'closed' position
+  #define SERVO_1_MIN               2300    //signal to move valve to 'open' position
+//  #define SERVO_1_NAME              "Engine Inlet Valve Servo"
+Servo servo1;
 #endif
 
 // servo 3
 #if NO_OF_SERVOS > 2
-  #define PIN_SERVO_2               6
-  #define SERVO_2_MAX               2300
-  #define SERVO_2_MIN               750
+  #define PIN_SERVO_2               6       //'stop/freewheel' is assumed to be centre
+  #define SERVO_2_MAX               2300    //signal to set BLDC controller to full 'drive' 
+  #define SERVO_2_MIN               750     //signal to set BLDC controller to full 'brake'
 //  #define SERVO_2_NAME              "Starter/Generator Motor Control"
+Servo servo2;
 #endif
 
-// rpm counter configuration
-
-#define PIN_SENSOR_RPM              3     //ideally should be a timer capture pin
 
 
 // update rates
 
 // screen/log file update
 #define UPDATE_INTERVAL_ms          1000
+#define UPDATE_START_ms             (UPDATE_INTERVAL_ms + 0)      //setting update loops to start slightly offset so they aren't tying to execute at the same time
 
 // digital themocouple update rate
 #define EGT_SAMPLE_INTERVAL_ms      250 //max update rate
-#define EGT_SAMPLES_PER_UPDATE    (UPDATE_INTERVAL_ms/EGT_SAMPLE_INTERVAL_ms)
+#define EGT_SAMPLES_PER_UPDATE      (UPDATE_INTERVAL_ms/EGT_SAMPLE_INTERVAL_ms)
+#define EGT_UPDATE_START_ms         (EGT_SAMPLE_INTERVAL_ms - 30)
 
 //analog input read rate
 #define ANALOG_SAMPLE_INTERVAL_ms   100   //record analog values this often
 #define ANALOG_SAMPLES_PER_UPDATE   (UPDATE_INTERVAL_ms/ANALOG_SAMPLE_INTERVAL_ms)
+#define ANALOG_UPDATE_START_ms      (ANALOG_SAMPLE_INTERVAL_ms - 20)
 
 //rpm counter params
 #define MAX_RPM                     4500
 #define MIN_RPM_TICK_INTERVAL_ms    (60000/MAX_RPM)
 #define MAX_RPM_TICKS_PER_UPDATE    (UPDATE_INTERVAL_ms/MIN_RPM_TICK_INTERVAL_ms)
-#define MAX_RPM_TICK_INTERVAL_ms     250
+#define MAX_RPM_TICK_INTERVAL_ms    250
 #define MIN_RPM                     (60000/MAX_RPM_TICK_INTERVAL_ms)
+
+#define PID_UPDATE_INTERVAL_ms      50
+#define PID_UPDATE_START_ms         (PID_UPDATE_INTERVAL_ms - 10)
 
 typedef void(*SCREEN_DRAW_FUNC)(void);
 
@@ -216,7 +284,7 @@ SCREEN_DRAW_FUNC draw_screen_func;
 typedef struct data_record
 {
   long int timestamp;                   // TODO: use the RTC for this
-  unsigned int A0[ANALOG_SAMPLES_PER_UPDATE];    // TODO: replace these with meaningful values, consider seperate update rates
+  unsigned int A0[ANALOG_SAMPLES_PER_UPDATE];    // TODO: replace these with meaningful values, consider seperate update rates, lower resolution
   unsigned int A1[ANALOG_SAMPLES_PER_UPDATE];
   unsigned int A2[ANALOG_SAMPLES_PER_UPDATE];
   unsigned int A3[ANALOG_SAMPLES_PER_UPDATE];
@@ -228,8 +296,8 @@ typedef struct data_record
   int EGT[EGT_SAMPLES_PER_UPDATE];
   int EGT_avg;
   byte EGT_no_of_samples;
-  int RPM_avg;                          //average rpm over this time period
-  byte RPM_no_of_ticks;                 //so we can use bytes for storage here and have 15.3RPM as the slowest measurable rpm.
+  int RPM_avg;                          //average rpm over this time period, can be caluclated from number of ticks and update rate
+  byte RPM_no_of_ticks;                 //so we can use bytes for storage here and have 235RPM as the slowest measurable rpm by tick time.
   byte RPM_tick_times_ms[MAX_RPM_TICKS_PER_UPDATE];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
 } DATA_RECORD; //... bytes per record with current settings
 
@@ -250,27 +318,9 @@ byte Data_Record_write_idx = 0;
 #define CURRENT_RECORD    Data_Record[Data_Record_write_idx]
 
 
-/* flags for controlling log destination and format */
 
-#define GET_FLAG(flag)  ((flags&(1<<flag)) != 0)
-#define SET_FLAG(flag)  (flags |= (1<<flag))
-#define CLR_FLAG(flag)  (flags &= ~(1<<flag))
-#define TOG_FLAG(flag)  (flags ^= (1<<flag))
-//byte flags;
-//#define FLAG_...       1
 
-//alternatively, use bitfields
-typedef struct {
-    byte do_serial_write:1;
-    byte do_serial_write_hex:1;
-    byte do_sdcard_write:1;
-    byte do_sdcard_write_hex:1;
-    byte sd_card_available:1;
-}FLAGS;
-
-FLAGS flags;
-
-char output_filename[16];
+char output_filename[16] = "";
 
 /* generate a hash for the given data storage struct */
 void hash_data(DATA_STORAGE *data)
@@ -335,21 +385,6 @@ void reset_record()
 {
   Data_Record[1-Data_Record_write_idx] = (DATA_RECORD){0};
   Data_Record[1-Data_Record_write_idx].timestamp = millis();
-  /*
-  // data record to reset 
-  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
-  // reset counters 
-  data_record->EGT_no_of_samples = 0;
-  data_record->ANA_no_of_samples = 0;
-  data_record->RPM_no_of_ticks = 0;
-  // reset averages 
-  data_record->A0_avg;
-  data_record->A1_avg;
-  data_record->A2_avg;
-  data_record->A3_avg;
-  data_record->EGT_avg = 0;
-  data_record->RPM_avg = 0;  
-  */
 }
 /* swap records and calculate averages */
 void finalise_record()
@@ -511,6 +546,7 @@ void draw_screen()
 static long int update_timestamp = 0; //not much I can do easily about these timestamps
 static long int analog_timestamp = 0; //could be optimised by using a timer and a progmem table of func calls
 static long int egt_timestamp = 0;    //more optimal if all intervals have large common root
+static long int pid_timestamp = 0;
 
 void setup() {
 
@@ -522,14 +558,26 @@ void setup() {
   digitalWrite(9, HIGH);
   pinMode(8, OUTPUT);
   digitalWrite(8, HIGH);
-
-
+ 
   //configure the RPM input
-  congiure_rpm_counter();
+  configiure_rpm_counter();
   
   //initialise RTC
+  Wire.begin(); //69 bytes
+  rtc.begin(); //0 bytes
 
+  //initialise servos
+  #if NO_OF_SERVOS > 0
+  servo0.attach(PIN_SERVO_0);
+  #endif
+  #if NO_OF_SERVOS > 1
+  servo1.attach(PIN_SERVO_1);
+  #endif
+  #if NO_OF_SERVOS > 2
+  servo2.attach(PIN_SERVO_2);
+  #endif
 
+  
   //fetch the firmware fersion string
   
   char firwmare_string[strlen_P(FIRMWARE_NAME) + strlen_P(FIRMWARE_VERSION) + strlen_P(LIST_SEPARATOR) + 1];
@@ -546,12 +594,17 @@ void setup() {
   Serial.println(firwmare_string);
   Serial.println();
 
-  //read configuration from eeprom
-
+  
+  
+  //set default flags
   flags.do_serial_write = true;
   flags.do_sdcard_write = false;
 
+  //reset eeprom if a different version
+  reset_eeprom();
 
+  //read flag configuration from eeprom
+  EEP_GET(flags,flags);
 
 
   //attempt to initialse the logging SD card. this will include creating a new file from the RTC date for immediate logging
@@ -620,14 +673,30 @@ void setup() {
   analogRead(A2);
   analogRead(A3);
 
-  
 
+  //set initial servo conditions
+  servo0.writeMicroseconds(map(1,0,2,SERVO_0_MIN, SERVO_0_MAX));
+  servo1.writeMicroseconds(map(1,0,2,SERVO_1_MIN, SERVO_1_MAX));
+  servo2.writeMicroseconds(map(1,0,2,SERVO_2_MIN, SERVO_2_MAX));
+  
+  while(1);
   // wait for MAX chip to stabilize, and to see the splash screen
   delay(4000);
+
+  int timenow = millis();
+
+  update_timestamp = timenow + UPDATE_START_ms;         //not much I can do easily about these timestamps
+  analog_timestamp = timenow + ANALOG_UPDATE_START_ms;  //could be optimised by using a progmem table of func calls
+  egt_timestamp = timenow + EGT_UPDATE_START_ms;       //more optimal if all intervals have a relatively small common root
+  pid_timestamp = timenow + PID_UPDATE_START_ms;        //as the number of steps in the table will be dependant on the common root 
 }
 
 
-
+/* some low resolution mapped analog values */
+byte MAP_pressure_abs;
+byte KNOB_value_0;
+byte KNOB_value_1;
+byte KNOB_value_2;
 
 void loop() {
 
@@ -645,8 +714,7 @@ void loop() {
 
     /* emit the timestamp of the current update, if debugging */
     #ifdef DEBUG_LOOP
-    Serial.print(F("Update Time: "));
-    Serial.println(timenow);
+    Serial.print(F("Screen Updatee: ")); Serial.println(timenow);
     #endif
 
     
@@ -662,7 +730,7 @@ void loop() {
     //reset the record ready for next time
     reset_record();
     
-    //update the time?
+    //update the time
     timenow = millis();
     
   }
@@ -678,7 +746,7 @@ void loop() {
 
     // debug marker
     #ifdef DEBUG_LOOP
-    Serial.println(F("EGT Read"));
+    Serial.print(F("EGT Read: ")); Serial.println(timenow);
     #endif
     //collect the EGT reading  
     
@@ -692,7 +760,7 @@ void loop() {
       }
       
     }
-    //update the time?
+    //update the time
     timenow = millis();
   }
   
@@ -707,34 +775,134 @@ void loop() {
 
     //debug marker
     #ifdef DEBUG_LOOP
-    Serial.println(F("ANA Read"));
+    Serial.print(F("ANA Read: "));Serial.println(timenow);
     #endif
-    
+
     //collect analog inputs
+    int a0 = analogRead(A0);
+    int a1 = analogRead(A1);
+    int a2 = analogRead(A2);
+    int a3 = analogRead(A3);
+
+    //do some sort of processing with these values
+    //for now we want to use a1-a3 to directly control servos
+    // and convert a0 to a vaccuum as a percentile (or roughly kPa)
+    // we need to store these values statically, 
+    // and reference them in a pid control loop that controls servo output
+    int map_min, map_max, val;
+    
+    EEP_GET(map_cal_min, map_min);
+    EEP_GET(map_cal_zero, map_max);
+    MAP_pressure_abs = constrain(map(a0, map_min, map_max, 0, 101), 0, 255); 
+
+    EEP_GET(knob_0_min, map_min);
+    EEP_GET(knob_0_max, map_max);
+    KNOB_value_0 = constrain(map(a1, map_min, map_max, 0, 256), 0, 255); 
+
+    EEP_GET(knob_1_min, map_min);
+    EEP_GET(knob_1_max, map_max);
+    KNOB_value_1 = constrain(map(a2, map_min, map_max, 0, 256), 0, 255);
+
+    EEP_GET(knob_2_min, map_min);
+    EEP_GET(knob_2_max, map_max);
+    KNOB_value_2 = constrain(map(a3, map_min, map_max, 0, 256), 0, 255);
+    
+    
+    //log the analog values, if there's space in the current record
     if (CURRENT_RECORD.ANA_no_of_samples < ANALOG_SAMPLES_PER_UPDATE)
     {
       #ifdef DEBUG_ANALOG
       unsigned int timestamp_us = micros();
       #endif
-      
+
+      //we'll continue to log raw values for now
       unsigned int analog_index = CURRENT_RECORD.ANA_no_of_samples++;
-      CURRENT_RECORD.A0[analog_index] = analogRead(A0);
-      CURRENT_RECORD.A1[analog_index] = analogRead(A1);
-      CURRENT_RECORD.A2[analog_index] = analogRead(A2);
-      CURRENT_RECORD.A3[analog_index] = analogRead(A3);
+      CURRENT_RECORD.A0[analog_index] = a0;
+      CURRENT_RECORD.A1[analog_index] = a1;
+      CURRENT_RECORD.A2[analog_index] = a2;
+      CURRENT_RECORD.A3[analog_index] = a3;
       CURRENT_RECORD.A0_avg += CURRENT_RECORD.A0[analog_index];
       CURRENT_RECORD.A1_avg += CURRENT_RECORD.A1[analog_index];
       CURRENT_RECORD.A2_avg += CURRENT_RECORD.A2[analog_index];
       CURRENT_RECORD.A3_avg += CURRENT_RECORD.A3[analog_index];
+    }
+
+    #ifdef DEBUG_ANALOG
+    timestamp_us = micros() - timestamp_us;
+    Serial.print(F("Analog Read Time (us): "));
+    Serial.println(timestamp_us);
+    #endif
+
+    //update the time
+    timenow = millis();
+  }
+
+  /* servo library produces continous signal without needing .write_microseconds to be called repeatedly,
+   *  so no independant loop is required - just write the values upon calculation
+   *  
+   *  however, we want to run a pid loop to calculate servo demand based on operating conditions
+   *  and we may want to run the pid loo at a different rate to the sampling rate
+   *  eg EGT readings with a MAX6675 update every 250ms, 
+   *  analog ports are sampled at 100ms, but could be much higher if long events like sd card writes are broken up
+   *  or an interupt is used to stash analog values
+   *  update rate is limited by whatever loop call takes the longest
+   *  break longer loops into steps for better performance
+   */
+  /* get time left till next update */
+  elapsed_time = pid_timestamp - timenow;
+  /* execute update if update interval has elapsed */
+  if(elapsed_time < 0)
+  {
+    /* set the timestamp for the next update */
+    int timelag = elapsed_time%PID_UPDATE_INTERVAL_ms;
+    pid_timestamp = timenow + PID_UPDATE_INTERVAL_ms + timelag;
+
+    //debug marker
+    #ifdef DEBUG_PID
+    Serial.print(F("PID Loop: ")); Serial.println(timenow);
+    #endif  
+
+    // process invloves somthing like:
+    // opening the air managemnt valve to increase rpm, closing to reduce rpm
+    // opening reactor inlet valve to reduce vacuum, closing to increace vacuum
+    // opening RIV and closing AMV to reduce exhaust temperature
+
+    //this will be detirmined after collecting some data under manual control
+    // which is the point in datalogging
+
+    // buffers for the eeprom min max values
+    unsigned int servo_min_us, servo_max_us;
+    unsigned int servo_pos_us;
+    
+  #if NO_OF_SERVOS > 0
+    // fetch the servo times from eeprom
+    EEP_GET(servo0_min_us, servo_min_us);
+    EEP_GET(servo0_max_us, servo_max_us);
+    servo_pos_us = map(KNOB_value_0, 0, 256, servo_min_us, servo_max_us);
+    servo0.writeMicroseconds(servo_pos_us);
+    #ifdef DEBUG_SERVO
+    Serial.print(F("Servo0: ")); Serial.println(servo_pos_us);
+    #endif
+  #endif
+  #if NO_OF_SERVOS > 1
+    EEP_GET(servo1_min_us, servo_min_us);
+    EEP_GET(servo1_max_us, servo_max_us);
+    servo_pos_us = map(KNOB_value_1, 0, 256, servo_min_us, servo_max_us);
+    servo1.writeMicroseconds(servo_pos_us);
+    #ifdef DEBUG_SERVO
+    Serial.print(F("Servo1: ")); Serial.println(servo_pos_us);
+    #endif
+  #endif
+  #if NO_OF_SERVOS > 2
+    EEP_GET(servo2_min_us, servo_min_us);
+    EEP_GET(servo2_max_us, servo_max_us);
+    servo_pos_us = map(KNOB_value_2, 0, 256, servo_min_us, servo_max_us);
+    servo2.writeMicroseconds(servo_pos_us);
+    #ifdef DEBUG_SERVO
+    Serial.print(F("Servo2: ")); Serial.println(servo_pos_us);
+    #endif
+  #endif
       
-      #ifdef DEBUG_ANALOG
-      timestamp_us = micros() - timestamp_us;
-      Serial.print(F("Analog Read Time (us): "));
-      Serial.println(timestamp_us);
-      #endif
-    }  
-    //update the time?
-    //timenow = millis();
   }
   
 }

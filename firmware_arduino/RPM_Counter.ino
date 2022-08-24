@@ -12,7 +12,7 @@ void rpm_count(void)
     CURRENT_RECORD.RPM_tick_times_ms[CURRENT_RECORD.RPM_no_of_ticks++] = elapsed_time;
   }
 }
-void congiure_rpm_counter(void)
+void configiure_rpm_counter(void)
 {
   pinMode(PIN_RPM_COUNTER_INPUT, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(PIN_RPM_COUNTER_INPUT), rpm_count, RISING );
