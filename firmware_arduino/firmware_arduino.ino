@@ -1,3 +1,4 @@
+
 /*
  * OpenGEET Engine Control Unit firmware (Arduino)
  * Created by A Timiney, 13/08/2022
@@ -43,9 +44,26 @@
 
 #include <Servo.h>      //servo control disables analog write on pins 9 and 10
 
-#include <Wire.h>
-#include "RTClib.h"
-DS1307 rtc;
+
+//settings for the SoftI2CMaster library, see https://github.com/felias-fogg/SoftI2CMaster
+#define I2C_HARDWARE 1      
+#define SDA_PORT PORTC
+#define SDA_PIN 4
+#define SCL_PORT PORTC
+#define SCL_PIN 5
+//#define I2C_FASTMODE 1
+
+#include<SoftI2CMaster.h>
+
+//#include <SoftWire.h> //hopefully this will transparently replace Wire.. no it didnt
+//#include <Wire.h>   //consumes too much ram, replacing with SoftI2cMaster
+//#include "RTClib.h" //required for DateTime definition
+//DS1307 rtc;
+
+// struct for storiong date time info
+typedef struct datetime{
+  byte  year, month, day, hour, minute, second;  
+}DateTime;
 
 #define DEBUG
 
@@ -75,6 +93,8 @@ DS1307 rtc;
 #define GET_STRING(STRING_NAME) strcpy_P(string, STRING_NAME);
 
 // define them as consts here and delete the original 
+const char DATE[] PROGMEM = __DATE__;
+const char TIME[] PROGMEM = __TIME__;
 const char FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller";
 const char FIRMWARE_VERSION[]  PROGMEM = "v0.1";
 const char LIST_SEPARATOR[] PROGMEM = ", ";
@@ -544,26 +564,11 @@ void draw_screen()
   }
 }
 
-void serial_print_date_time() 
-{
-    DateTime now = rtc.now();
-    
-    Serial.print(now.year(), DEC);
-    Serial.print('/');
-    Serial.print(now.month(), DEC);
-    Serial.print('/');
-    Serial.print(now.day(), DEC);
-    Serial.print(' ');
-    Serial.print(now.hour(), DEC);
-    Serial.print(':');
-    Serial.print(now.minute(), DEC);
-    Serial.print(':');
-    Serial.print(now.second(), DEC);
-    Serial.println();
-}
+
 const char PROGMEM hex_char[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
 #define HEX_CHAR(value)   pgm_read_byte_near(hex_char + (value&0xf))
 #define DEC_CHAR(value)   pgm_read_byte_near(hex_char + (value%10))
+
 /* generate a filename from the rtc date/time
  *  if more than 255 files are required in a day, we'll
  *  have to make use of sub folders (or increase the base of NN to 36)
@@ -571,6 +576,7 @@ const char PROGMEM hex_char[] = {'0','1','2','3','4','5','6','7','8','9','A','B'
  *  or /YYYMMDD/LOG_0001.txt
  *  meanwhile, we'll just overwrite older files
  */
+
 void generate_file_name()
 {
   char *str_ptr;
@@ -581,24 +587,24 @@ void generate_file_name()
   // set the file extension
   str_ptr = output_filename + 8;
   if(flags.do_sdcard_write_hex) {strcpy_P(str_ptr,FILE_EXT_RAW);}
-    else                          {strcpy_P(str_ptr,FILE_EXT_TXT);}
+  else                          {strcpy_P(str_ptr,FILE_EXT_TXT);}
 
   //set the base name from the year month and day
-  DateTime now = rtc.now();
+  DateTime now = DS1307_date();
   //fill in the digits backwards
   str_ptr = output_filename + 5;
   
-  value = now.day();
+  value = now.day;
   *str_ptr-- = DEC_CHAR(value);
   value /=10;
   *str_ptr-- = DEC_CHAR(value);
 
-  value = now.month();
+  value = now.month;
   *str_ptr-- = DEC_CHAR(value);
   value /=10;
   *str_ptr-- = DEC_CHAR(value);
   
-  value = now.year();
+  value = now.year;
   *str_ptr-- = DEC_CHAR(value);
   value /=10;
   *str_ptr-- = DEC_CHAR(value);
@@ -606,8 +612,6 @@ void generate_file_name()
   bool do_loop = true;
   while (do_loop)
   {
-    
-    
     //set the iterator number
     str_ptr = output_filename + 7;
 
@@ -615,15 +619,12 @@ void generate_file_name()
     *str_ptr-- = HEX_CHAR(value);
     value >>=1;
     *str_ptr-- = HEX_CHAR(value);
-    
-    
 
     //break the loop if the target file doenst exist, or we have run out of indices
     if (!SD.exists(output_filename) || nn==0 )
     {
       do_loop = false;
     }
-   
   }
   //report the selected filename
   MAKE_STRING(OUTPUT_FILE_NAME_C);
@@ -674,17 +675,6 @@ void setup() {
   //configure the RPM input
   configiure_rpm_counter();
   
-  //initialise RTC
-  Wire.begin(); //69 bytes
-  rtc.begin(); //0 bytes
-  if (! rtc.isrunning()) 
-  {
-    Serial.println(F("Setting RTC to compile date/time"));
-    // following line sets the RTC to the date & time this sketch was compiled
-    rtc.adjust(DateTime(__DATE__, __TIME__));
-  }
-  serial_print_date_time();
-
   //initialise servos
   #if NO_OF_SERVOS > 0
   servo0.attach(PIN_SERVO_0);
@@ -713,7 +703,20 @@ void setup() {
   Serial.println(firwmare_string);
   Serial.println();
 
+  //initialise RTC
+  i2c_init();
+
+  //431 bytes left useing Wire.h
+  //667 bytes left using SoftI2CMaster and tiny_rtc
+  if (!DS1307_isrunning())
+  {
+    Serial.println(F("Setting RTC to compile date/time"));
+    DS1307_adjust(CompileDateTime());
+  }
   
+  DateTime now = DS1307_now();
+  serial_print_date_time(now);
+
   
   //set default flags
   flags.do_serial_write = true;
@@ -760,6 +763,15 @@ void setup() {
     GD.cmd_text(GD.w/2, GD.h/2+64, 26, OPT_CENTERY | OPT_RIGHTX, OUTPUT_FILE_NAME_C_str);
     GD.cmd_text(GD.w/2, GD.h/2+64, 26, OPT_CENTERY, output_filename);
   }
+  //date and time
+  {
+    char datetime_string[11];
+    date_to_string(now, string);
+    GD.cmd_text(GD.w/2-96,  GD.h-64, 26, OPT_CENTER, datetime_string);
+    time_to_string(now, string);
+    GD.cmd_text(GD.w/2+96,  GD.h-64, 26, OPT_CENTER, datetime_string);
+  }
+  
   GD.swap();
   GD.__end();
 
