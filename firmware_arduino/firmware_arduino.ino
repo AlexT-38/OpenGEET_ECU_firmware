@@ -132,6 +132,7 @@ const char NAME[] PROGMEM = "";
 //#define FLAG_...       1
 
 //alternatively, use bitfields
+//some of these flags need to be stored in EEPROM, some do not
 typedef struct {
     byte do_serial_write:1;
     byte do_serial_write_hex:1;
@@ -320,7 +321,7 @@ byte Data_Record_write_idx = 0;
 
 
 
-char output_filename[16] = "";
+char output_filename[13] = ""; //8+3 format
 
 /* generate a hash for the given data storage struct */
 void hash_data(DATA_STORAGE *data)
@@ -543,10 +544,121 @@ void draw_screen()
   }
 }
 
-static long int update_timestamp = 0; //not much I can do easily about these timestamps
-static long int analog_timestamp = 0; //could be optimised by using a timer and a progmem table of func calls
-static long int egt_timestamp = 0;    //more optimal if all intervals have large common root
-static long int pid_timestamp = 0;
+void serial_print_date_time() 
+{
+    DateTime now = rtc.now();
+    
+    Serial.print(now.year(), DEC);
+    Serial.print('/');
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    Serial.print(now.day(), DEC);
+    Serial.print(' ');
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    Serial.print(now.second(), DEC);
+    Serial.println();
+}
+const char PROGMEM hex_char[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+#define HEX_CHAR(value)   pgm_read_byte_near(hex_char + (value&0xf))
+#define DEC_CHAR(value)   pgm_read_byte_near(hex_char + (value%10))
+/* generate a filename from the rtc date/time
+ *  if more than 255 files are required in a day, we'll
+ *  have to make use of sub folders (or increase the base of NN to 36)
+ *  eg /001/YY_MM_DD.txt
+ *  or /YYYMMDD/LOG_0001.txt
+ *  meanwhile, we'll just overwrite older files
+ */
+void generate_file_name()
+{
+  char *str_ptr;
+  
+  int value;
+  byte nn = 0;
+
+  // set the file extension
+  str_ptr = output_filename + 8;
+  if(flags.do_sdcard_write_hex) {strcpy_P(str_ptr,FILE_EXT_RAW);}
+    else                          {strcpy_P(str_ptr,FILE_EXT_TXT);}
+
+  //set the base name from the year month and day
+  DateTime now = rtc.now();
+  //fill in the digits backwards
+  str_ptr = output_filename + 5;
+  
+  value = now.day();
+  *str_ptr-- = DEC_CHAR(value);
+  value /=10;
+  *str_ptr-- = DEC_CHAR(value);
+
+  value = now.month();
+  *str_ptr-- = DEC_CHAR(value);
+  value /=10;
+  *str_ptr-- = DEC_CHAR(value);
+  
+  value = now.year();
+  *str_ptr-- = DEC_CHAR(value);
+  value /=10;
+  *str_ptr-- = DEC_CHAR(value);
+
+  bool do_loop = true;
+  while (do_loop)
+  {
+    
+    
+    //set the iterator number
+    str_ptr = output_filename + 7;
+
+    value = nn++;
+    *str_ptr-- = HEX_CHAR(value);
+    value >>=1;
+    *str_ptr-- = HEX_CHAR(value);
+    
+    
+
+    //break the loop if the target file doenst exist, or we have run out of indices
+    if (!SD.exists(output_filename) || nn==0 )
+    {
+      do_loop = false;
+    }
+   
+  }
+  //report the selected filename
+  MAKE_STRING(OUTPUT_FILE_NAME_C);
+  Serial.print(OUTPUT_FILE_NAME_C_str);
+  Serial.println(output_filename);
+  
+  //check that the file can be opened
+  File dataFile = SD.open(output_filename, FILE_WRITE);
+  if(dataFile)
+  {
+    MAKE_STRING(RECORD_VER_C);    dataFile.print(RECORD_VER_C_str);    dataFile.println(DATA_RECORD_VERSION);
+    dataFile.close();
+    
+    Serial.println(F("Opened OK"));
+    flags.do_sdcard_write = true;
+
+    if(nn == 0)
+    {
+      Serial.println(F("Overwriting older file"));
+    }
+  }
+  else
+  {
+    Serial.println(F("Open FAILED"));
+    flags.do_sdcard_write = false;
+  }
+
+  
+}
+
+static int update_timestamp = 0; //not much I can do easily about these timestamps
+static int analog_timestamp = 0; //could be optimised by using a timer and a progmem table of func calls
+static int egt_timestamp = 0;    //more optimal if all intervals have large common root
+static int pid_timestamp = 0;    //they probably dont need to be long ints though.
+                                 //short ints can handle an interval of 32 seconds
 
 void setup() {
 
@@ -565,6 +677,13 @@ void setup() {
   //initialise RTC
   Wire.begin(); //69 bytes
   rtc.begin(); //0 bytes
+  if (! rtc.isrunning()) 
+  {
+    Serial.println(F("Setting RTC to compile date/time"));
+    // following line sets the RTC to the date & time this sketch was compiled
+    rtc.adjust(DateTime(__DATE__, __TIME__));
+  }
+  serial_print_date_time();
 
   //initialise servos
   #if NO_OF_SERVOS > 0
@@ -625,25 +744,7 @@ void setup() {
     Serial.println(string);
     flags.sd_card_available = true;
 
-    // generate a filename
-    strcpy_P(output_filename,DEFAULT_FILENAME);
-    char *str_ptr = output_filename + strlen_P(DEFAULT_FILENAME);
-    if(flags.do_sdcard_write_hex) {strcpy_P(str_ptr,FILE_EXT_RAW);}
-    else                          {strcpy_P(str_ptr,FILE_EXT_TXT);}
-    
-    MAKE_STRING(OUTPUT_FILE_NAME_C);
-    Serial.print(OUTPUT_FILE_NAME_C_str);
-    Serial.println(output_filename);
-    
-    File dataFile = SD.open(output_filename, FILE_WRITE);
-    if(dataFile)
-    {
-      MAKE_STRING(RECORD_VER_C);    dataFile.print(RECORD_VER_C_str);    dataFile.println(DATA_RECORD_VERSION);
-      dataFile.close();
-      
-      Serial.println(F("Opened OK"));
-      flags.do_sdcard_write = true;
-    }
+    generate_file_name();
   }
 
   
@@ -684,10 +785,11 @@ void setup() {
 
   int timenow = millis();
 
-  update_timestamp = timenow + UPDATE_START_ms;         //not much I can do easily about these timestamps
-  analog_timestamp = timenow + ANALOG_UPDATE_START_ms;  //could be optimised by using a progmem table of func calls
-  egt_timestamp = timenow + EGT_UPDATE_START_ms;       //more optimal if all intervals have a relatively small common root
-  pid_timestamp = timenow + PID_UPDATE_START_ms;        //as the number of steps in the table will be dependant on the common root 
+  //set the initial times for the loop events
+  update_timestamp = timenow + UPDATE_START_ms;
+  analog_timestamp = timenow + ANALOG_UPDATE_START_ms;
+  egt_timestamp = timenow + EGT_UPDATE_START_ms;
+  pid_timestamp = timenow + PID_UPDATE_START_ms;
 }
 
 
@@ -697,10 +799,26 @@ byte KNOB_value_0;
 byte KNOB_value_1;
 byte KNOB_value_2;
 
+void process_analog_inputs()
+{
+  
+}
+void process_digital_inputs()
+{
+  
+}
+void process_pid_loop()
+{
+  
+}
+void process_display_loop()
+{
+  
+}
 void loop() {
 
-  long int elapsed_time;
-  long int timenow = millis();
+  int elapsed_time;
+  int timenow = millis();
 
   /* get time left till next update */
   elapsed_time = update_timestamp - timenow;
@@ -713,7 +831,7 @@ void loop() {
 
     /* emit the timestamp of the current update, if debugging */
     #ifdef DEBUG_LOOP
-    Serial.print(F("Screen Updatee: ")); Serial.println(timenow);
+    Serial.print(F("Screen Update: ")); Serial.println(timenow);
     #endif
 
     
