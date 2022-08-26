@@ -15,49 +15,45 @@ static uint8_t t_bcd2bin (uint8_t val) { return val - 6 * (val >> 4); }
 static uint8_t t_bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
 
 /* print the date and time to the serial port */
-void serial_print_date_time(const DateTime now) 
+void serial_print_date_time(const DateTime t_now) 
 {
-    Serial.print(2000+now.year, DEC);
-    Serial.print('/');
-    Serial.print(now.month, DEC);
-    Serial.print('/');
-    Serial.print(now.day, DEC);
-    Serial.print(' ');
-    Serial.print(now.hour, DEC);
-    Serial.print(':');
-    Serial.print(now.minute, DEC);
-    Serial.print(':');
-    Serial.print(now.second, DEC);
-    Serial.println();
-}
-void date_to_string(DateTime now, char *string)
+  char string[11];
+  date_to_string(t_now, string);
+  Serial.print(string);
+  GET_STRING(LIST_SEPARATOR);
+  Serial.print(string);
+  date_to_string(t_now, string);
+  Serial.print(string);
+} 
+void date_to_string(DateTime t_now, char *string)
 {
   string += 10;
   *string-- = '\0';
-  *string-- = '0' + now.day%10;
-  *string-- = '0' + now.day/10;
-  *string-- = ':';
-  *string-- = '0' + now.month%10;
-  *string-- = '0' + now.month/10;
-  *string-- = ':';
-  *string-- = '0' + now.year%10;
-  *string-- = '0' + now.year/10;
+  *string-- = '0' + t_now.day%10;
+  *string-- = '0' + (t_now.day/10)%10;
+  *string-- = '/';
+  *string-- = '0' + t_now.month%10;
+  *string-- = '0' + (t_now.month/10)%10;
+  *string-- = '/';
+  *string-- = '0' + t_now.year%10;
+  *string-- = '0' + (t_now.year/10)%10;
   *string-- = '0';
-  *string-- = '2';
+  *string   = '2';
 }
 void time_to_string(const DateTime now, char *string)
 {
   string += 8;
   *string-- = '\0';
   *string-- = '0' + now.second%10;
-  *string-- = '0' + now.second/10;
-  *string-- = '/';
+  *string-- = '0' + (now.second/10)%10;
+  *string-- = ':';
   *string-- = '0' + now.minute%10;
-  *string-- = '0' + now.minute/10;
-  *string-- = '/';
+  *string-- = '0' + (now.minute/10)%10;
+  *string-- = ':';
   *string-- = '0' + now.hour%10;
-  *string-- = '0' + now.hour/10;
+  *string   = '0' + (now.hour/10)%10;
 }
+
 
 #define NVREAD(addr)        DS1307_read(8 + addr)   //nvram starts at address 8
 #define NVWRITE(addr, val)  DS1307_write(8 + addr, val)
@@ -144,14 +140,15 @@ DateTime DS1307_now() {
     i2c_write(0);
     if(i2c_rep_start(DS1307_READ))
     {
-      dt.second = t_bcd2bin(i2c_read(false) & 0x7F);
+      dt.second = t_bcd2bin(i2c_read(false));
       dt.minute = t_bcd2bin(i2c_read(false));
       dt.hour   = t_bcd2bin(i2c_read(false));
+      
       i2c_read(false);
+
       dt.day    = t_bcd2bin(i2c_read(false));
       dt.month  = t_bcd2bin(i2c_read(false));
-      dt.year   = t_bcd2bin(i2c_read(true));  
-      
+      dt.year   = t_bcd2bin(i2c_read(true));
     }
   }
   i2c_stop();
@@ -169,7 +166,6 @@ DateTime DS1307_date() {
       dt.day    = t_bcd2bin(i2c_read(false));
       dt.month  = t_bcd2bin(i2c_read(false));
       dt.year   = t_bcd2bin(i2c_read(true));  
-      
     }
   }
   i2c_stop();
@@ -204,7 +200,6 @@ static uint8_t conv2d(const char* p) {
 DateTime CompileDateTime()
 {
   DateTime dt;
-  //(__DATE__, __TIME__)
 
   MAKE_STRING(DATE);
   //                offset 0123456789A           01234567
@@ -214,7 +209,7 @@ DateTime CompileDateTime()
   
   // Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec 
   switch (DATE_str[0]) {
-    case 'J': dt.month = DATE_str[1] == 'a' ? 1 : dt.month = DATE_str[2] == 'n' ? 6 : 7; break;
+    case 'J': dt.month = DATE_str[1] == 'a' ? ( 1 ) : ( (DATE_str[2]=='n') ? 6 : 7); break;
     case 'F': dt.month = 2; break;
     case 'A': dt.month = DATE_str[2] == 'r' ? 4 : 8; break;
     case 'M': dt.month = DATE_str[2] == 'r' ? 3 : 5; break;
@@ -228,9 +223,26 @@ DateTime CompileDateTime()
       dt.month = conv2d(DATE_str + 3);
       break;
   }
+  
   MAKE_STRING(TIME);
   dt.hour = conv2d(TIME_str);
   dt.minute = conv2d(TIME_str + 3);
   dt.second = conv2d(TIME_str + 6);
+  return(dt);
+}
 
+bool is_after(DateTime a, DateTime b)
+{
+  if(a.year > b.year) return true;
+  if(a.year < b.year) return false;
+  if(a.month > b.month) return true;
+  if(a.month < b.month) return false;
+  if(a.day > b.day) return true;
+  if(a.day < b.day) return false;
+  if(a.hour > b.hour) return true;
+  if(a.hour < b.hour) return false;
+  if(a.minute > b.minute) return true;
+  if(a.minute < b.minute) return false;
+  if(a.second > b.second) return true;
+  if(a.second < b.second) return false;
 }

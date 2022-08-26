@@ -37,9 +37,15 @@ void draw_basic()
 
   pos_y += 64;
   pos_y += 64;
-  MAKE_STRING(TIMESTAMP_MS);
-  GD.cmd_text(pos_x, pos_y+28, 26, OPT_RIGHTX | OPT_CENTERY, TIMESTAMP_MS_str);
-  GD.cmd_number(pos_x, pos_y, 27, OPT_RIGHTX | OPT_CENTERY, data_record->timestamp);
+
+  {
+    DateTime t_now = DS1307_now();
+    char datetime_string[11];
+    date_to_string(t_now, datetime_string);
+    GD.cmd_text(pos_x,  pos_y+12, 26, OPT_RIGHTX | OPT_CENTERY, datetime_string);
+    time_to_string(t_now, datetime_string);
+    GD.cmd_text(pos_x,  pos_y-12, 26, OPT_RIGHTX | OPT_CENTERY, datetime_string);
+  }
 
   pos_x = 16;
   pos_y = 32;

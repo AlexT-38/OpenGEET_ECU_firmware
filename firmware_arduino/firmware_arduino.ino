@@ -701,26 +701,37 @@ void setup() {
   Serial.begin(115200);
   Serial.println();
   Serial.println(firwmare_string);
+  DateTime t_compile;
+  t_compile = CompileDateTime();
+  serial_print_date_time(t_compile);
   Serial.println();
 
   //initialise RTC
   i2c_init();
 
-  //431 bytes left useing Wire.h
-  //667 bytes left using SoftI2CMaster and tiny_rtc
   if (!DS1307_isrunning())
   {
-    Serial.println(F("Setting RTC to compile date/time"));
-    DS1307_adjust(CompileDateTime());
+    Serial.println(F("RTC not running. Updating with compile date/time."));
+    DS1307_adjust(t_compile);
   }
-  
-  DateTime now = DS1307_now();
-  serial_print_date_time(now);
-
+  else
+  {
+    DateTime t_now = DS1307_now();
+    if (is_after(t_compile, t_now))
+    {
+      Serial.println(F("RTC behind compile date/time. Updating."));
+      DS1307_adjust(t_compile);
+    }
+    else
+    {
+      Serial.print(F("Time now: "));
+      serial_print_date_time(t_now);
+    }
+  }
   
   //set default flags
   flags.do_serial_write = true;
-  flags.do_sdcard_write = false;
+  flags.do_sdcard_write = true;
 
   //reset eeprom if a different version
   reset_eeprom();
@@ -729,22 +740,19 @@ void setup() {
   EEP_GET(flags,flags);
 
 
-  //attempt to initialse the logging SD card. this will include creating a new file from the RTC date for immediate logging
+  //attempt to initialse the logging SD card. 
+  //this will include creating a new file from the RTC date for immediate logging
 
-  //Serial.print("Initializing SD card...");
-  // see if the card is present and can be initialized:
+  Serial.print(F("Initializing SD card..."));
   STRING_BUFFER(CARD_FAILED_OR_NOT_PRESENT);
   
-  
   if (!SD.begin(PIN_LOG_SDCARD_CS)) {
-    GET_STRING(CARD_FAILED_OR_NOT_PRESENT);
-    Serial.println(string);
+    GET_STRING(CARD_FAILED_OR_NOT_PRESENT); Serial.println(string);
     flags.sd_card_available = false;
   }
   else
   {
-    GET_STRING(CARD_INITIALISED);
-    Serial.println(string);
+    GET_STRING(CARD_INITIALISED); Serial.println(string);
     flags.sd_card_available = true;
 
     generate_file_name();
@@ -753,33 +761,39 @@ void setup() {
   
   //initialise the display
   GD.begin(0);
-  // draw splash screen
+
+  // draw splash screen...
   GD.Clear();
-  GD.cmd_text(GD.w/2, GD.h/2-32, 29, OPT_CENTER, firwmare_string);  //firmware name and version
-  GD.cmd_text(GD.w/2, GD.h/2+32, 27, OPT_CENTER, string);           //sd card status
-  if (flags.sd_card_available && flags.do_sdcard_write)             //output file name, if valid
+
+  //firmware name and version
+  GD.cmd_text(GD.w/2, GD.h/2-32, 29, OPT_CENTER, firwmare_string);
+
+  //date and time
+  char datetime_string[11];
+  date_to_string(t_compile, datetime_string);
+  GD.cmd_text(GD.w/2-48,  GD.h/2, 26, OPT_CENTER, datetime_string);
+  time_to_string(t_compile, datetime_string);
+  GD.cmd_text(GD.w/2+48,  GD.h/2, 26, OPT_CENTER, datetime_string);
+
+  //sd card status
+  GD.cmd_text(GD.w/2, GD.h-32, 27, OPT_CENTER, string);
+  
+  //output file name, if valid           
+  if (flags.sd_card_available && flags.do_sdcard_write)
   {
     MAKE_STRING(OUTPUT_FILE_NAME_C);
     GD.cmd_text(GD.w/2, GD.h/2+64, 26, OPT_CENTERY | OPT_RIGHTX, OUTPUT_FILE_NAME_C_str);
     GD.cmd_text(GD.w/2, GD.h/2+64, 26, OPT_CENTERY, output_filename);
   }
-  //date and time
-  {
-    char datetime_string[11];
-    date_to_string(now, string);
-    GD.cmd_text(GD.w/2-96,  GD.h-64, 26, OPT_CENTER, datetime_string);
-    time_to_string(now, string);
-    GD.cmd_text(GD.w/2+96,  GD.h-64, 26, OPT_CENTER, datetime_string);
-  }
   
+  // show the screen  
   GD.swap();
+  // free the SPI port
   GD.__end();
 
   //set the first screen to be drawn
   draw_screen_func = draw_basic;
 
-  
-  
   //start the ADC
   analogRead(A0);
   analogRead(A1);
@@ -794,6 +808,7 @@ void setup() {
   
   // wait for MAX chip to stabilize, and to see the splash screen
   delay(4000);
+//  while(1);
 
   int timenow = millis();
 
