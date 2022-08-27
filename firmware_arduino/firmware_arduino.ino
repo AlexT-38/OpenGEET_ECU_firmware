@@ -55,11 +55,6 @@
 
 #include<SoftI2CMaster.h>
 
-//#include <SoftWire.h> //hopefully this will transparently replace Wire.. no it didnt
-//#include <Wire.h>   //consumes too much ram, replacing with SoftI2cMaster
-//#include "RTClib.h" //required for DateTime definition
-//DS1307 rtc;
-
 // struct for storiong date time info
 typedef struct datetime{
   byte  year, month, day, hour, minute, second;  
@@ -67,11 +62,15 @@ typedef struct datetime{
 
 #define DEBUG
 
-#ifdef DEBUG            //enable debugging readouts
-//#define DEBUG_LOOP    //mprint out loop markers and update time
-#define DEBUG_UPDATE    //measure how long an update takes
-#define DEBUG_SDCARD    //measure how long SD car access takes
-//#define DEBUG_ANALOG  //measure how long analog read and processing takes
+#ifdef DEBUG                  //enable debugging readouts
+//#define DEBUG_LOOP          //mprint out loop markers and update time
+#define DEBUG_UPDATE_TIME     //measure how long an update takes
+#define DEBUG_DISPLAY_TIME    //measure how long draw screen takes
+//#define DEBUG_SDCARD_TIME   //measure how long SD card access takes
+#define DEBUG_PID_TIME      //measure how long the pid loop takes
+//#define DEBUG_ANALOG_TIME   //measure how long analog read and processing takes
+//#define DEBUG_DIGITAL_TIME  //measure how long reading from digital sensors takes
+
 #endif
 
 
@@ -132,6 +131,12 @@ const char NAME[] PROGMEM = "";
 const char NAME[] PROGMEM = "";
 const char NAME[] PROGMEM = "";
 */
+
+// int to char conversion for hex and decimal
+const char PROGMEM hex_char[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+#define HEX_CHAR(value)   pgm_read_byte_near(hex_char + (value&0xf))
+#define DEC_CHAR(value)   ('0' + (value%10))
+
 // eeprom addresses
 /* as there is no way of incrementing a macro using the preprocessesor,
  * an altternative method of assigning eeprom addresses is required
@@ -171,7 +176,7 @@ struct eeprom
     unsigned int servo1_min_us, servo1_max_us;
     unsigned int servo2_min_us, servo2_max_us;
     unsigned int map_cal_zero, map_cal_min;
-    unsigned int knob_0_min, knob_0_max;
+    unsigned int knob_0_min, knob_0_max;        //not sure why I thought this was neccessary
     unsigned int knob_1_min, knob_1_max;
     unsigned int knob_2_min, knob_2_max;
     FLAGS        flags;
@@ -337,323 +342,18 @@ DATA_RECORD Data_Record[2];
 byte Data_Record_write_idx = 0;
 
 #define CURRENT_RECORD    Data_Record[Data_Record_write_idx]
-
-
-
-
 char output_filename[13] = ""; //8+3 format
 
-/* generate a hash for the given data storage struct */
-void hash_data(DATA_STORAGE *data)
-{
-  byte hash = 0;
-  for (unsigned int next_byte = 0; next_byte < data->bytes_stored; next_byte++)
-  {
-    byte index = next_byte;
-    index += data->data[next_byte];
-    hash = hash ^ index;
-  }
-  data->hash = hash;
-}
 
-void serial_print_int_array(int *array_data, unsigned int array_size, const char *title_str)
-{
-  MAKE_STRING(LIST_SEPARATOR);
-  Serial.print(title_str);
-  for(int idx = 0; idx < array_size; idx++)
-  {
-    Serial.print(array_data[idx]);
-    Serial.print(LIST_SEPARATOR_str);
-  }
-  Serial.println();
-}
-void serial_print_byte_array(byte *array_data, unsigned int array_size, const char *title_str)
-{
-  MAKE_STRING(LIST_SEPARATOR);
-  Serial.print(title_str);
-  for(int idx = 0; idx < array_size; idx++)
-  {
-    Serial.print(array_data[idx]);
-    Serial.print(LIST_SEPARATOR_str);
-  }
-  Serial.println();
-}
-void file_print_int_array(File *file, int *array_data, unsigned int array_size, const char *title_str)
-{
-  MAKE_STRING(LIST_SEPARATOR);
-  file->print(title_str);
-  for(int idx = 0; idx < array_size; idx++)
-  {
-    file->print(array_data[idx]);
-    file->print(LIST_SEPARATOR_str);
-  }
-  file->println();
-}
-void file_print_byte_array(File *file, byte *array_data, unsigned int array_size, const char *title_str)
-{
-  MAKE_STRING(LIST_SEPARATOR);
-  file->print(title_str);
-  for(int idx = 0; idx < array_size; idx++)
-  {
-    file->print(array_data[idx]);
-    file->print(LIST_SEPARATOR_str);
-  }
-  file->println();
-}
-
-/* reset the back record after use */
-void reset_record()
-{
-  Data_Record[1-Data_Record_write_idx] = (DATA_RECORD){0};
-  Data_Record[1-Data_Record_write_idx].timestamp = millis();
-}
-/* swap records and calculate averages */
-void finalise_record()
-{
-  /* switch the records */
-  Data_Record_write_idx = 1-Data_Record_write_idx; 
-  
-  /* data record to read */
-  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
-  
-  
-  /* calculate averages */
-  if(data_record->ANA_no_of_samples > 0)
-  {
-    int rounding = data_record->ANA_no_of_samples/2;
-    data_record->A0_avg += rounding;
-    data_record->A1_avg += rounding;
-    data_record->A2_avg += rounding;
-    data_record->A3_avg += rounding;
-    
-    data_record->A0_avg /= data_record->ANA_no_of_samples;
-    data_record->A1_avg /= data_record->ANA_no_of_samples;
-    data_record->A2_avg /= data_record->ANA_no_of_samples;
-    data_record->A3_avg /= data_record->ANA_no_of_samples;
-  }
-  if(data_record->EGT_no_of_samples > 0)
-  {
-    unsigned int rounding = data_record->EGT_no_of_samples/2;
-    data_record->EGT_avg += rounding;
-    data_record->EGT_avg /= data_record->EGT_no_of_samples;
-  }
-//  if(data_record->RPM_no_of_samples > 0)
-//  {
-    // for rpm, we can approximate by the number of ticks
-    data_record->RPM_avg = data_record->RPM_no_of_ticks * 60000/UPDATE_INTERVAL_ms;
-    // for a more acurate reading, we must sum all tick intervals
-    // and divide by number of ticks
-    // but this should be sufficient
-    
-    //unsigned int rounding = data_record->RPM_no_of_samples/2;
-    //data_record->RPM_avg += rounding;
-    //data_record->RPM_avg = (unsigned int)(60000*(unsigned long int)data_record->RPM_no_of_samples/data_record->RPM_avg);  
-//  }
-}
-/* writes the current data record to serial port and SD card as required */
-void write_data_record()
-{
-  /* data record to read */
-  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
-
-  /* we can break this down into subsections if the overall process time
-   * is greater than the shortest snesor read interval */
-   
-  /* hash the data for hex storage*/
-  DATA_STORAGE data_store = {data_record, sizeof(DATA_STORAGE), 0};
-  hash_data(&data_store);
-
-  /* send the data to the serial port */
-  if(flags.do_serial_write)
-  {
-    if(flags.do_serial_write_hex)
-    {
-      
-      Serial.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
-      Serial.write(data_store.hash);                                              //write the hash value
-      Serial.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
-    }
-    else
-    {
-      Serial.println(F("----------"));
-      MAKE_STRING(RECORD_VER_C);    Serial.print(RECORD_VER_C_str);     Serial.println(DATA_RECORD_VERSION);
-      MAKE_STRING(TIMESTAMP_C);     Serial.print(TIMESTAMP_C_str);      Serial.println(data_record->timestamp);
-
-      
-      Serial.print(F("A0_avg: "));      Serial.println(data_record->A0_avg);
-      Serial.print(F("A1_avg: "));      Serial.println(data_record->A1_avg);
-      Serial.print(F("A2_avg: "));      Serial.println(data_record->A2_avg);
-      Serial.print(F("A3_avg: "));      Serial.println(data_record->A3_avg);
-
-      Serial.print(F("ANA samples: "));      Serial.println(data_record->ANA_no_of_samples);
-      STRING_BUFFER(A0_C);
-      GET_STRING(A0_C);             serial_print_int_array(data_record->A0, data_record->ANA_no_of_samples, string);
-      GET_STRING(A1_C);             serial_print_int_array(data_record->A1, data_record->ANA_no_of_samples, string);
-      GET_STRING(A2_C);             serial_print_int_array(data_record->A2, data_record->ANA_no_of_samples, string);
-      GET_STRING(A3_C);             serial_print_int_array(data_record->A3, data_record->ANA_no_of_samples, string);
-      Serial.print(F("EGT_avg"));      Serial.println(data_record->EGT_avg);
-      Serial.print(F("EGT samples: "));      Serial.println(data_record->EGT_no_of_samples);
-      MAKE_STRING(EGT1_C);          serial_print_int_array(data_record->EGT, data_record->EGT_no_of_samples, EGT1_C_str);
-      MAKE_STRING(RPM_AVG);         Serial.print(RPM_AVG_str);          Serial.println(data_record->RPM_avg);
-      MAKE_STRING(RPM_NO_OF_TICKS); Serial.print(RPM_NO_OF_TICKS_str);  Serial.println(data_record->RPM_no_of_ticks);
-      MAKE_STRING(RPM_TICK_TIMES);  serial_print_byte_array(data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, RPM_TICK_TIMES_str);
-      Serial.println(F("----------"));
-    }
-  }
-
-/* send the data to the SD card, if available */
-  if(flags.do_sdcard_write && flags.sd_card_available)
-  {
-#ifdef DEBUG_SDCARD    
-    unsigned int timestamp_ms = millis();
-#endif
-    
-    File log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);
-    if (log_data_file)
-    {
-      /* replace all these serial calls with SD card file calls */
-      if(flags.do_serial_write_hex)
-      {
-        log_data_file.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
-        log_data_file.write(data_store.hash);                                              //write the hash value
-        log_data_file.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
-      }
-      else
-      {
-        //MAKE_STRING(RECORD_VER_C);    log_data_file.print(RECORD_VER_C_str);    log_data_file.println(DATA_RECORD_VERSION);
-        MAKE_STRING(TIMESTAMP_C);     log_data_file.print(TIMESTAMP_C_str);     log_data_file.println(data_record->timestamp);
-        STRING_BUFFER(A0_C);
-        GET_STRING(A0_C);             file_print_int_array(&log_data_file, data_record->A0, ANALOG_SAMPLES_PER_UPDATE, string);
-        GET_STRING(A1_C);             file_print_int_array(&log_data_file, data_record->A1, ANALOG_SAMPLES_PER_UPDATE, string);
-        GET_STRING(A2_C);             file_print_int_array(&log_data_file, data_record->A2, ANALOG_SAMPLES_PER_UPDATE, string);
-        GET_STRING(A3_C);             file_print_int_array(&log_data_file, data_record->A3, ANALOG_SAMPLES_PER_UPDATE, string);
-        MAKE_STRING(EGT1_C);          file_print_int_array(&log_data_file, data_record->EGT, EGT_SAMPLES_PER_UPDATE, EGT1_C_str);
-        MAKE_STRING(RPM_AVG);         log_data_file.print(RPM_AVG_str);         log_data_file.println(data_record->RPM_avg);
-        MAKE_STRING(RPM_NO_OF_TICKS); log_data_file.print(RPM_NO_OF_TICKS_str); log_data_file.println(data_record->RPM_no_of_ticks);
-        MAKE_STRING(RPM_TICK_TIMES);  file_print_byte_array(&log_data_file, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, RPM_TICK_TIMES_str);
-      }
-      log_data_file.close();
-
-#ifdef DEBUG_SDCARD
-      timestamp_ms = millis() - timestamp_ms;
-      Serial.print(F("SDCard Access Time (ms): "));
-      Serial.println(timestamp_ms);
-    }
-    else
-    {
-      Serial.println(F("Fail: open output file"));
-#endif
-    }
-  }
-  
-}
-
-/* opens comms to display chip and calls the current screen's draw function */
-void draw_screen()
-{
-  if (draw_screen_func != NULL)
-  {
-    /* restart comms with the FT810 */
-    GD.resume();
-    /* draw the current screen */
-    draw_screen_func();
-    /* display the screen */
-    GD.swap();
-    /* stop comms to FT810, so other devices (ie MAX6675, SD CARD) can use the bus */
-    GD.__end();
-  }
-}
-
-
-const char PROGMEM hex_char[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-#define HEX_CHAR(value)   pgm_read_byte_near(hex_char + (value&0xf))
-#define DEC_CHAR(value)   pgm_read_byte_near(hex_char + (value%10))
-
-/* generate a filename from the rtc date/time
- *  if more than 255 files are required in a day, we'll
- *  have to make use of sub folders (or increase the base of NN to 36)
- *  eg /001/YY_MM_DD.txt
- *  or /YYYMMDD/LOG_0001.txt
- *  meanwhile, we'll just overwrite older files
+/* some low resolution mapped analog values 
+ *  as ram has been cleaned up, we can consider making these high resolution 
  */
+byte MAP_pressure_abs;
+byte KNOB_value_0;
+byte KNOB_value_1;
+byte KNOB_value_2;
 
-void generate_file_name()
-{
-  char *str_ptr;
-  
-  int value;
-  byte nn = 0;
 
-  // set the file extension
-  str_ptr = output_filename + 8;
-  if(flags.do_sdcard_write_hex) {strcpy_P(str_ptr,FILE_EXT_RAW);}
-  else                          {strcpy_P(str_ptr,FILE_EXT_TXT);}
-
-  //set the base name from the year month and day
-  DateTime now = DS1307_date();
-  //fill in the digits backwards
-  str_ptr = output_filename + 5;
-  
-  value = now.day;
-  *str_ptr-- = DEC_CHAR(value);
-  value /=10;
-  *str_ptr-- = DEC_CHAR(value);
-
-  value = now.month;
-  *str_ptr-- = DEC_CHAR(value);
-  value /=10;
-  *str_ptr-- = DEC_CHAR(value);
-  
-  value = now.year;
-  *str_ptr-- = DEC_CHAR(value);
-  value /=10;
-  *str_ptr-- = DEC_CHAR(value);
-
-  bool do_loop = true;
-  while (do_loop)
-  {
-    //set the iterator number
-    str_ptr = output_filename + 7;
-
-    value = nn++;
-    *str_ptr-- = HEX_CHAR(value);
-    value >>=1;
-    *str_ptr-- = HEX_CHAR(value);
-
-    //break the loop if the target file doenst exist, or we have run out of indices
-    if (!SD.exists(output_filename) || nn==0 )
-    {
-      do_loop = false;
-    }
-  }
-  //report the selected filename
-  MAKE_STRING(OUTPUT_FILE_NAME_C);
-  Serial.print(OUTPUT_FILE_NAME_C_str);
-  Serial.println(output_filename);
-  
-  //check that the file can be opened
-  File dataFile = SD.open(output_filename, FILE_WRITE);
-  if(dataFile)
-  {
-    MAKE_STRING(RECORD_VER_C);    dataFile.print(RECORD_VER_C_str);    dataFile.println(DATA_RECORD_VERSION);
-    dataFile.close();
-    
-    Serial.println(F("Opened OK"));
-    flags.do_sdcard_write = true;
-
-    if(nn == 0)
-    {
-      Serial.println(F("Overwriting older file"));
-    }
-  }
-  else
-  {
-    Serial.println(F("Open FAILED"));
-    flags.do_sdcard_write = false;
-  }
-
-  
-}
 
 static int update_timestamp = 0; //not much I can do easily about these timestamps
 static int analog_timestamp = 0; //could be optimised by using a timer and a progmem table of func calls
@@ -820,28 +520,189 @@ void setup() {
 }
 
 
-/* some low resolution mapped analog values */
-byte MAP_pressure_abs;
-byte KNOB_value_0;
-byte KNOB_value_1;
-byte KNOB_value_2;
+/* opens comms to display chip and calls the current screen's draw function */
+void draw_screen()
+{
+  if (draw_screen_func != NULL)
+  {
+    #ifdef DEBUG_DISPLAY_TIME
+    unsigned int timestamp_us = micros();
+    #endif
+  
+    /* restart comms with the FT810 */
+    GD.resume();
+    /* draw the current screen */
+    draw_screen_func();
+    /* display the screen */
+    GD.swap();
+    /* stop comms to FT810, so other devices (ie MAX6675, SD CARD) can use the bus */
+    GD.__end();
+
+    #ifdef DEBUG_DISPLAY_TIME
+    timestamp_us = micros() - timestamp_us;
+    Serial.print(F("Draw Display Time (us): "));
+    Serial.println(timestamp_us);
+    #endif
+  }
+}
 
 void process_analog_inputs()
 {
+  #ifdef DEBUG_ANALOG_TIME
+  unsigned int timestamp_us = micros();
+  #endif
   
+  //collect analog inputs
+  int a0 = analogRead(A0);
+  int a1 = analogRead(A1);
+  int a2 = analogRead(A2);
+  int a3 = analogRead(A3);
+
+  //do some sort of processing with these values
+  //for now we want to use a1-a3 to directly control servos
+  // and convert a0 to a vaccuum as a percentile (or roughly kPa)
+  // we need to store these values statically, 
+  // and reference them in a pid control loop that controls servo output
+  int map_min, map_max, val;
+  
+  EEP_GET(map_cal_min, map_min);    EEP_GET(map_cal_zero, map_max);
+  MAP_pressure_abs = constrain(map(a0, map_min, map_max, 0, 101), 0, 255); 
+
+  EEP_GET(knob_0_min, map_min);     EEP_GET(knob_0_max, map_max);
+  KNOB_value_0 = constrain(map(a1, map_min, map_max, 0, 256), 0, 255); 
+
+  EEP_GET(knob_1_min, map_min);     EEP_GET(knob_1_max, map_max);
+  KNOB_value_1 = constrain(map(a2, map_min, map_max, 0, 256), 0, 255);
+
+  EEP_GET(knob_2_min, map_min);     EEP_GET(knob_2_max, map_max);
+  KNOB_value_2 = constrain(map(a3, map_min, map_max, 0, 256), 0, 255);
+  
+  //log the analog values, if there's space in the current record
+  if (CURRENT_RECORD.ANA_no_of_samples < ANALOG_SAMPLES_PER_UPDATE)
+  {
+    //we'll continue to log raw values for now
+    unsigned int analog_index = CURRENT_RECORD.ANA_no_of_samples++;
+    CURRENT_RECORD.A0[analog_index] = a0;
+    CURRENT_RECORD.A1[analog_index] = a1;
+    CURRENT_RECORD.A2[analog_index] = a2;
+    CURRENT_RECORD.A3[analog_index] = a3;
+    CURRENT_RECORD.A0_avg += CURRENT_RECORD.A0[analog_index];
+    CURRENT_RECORD.A1_avg += CURRENT_RECORD.A1[analog_index];
+    CURRENT_RECORD.A2_avg += CURRENT_RECORD.A2[analog_index];
+    CURRENT_RECORD.A3_avg += CURRENT_RECORD.A3[analog_index];
+  }
+  #ifdef DEBUG_ANALOG_TIME
+  timestamp_us = micros() - timestamp_us;
+  Serial.print(F("Analog Read Time (us): "));
+  Serial.println(timestamp_us);
+  #endif
 }
+
 void process_digital_inputs()
 {
+  #ifdef DEBUG_DIGITAL_TIME
+  unsigned int timestamp_us = micros();
+  #endif
   
+  if (CURRENT_RECORD.EGT_no_of_samples < EGT_SAMPLES_PER_UPDATE)
+  {
+    if(EGTSensor1.readTemp())
+    {
+      int EGT1_value = EGTSensor1.getTempIntRaw();
+      CURRENT_RECORD.EGT[CURRENT_RECORD.EGT_no_of_samples++] = EGT1_value;
+      CURRENT_RECORD.EGT_avg += EGT1_value;
+    }
+  }
+  #ifdef DEBUG_DIGITAL_TIME
+  timestamp_us = micros() - timestamp_us;
+  Serial.print(F("Digital Read Time (us): "));
+  Serial.println(timestamp_us);
+  #endif
+}
+
+int mmap(int x, int in_min, int in_max, int out_min, int out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 void process_pid_loop()
 {
+  #ifdef DEBUG_PID_TIME
+  unsigned int timestamp_us = micros();
+  #endif
   
+  // process invloves somthing like:
+  // opening the air managemnt valve to increase rpm, closing to reduce rpm
+  // opening reactor inlet valve to reduce vacuum, closing to increace vacuum
+  // opening RIV and closing AMV to reduce exhaust temperature
+
+  //this will be detirmined after collecting some data under manual control
+  // which is the point in datalogging
+
+  // buffers for the eeprom min max values
+  unsigned int servo_min_us, servo_max_us;
+  unsigned int servo_pos_us;
+  
+#if NO_OF_SERVOS > 0
+  // fetch the servo times from eeprom
+  EEP_GET(servo0_min_us, servo_min_us);
+  EEP_GET(servo0_max_us, servo_max_us);
+  servo_pos_us = mmap(KNOB_value_0, 0, 256, servo_min_us, servo_max_us);
+  servo0.writeMicroseconds(servo_pos_us);
+  #ifdef DEBUG_SERVO
+  Serial.print(F("Servo0: ")); Serial.println(servo_pos_us);
+  #endif
+#endif
+#if NO_OF_SERVOS > 1
+  EEP_GET(servo1_min_us, servo_min_us);
+  EEP_GET(servo1_max_us, servo_max_us);
+  servo_pos_us = mmap(KNOB_value_1, 0, 256, servo_min_us, servo_max_us);
+  servo1.writeMicroseconds(servo_pos_us);
+  #ifdef DEBUG_SERVO
+  Serial.print(F("Servo1: ")); Serial.println(servo_pos_us);
+  #endif
+#endif
+#if NO_OF_SERVOS > 2
+  EEP_GET(servo2_min_us, servo_min_us);
+  EEP_GET(servo2_max_us, servo_max_us);
+  servo_pos_us = mmap(KNOB_value_2, 0, 256, servo_min_us, servo_max_us);
+  servo2.writeMicroseconds(servo_pos_us);
+  #ifdef DEBUG_SERVO
+  Serial.print(F("Servo2: ")); Serial.println(servo_pos_us);
+  #endif
+#endif
+//this is taking about 180us, which seems far to much.
+// perhaps it because the map function uses long ints?
+  #ifdef DEBUG_PID_TIME
+  timestamp_us = micros() - timestamp_us;
+  Serial.print(F("PID Loop Time (us): "));
+  Serial.println(timestamp_us);
+  #endif
 }
+
 void process_display_loop()
-{
+{ 
+  #ifdef DEBUG_UPDATE_TIME
+  unsigned int timestamp_us = micros();
+  #endif
+  // swap the buffers and finalise averages
+  finalise_record();
   
+  // draw the current screen
+  draw_screen();
+  
+  // write the current data to target media
+  write_data_record();
+  
+  //reset the record ready for next time
+  reset_record();
+
+  #ifdef DEBUG_UPDATE_TIME
+  timestamp_us = micros() - timestamp_us;
+  Serial.print(F("Update Time (us): "));
+  Serial.println(timestamp_us);
+  #endif
 }
+
 void loop() {
 
   int elapsed_time;
@@ -853,30 +714,17 @@ void loop() {
   if(elapsed_time < 0)
   {
     /* set the timestamp for the next update */
-    int timelag = elapsed_time%UPDATE_INTERVAL_ms;
-    update_timestamp = timenow + UPDATE_INTERVAL_ms + timelag;
+    update_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
 
     /* emit the timestamp of the current update, if debugging */
     #ifdef DEBUG_LOOP
-    Serial.print(F("Screen Update: ")); Serial.println(timenow);
+    Serial.print(F("Record Update: ")); Serial.println(timenow);
     #endif
 
-    
-    // swap the buffers and finalise averages
-    finalise_record();
-    
-    // draw the current screen
-    draw_screen();
-    
-    // write the current data to target media
-    write_data_record();
-    
-    //reset the record ready for next time
-    reset_record();
+    process_display_loop();
     
     //update the time
     timenow = millis();
-    
   }
 
   /* get time left till next update */
@@ -885,25 +733,15 @@ void loop() {
   if(elapsed_time < 0)
   {
     /* set the timestamp for the next update */
-    int timelag = elapsed_time%EGT_SAMPLE_INTERVAL_ms;
-    egt_timestamp = timenow + EGT_SAMPLE_INTERVAL_ms + timelag;
+    egt_timestamp = timenow + EGT_SAMPLE_INTERVAL_ms + (elapsed_time%EGT_SAMPLE_INTERVAL_ms);
 
     // debug marker
     #ifdef DEBUG_LOOP
     Serial.print(F("EGT Read: ")); Serial.println(timenow);
     #endif
-    //collect the EGT reading  
     
-    if (CURRENT_RECORD.EGT_no_of_samples < EGT_SAMPLES_PER_UPDATE)
-    {
-      if(EGTSensor1.readTemp())
-      {
-        int EGT1_value = EGTSensor1.getTempIntRaw();
-        CURRENT_RECORD.EGT[CURRENT_RECORD.EGT_no_of_samples++] = EGT1_value;
-        CURRENT_RECORD.EGT_avg += EGT1_value;
-      }
-      
-    }
+    process_digital_inputs();
+    
     //update the time
     timenow = millis();
   }
@@ -914,68 +752,14 @@ void loop() {
   if(elapsed_time < 0)
   {
     /* set the timestamp for the next update */
-    int timelag = elapsed_time%ANALOG_SAMPLE_INTERVAL_ms;
-    analog_timestamp = timenow + ANALOG_SAMPLE_INTERVAL_ms + timelag;
+    analog_timestamp = timenow + ANALOG_SAMPLE_INTERVAL_ms + (elapsed_time%ANALOG_SAMPLE_INTERVAL_ms);
 
     //debug marker
     #ifdef DEBUG_LOOP
     Serial.print(F("ANA Read: "));Serial.println(timenow);
     #endif
-
-    //collect analog inputs
-    int a0 = analogRead(A0);
-    int a1 = analogRead(A1);
-    int a2 = analogRead(A2);
-    int a3 = analogRead(A3);
-
-    //do some sort of processing with these values
-    //for now we want to use a1-a3 to directly control servos
-    // and convert a0 to a vaccuum as a percentile (or roughly kPa)
-    // we need to store these values statically, 
-    // and reference them in a pid control loop that controls servo output
-    int map_min, map_max, val;
     
-    EEP_GET(map_cal_min, map_min);
-    EEP_GET(map_cal_zero, map_max);
-    MAP_pressure_abs = constrain(map(a0, map_min, map_max, 0, 101), 0, 255); 
-
-    EEP_GET(knob_0_min, map_min);
-    EEP_GET(knob_0_max, map_max);
-    KNOB_value_0 = constrain(map(a1, map_min, map_max, 0, 256), 0, 255); 
-
-    EEP_GET(knob_1_min, map_min);
-    EEP_GET(knob_1_max, map_max);
-    KNOB_value_1 = constrain(map(a2, map_min, map_max, 0, 256), 0, 255);
-
-    EEP_GET(knob_2_min, map_min);
-    EEP_GET(knob_2_max, map_max);
-    KNOB_value_2 = constrain(map(a3, map_min, map_max, 0, 256), 0, 255);
-    
-    
-    //log the analog values, if there's space in the current record
-    if (CURRENT_RECORD.ANA_no_of_samples < ANALOG_SAMPLES_PER_UPDATE)
-    {
-      #ifdef DEBUG_ANALOG
-      unsigned int timestamp_us = micros();
-      #endif
-
-      //we'll continue to log raw values for now
-      unsigned int analog_index = CURRENT_RECORD.ANA_no_of_samples++;
-      CURRENT_RECORD.A0[analog_index] = a0;
-      CURRENT_RECORD.A1[analog_index] = a1;
-      CURRENT_RECORD.A2[analog_index] = a2;
-      CURRENT_RECORD.A3[analog_index] = a3;
-      CURRENT_RECORD.A0_avg += CURRENT_RECORD.A0[analog_index];
-      CURRENT_RECORD.A1_avg += CURRENT_RECORD.A1[analog_index];
-      CURRENT_RECORD.A2_avg += CURRENT_RECORD.A2[analog_index];
-      CURRENT_RECORD.A3_avg += CURRENT_RECORD.A3[analog_index];
-    }
-
-    #ifdef DEBUG_ANALOG
-    timestamp_us = micros() - timestamp_us;
-    Serial.print(F("Analog Read Time (us): "));
-    Serial.println(timestamp_us);
-    #endif
+    process_analog_inputs();
 
     //update the time
     timenow = millis();
@@ -1002,51 +786,14 @@ void loop() {
     pid_timestamp = timenow + PID_UPDATE_INTERVAL_ms + timelag;
 
     //debug marker
-    #ifdef DEBUG_PID
+    #ifdef DEBUG_LOOP
     Serial.print(F("PID Loop: ")); Serial.println(timenow);
     #endif  
 
-    // process invloves somthing like:
-    // opening the air managemnt valve to increase rpm, closing to reduce rpm
-    // opening reactor inlet valve to reduce vacuum, closing to increace vacuum
-    // opening RIV and closing AMV to reduce exhaust temperature
+    process_pid_loop();
 
-    //this will be detirmined after collecting some data under manual control
-    // which is the point in datalogging
-
-    // buffers for the eeprom min max values
-    unsigned int servo_min_us, servo_max_us;
-    unsigned int servo_pos_us;
-    
-  #if NO_OF_SERVOS > 0
-    // fetch the servo times from eeprom
-    EEP_GET(servo0_min_us, servo_min_us);
-    EEP_GET(servo0_max_us, servo_max_us);
-    servo_pos_us = map(KNOB_value_0, 0, 256, servo_min_us, servo_max_us);
-    servo0.writeMicroseconds(servo_pos_us);
-    #ifdef DEBUG_SERVO
-    Serial.print(F("Servo0: ")); Serial.println(servo_pos_us);
-    #endif
-  #endif
-  #if NO_OF_SERVOS > 1
-    EEP_GET(servo1_min_us, servo_min_us);
-    EEP_GET(servo1_max_us, servo_max_us);
-    servo_pos_us = map(KNOB_value_1, 0, 256, servo_min_us, servo_max_us);
-    servo1.writeMicroseconds(servo_pos_us);
-    #ifdef DEBUG_SERVO
-    Serial.print(F("Servo1: ")); Serial.println(servo_pos_us);
-    #endif
-  #endif
-  #if NO_OF_SERVOS > 2
-    EEP_GET(servo2_min_us, servo_min_us);
-    EEP_GET(servo2_max_us, servo_max_us);
-    servo_pos_us = map(KNOB_value_2, 0, 256, servo_min_us, servo_max_us);
-    servo2.writeMicroseconds(servo_pos_us);
-    #ifdef DEBUG_SERVO
-    Serial.print(F("Servo2: ")); Serial.println(servo_pos_us);
-    #endif
-  #endif
-      
+    //update the time
+    timenow = millis();
   }
   
 }

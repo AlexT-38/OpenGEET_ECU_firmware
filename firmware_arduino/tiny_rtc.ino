@@ -23,7 +23,17 @@ void serial_print_date_time(const DateTime t_now)
   GET_STRING(LIST_SEPARATOR);
   Serial.print(string);
   date_to_string(t_now, string);
-  Serial.print(string);
+  Serial.println(string);
+}
+void file_print_date_time(const DateTime t_now, File file) 
+{
+  char string[11];
+  date_to_string(t_now, string);
+  file.print(string);
+  GET_STRING(LIST_SEPARATOR);
+  file.print(string);
+  date_to_string(t_now, string);
+  file.println(string);
 } 
 void date_to_string(DateTime t_now, char *string)
 {
@@ -133,7 +143,8 @@ void DS1307_adjust(const DateTime dt)
   }
 }
 
-DateTime DS1307_now() {
+DateTime DS1307_now() 
+{
   DateTime dt = {0};
   if (i2c_start(DS1307_WRITE))
   {
@@ -156,7 +167,8 @@ DateTime DS1307_now() {
 }
 
 /* incase only date or time are required */
-DateTime DS1307_date() {
+DateTime DS1307_date() 
+{
   DateTime dt = {0};
   if (i2c_start(DS1307_WRITE))
   {
@@ -172,7 +184,8 @@ DateTime DS1307_date() {
   return dt;
 }
 
-DateTime DS1307_time() {
+DateTime DS1307_time() 
+{
   DateTime dt = {0};
   if (i2c_start(DS1307_WRITE))
   {
@@ -189,7 +202,8 @@ DateTime DS1307_time() {
 }
 
 /* convert the next two characters at the pointer into a decimal integer */
-static uint8_t conv2d(const char* p) {
+static uint8_t conv2d(const char* p) 
+{
   uint8_t v = 0;
   if ('0' <= *p && *p <= '9')
     v = *p - '0';
