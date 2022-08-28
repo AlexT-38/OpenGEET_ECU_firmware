@@ -62,12 +62,15 @@ typedef struct datetime{
 
 #define DEBUG
 
+//keep debug strings short to limit time spent sending them
+
 #ifdef DEBUG                  //enable debugging readouts
 //#define DEBUG_LOOP          //mprint out loop markers and update time
-#define DEBUG_UPDATE_TIME     //measure how long an update takes
-#define DEBUG_DISPLAY_TIME    //measure how long draw screen takes
+//#define DEBUG_UPDATE_TIME     //measure how long an update takes
+//#define DEBUG_DISPLAY_TIME    //measure how long draw screen takes
 //#define DEBUG_SDCARD_TIME   //measure how long SD card access takes
-#define DEBUG_PID_TIME      //measure how long the pid loop takes
+//#define DEBUG_SERIAL_TIME
+//#define DEBUG_PID_TIME      //measure how long the pid loop takes
 //#define DEBUG_ANALOG_TIME   //measure how long analog read and processing takes
 //#define DEBUG_DIGITAL_TIME  //measure how long reading from digital sensors takes
 
@@ -336,6 +339,8 @@ typedef struct data_storage
 }DATA_STORAGE;
 
 
+
+
 /* the records to write to */
 DATA_RECORD Data_Record[2];
 /* the index of the currently written record */
@@ -354,12 +359,16 @@ byte KNOB_value_1;
 byte KNOB_value_2;
 
 
-
 static int update_timestamp = 0; //not much I can do easily about these timestamps
 static int analog_timestamp = 0; //could be optimised by using a timer and a progmem table of func calls
 static int egt_timestamp = 0;    //more optimal if all intervals have large common root
 static int pid_timestamp = 0;    //they probably dont need to be long ints though.
                                  //short ints can handle an interval of 32 seconds
+
+int mmap(int x, int in_min, int in_max, int out_min, int out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
 void setup() {
 
@@ -398,7 +407,7 @@ void setup() {
   PUT_STRING(FIRMWARE_VERSION, string_ptr);
   
   //initialise the serial port:
-  Serial.begin(115200);
+  Serial.begin(1000000);  //for usb coms, no reason not to use fastest available baud rate - this turns out to be the biggest time usage during update/report
   Serial.println();
   Serial.println(firwmare_string);
   DateTime t_compile;
@@ -438,6 +447,10 @@ void setup() {
 
   //read flag configuration from eeprom
   EEP_GET(flags,flags);
+
+  //override flags in eeprom
+  flags.do_serial_write = true;
+  flags.do_sdcard_write = true;
 
 
   //attempt to initialse the logging SD card. 
@@ -520,31 +533,6 @@ void setup() {
 }
 
 
-/* opens comms to display chip and calls the current screen's draw function */
-void draw_screen()
-{
-  if (draw_screen_func != NULL)
-  {
-    #ifdef DEBUG_DISPLAY_TIME
-    unsigned int timestamp_us = micros();
-    #endif
-  
-    /* restart comms with the FT810 */
-    GD.resume();
-    /* draw the current screen */
-    draw_screen_func();
-    /* display the screen */
-    GD.swap();
-    /* stop comms to FT810, so other devices (ie MAX6675, SD CARD) can use the bus */
-    GD.__end();
-
-    #ifdef DEBUG_DISPLAY_TIME
-    timestamp_us = micros() - timestamp_us;
-    Serial.print(F("Draw Display Time (us): "));
-    Serial.println(timestamp_us);
-    #endif
-  }
-}
 
 void process_analog_inputs()
 {
@@ -566,16 +554,16 @@ void process_analog_inputs()
   int map_min, map_max, val;
   
   EEP_GET(map_cal_min, map_min);    EEP_GET(map_cal_zero, map_max);
-  MAP_pressure_abs = constrain(map(a0, map_min, map_max, 0, 101), 0, 255); 
+  MAP_pressure_abs = constrain(mmap(a0, map_min, map_max, 0, 101), 0, 255); 
 
   EEP_GET(knob_0_min, map_min);     EEP_GET(knob_0_max, map_max);
-  KNOB_value_0 = constrain(map(a1, map_min, map_max, 0, 256), 0, 255); 
+  KNOB_value_0 = constrain(mmap(a1, map_min, map_max, 0, 256), 0, 255); 
 
   EEP_GET(knob_1_min, map_min);     EEP_GET(knob_1_max, map_max);
-  KNOB_value_1 = constrain(map(a2, map_min, map_max, 0, 256), 0, 255);
+  KNOB_value_1 = constrain(mmap(a2, map_min, map_max, 0, 256), 0, 255);
 
   EEP_GET(knob_2_min, map_min);     EEP_GET(knob_2_max, map_max);
-  KNOB_value_2 = constrain(map(a3, map_min, map_max, 0, 256), 0, 255);
+  KNOB_value_2 = constrain(mmap(a3, map_min, map_max, 0, 256), 0, 255);
   
   //log the analog values, if there's space in the current record
   if (CURRENT_RECORD.ANA_no_of_samples < ANALOG_SAMPLES_PER_UPDATE)
@@ -593,7 +581,7 @@ void process_analog_inputs()
   }
   #ifdef DEBUG_ANALOG_TIME
   timestamp_us = micros() - timestamp_us;
-  Serial.print(F("Analog Read Time (us): "));
+  Serial.print(F("t_ana us: "));
   Serial.println(timestamp_us);
   #endif
 }
@@ -615,15 +603,12 @@ void process_digital_inputs()
   }
   #ifdef DEBUG_DIGITAL_TIME
   timestamp_us = micros() - timestamp_us;
-  Serial.print(F("Digital Read Time (us): "));
+  Serial.print(F("t_dig us: "));
   Serial.println(timestamp_us);
   #endif
 }
 
-int mmap(int x, int in_min, int in_max, int out_min, int out_max)
-{
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
+
 void process_pid_loop()
 {
   #ifdef DEBUG_PID_TIME
@@ -649,7 +634,7 @@ void process_pid_loop()
   servo_pos_us = mmap(KNOB_value_0, 0, 256, servo_min_us, servo_max_us);
   servo0.writeMicroseconds(servo_pos_us);
   #ifdef DEBUG_SERVO
-  Serial.print(F("Servo0: ")); Serial.println(servo_pos_us);
+  Serial.print(F("sv0: ")); Serial.println(servo_pos_us);
   #endif
 #endif
 #if NO_OF_SERVOS > 1
@@ -658,7 +643,7 @@ void process_pid_loop()
   servo_pos_us = mmap(KNOB_value_1, 0, 256, servo_min_us, servo_max_us);
   servo1.writeMicroseconds(servo_pos_us);
   #ifdef DEBUG_SERVO
-  Serial.print(F("Servo1: ")); Serial.println(servo_pos_us);
+  Serial.print(F("sv1: ")); Serial.println(servo_pos_us);
   #endif
 #endif
 #if NO_OF_SERVOS > 2
@@ -667,46 +652,86 @@ void process_pid_loop()
   servo_pos_us = mmap(KNOB_value_2, 0, 256, servo_min_us, servo_max_us);
   servo2.writeMicroseconds(servo_pos_us);
   #ifdef DEBUG_SERVO
-  Serial.print(F("Servo2: ")); Serial.println(servo_pos_us);
+  Serial.print(F("sv2: ")); Serial.println(servo_pos_us);
   #endif
 #endif
 //this is taking about 180us, which seems far to much.
 // perhaps it because the map function uses long ints?
+// yep, using short ints reduces the time to 52us
   #ifdef DEBUG_PID_TIME
   timestamp_us = micros() - timestamp_us;
-  Serial.print(F("PID Loop Time (us): "));
+  Serial.print(F("t_pid us: "));
   Serial.println(timestamp_us);
   #endif
 }
 
-void process_display_loop()
+/* opens comms to display chip and calls the current screen's draw function */
+static byte draw_step = 0;
+
+void draw_screen()
+{
+  if (draw_screen_func != NULL)
+  {
+    #ifdef DEBUG_DISPLAY_TIME
+    unsigned int timestamp_us = micros();
+    #endif
+  
+    /* restart comms with the FT810 */
+    GD.resume();
+    /* draw the current screen */
+    draw_screen_func();
+    /* display the screen when done */
+    GD.swap();
+    /* stop comms to FT810, so other devices (ie MAX6675, SD CARD) can use the bus */
+    GD.__end();
+
+    #ifdef DEBUG_DISPLAY_TIME
+    timestamp_us = micros() - timestamp_us;
+    Serial.print(F("t_dsp us: "));
+    Serial.println(timestamp_us);
+    #endif
+  }
+}
+
+static byte update_step = 0;
+
+bool process_update_loop()
 { 
   #ifdef DEBUG_UPDATE_TIME
   unsigned int timestamp_us = micros();
+  Serial.print(F("upd_stp: "));
+  Serial.println(update_step);
   #endif
-  // swap the buffers and finalise averages
-  finalise_record();
+  switch(update_step++)
+  {
+    // swap the buffers and finalise averages
+    case 0:   finalise_record();                                   break;
+    // draw the current screen
+    case 1:   draw_screen();                                       break;
+    // write the current data to sdcard
+    case 2:   if (!write_sdcard_data_record())    {update_step--;} break;
+    // write the current data to serial
+    case 3:   if (!write_serial_data_record())    {update_step--;} break;
+    //reset the record ready for next time
+    case 4:   reset_record();              
+    default:  update_step = 0;
+  }
   
-  // draw the current screen
-  draw_screen();
-  
-  // write the current data to target media
-  write_data_record();
-  
-  //reset the record ready for next time
-  reset_record();
-
   #ifdef DEBUG_UPDATE_TIME
   timestamp_us = micros() - timestamp_us;
-  Serial.print(F("Update Time (us): "));
+  Serial.print(F("t_upd us: "));
   Serial.println(timestamp_us);
   #endif
+
+  return (update_step != 0);
 }
 
 void loop() {
 
   int elapsed_time;
   int timenow = millis();
+
+  static bool update_active = false;
 
   /* get time left till next update */
   elapsed_time = update_timestamp - timenow;
@@ -715,13 +740,17 @@ void loop() {
   {
     /* set the timestamp for the next update */
     update_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
-
-    /* emit the timestamp of the current update, if debugging */
+    update_active = true;
+    /* emit the timestamp interval of the current update, if debugging */
     #ifdef DEBUG_LOOP
-    Serial.print(F("Record Update: ")); Serial.println(timenow);
+    Serial.print(F("UPD: ")); Serial.println(timenow);
     #endif
+  }
+  if(update_active)
+  {
 
-    process_display_loop();
+
+    update_active = process_update_loop();
     
     //update the time
     timenow = millis();
@@ -737,7 +766,7 @@ void loop() {
 
     // debug marker
     #ifdef DEBUG_LOOP
-    Serial.print(F("EGT Read: ")); Serial.println(timenow);
+    Serial.print(F("DIG: ")); Serial.println(timenow);
     #endif
     
     process_digital_inputs();
@@ -756,7 +785,7 @@ void loop() {
 
     //debug marker
     #ifdef DEBUG_LOOP
-    Serial.print(F("ANA Read: "));Serial.println(timenow);
+    Serial.print(F("ANA: "));Serial.println(timenow);
     #endif
     
     process_analog_inputs();
@@ -787,7 +816,7 @@ void loop() {
 
     //debug marker
     #ifdef DEBUG_LOOP
-    Serial.print(F("PID Loop: ")); Serial.println(timenow);
+    Serial.print(F("PID: ")); Serial.println(timenow);
     #endif  
 
     process_pid_loop();

@@ -91,12 +91,12 @@ void draw_basic()
 {
   int colour_bg = RGB(0x00,0x20,0x40);
 
-  int pos_y;
-  int pos_x;
+  static int pos_y;
+  static int pos_x;
 
   /* data record to read */
   DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
- 
+
   GD.ClearColorRGB(colour_bg);
   GD.Clear();
 
@@ -106,31 +106,27 @@ void draw_basic()
 
   pos_y += 64;
   draw_readout_int(pos_x, pos_y, OPT_RIGHTX | OPT_CENTERY, data_record->RPM_avg, RPM);
-  
-  pos_y += 64;
 
   pos_y += 64;
-  {
-    DateTime t_now = DS1307_now();
-    char datetime_string[11];
-    date_to_string(t_now, datetime_string);
-    GD.cmd_text(pos_x,  pos_y+12, 26, OPT_RIGHTX | OPT_CENTERY, datetime_string);
-    time_to_string(t_now, datetime_string);
-    GD.cmd_text(pos_x,  pos_y-12, 26, OPT_RIGHTX | OPT_CENTERY, datetime_string);
-  }
+  pos_y += 64;
+  DateTime t_now = DS1307_now();
+  char datetime_string[11];
+  date_to_string(t_now, datetime_string);
+  GD.cmd_text(pos_x,  pos_y+12, 26, OPT_RIGHTX | OPT_CENTERY, datetime_string);
+  time_to_string(t_now, datetime_string);
+  GD.cmd_text(pos_x,  pos_y-12, 26, OPT_RIGHTX | OPT_CENTERY, datetime_string);
 
   pos_x = 16;
   pos_y = 32;
   draw_readout_int(pos_x, pos_y, OPT_CENTERY, data_record->A0_avg, A0_VALUE);
-  
+
   pos_y += 64;
   draw_readout_int(pos_x, pos_y, OPT_CENTERY, data_record->A1_avg, A1_VALUE);
-  
+
   pos_y += 64;
   draw_readout_int(pos_x, pos_y, OPT_CENTERY, data_record->A2_avg, A2_VALUE);
-  
+
   pos_y += 64;
   draw_readout_int(pos_x, pos_y, OPT_CENTERY, data_record->A3_avg, A3_VALUE);
   
-
 }

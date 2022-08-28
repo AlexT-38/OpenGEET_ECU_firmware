@@ -6,6 +6,8 @@
  *  meanwhile, we'll just overwrite older files
  */
 
+static DATA_STORAGE data_store;
+
 void generate_file_name()
 {
   char *str_ptr;
@@ -32,7 +34,7 @@ void generate_file_name()
   {
     //set the iterator number
     str_ptr = output_filename + 7;
-    value = nn++;  *str_ptr-- = HEX_CHAR(value);  value >>=1;  *str_ptr-- = HEX_CHAR(value);
+    value = nn++;  *str_ptr-- = HEX_CHAR(value);  value >>=4;  *str_ptr-- = HEX_CHAR(value);
 
     //break the loop if the target file doenst exist, or we have run out of indices
     if (!SD.exists(output_filename) || nn==0 )
@@ -83,10 +85,11 @@ void hash_data(DATA_STORAGE *data)
   data->hash = hash;
 }
 
-void serial_print_int_array(int *array_data, unsigned int array_size, const char *title_str)
+void serial_print_int_array(int *array_data, unsigned int array_size, const char *title)
 {
-  MAKE_STRING(LIST_SEPARATOR);
+  MAKE_STRING(title);
   Serial.print(title_str);
+  MAKE_STRING(LIST_SEPARATOR);
   for(int idx = 0; idx < array_size; idx++)
   {
     Serial.print(array_data[idx]);
@@ -94,10 +97,11 @@ void serial_print_int_array(int *array_data, unsigned int array_size, const char
   }
   Serial.println();
 }
-void serial_print_byte_array(byte *array_data, unsigned int array_size, const char *title_str)
+void serial_print_byte_array(byte *array_data, unsigned int array_size, const char *title)
 {
-  MAKE_STRING(LIST_SEPARATOR);
+  MAKE_STRING(title);
   Serial.print(title_str);
+  MAKE_STRING(LIST_SEPARATOR);
   for(int idx = 0; idx < array_size; idx++)
   {
     Serial.print(array_data[idx]);
@@ -105,10 +109,11 @@ void serial_print_byte_array(byte *array_data, unsigned int array_size, const ch
   }
   Serial.println();
 }
-void file_print_int_array(File *file, int *array_data, unsigned int array_size, const char *title_str)
+void file_print_int_array(File *file, int *array_data, unsigned int array_size, const char *title)
 {
-  MAKE_STRING(LIST_SEPARATOR);
+  MAKE_STRING(title);
   file->print(title_str);
+  MAKE_STRING(LIST_SEPARATOR);
   for(int idx = 0; idx < array_size; idx++)
   {
     file->print(array_data[idx]);
@@ -116,10 +121,11 @@ void file_print_int_array(File *file, int *array_data, unsigned int array_size, 
   }
   file->println();
 }
-void file_print_byte_array(File *file, byte *array_data, unsigned int array_size, const char *title_str)
+void file_print_byte_array(File *file, byte *array_data, unsigned int array_size, const char *title)
 {
-  MAKE_STRING(LIST_SEPARATOR);
+  MAKE_STRING(title);
   file->print(title_str);
+  MAKE_STRING(LIST_SEPARATOR);
   for(int idx = 0; idx < array_size; idx++)
   {
     file->print(array_data[idx]);
@@ -132,8 +138,10 @@ void file_print_byte_array(File *file, byte *array_data, unsigned int array_size
 void reset_record()
 {
   Data_Record[1-Data_Record_write_idx] = (DATA_RECORD){0};
-  Data_Record[1-Data_Record_write_idx].timestamp = millis();
+  Data_Record[1-Data_Record_write_idx].timestamp = 0;//millis();
 }
+
+
 /* swap records and calculate averages */
 void finalise_record()
 {
@@ -176,101 +184,227 @@ void finalise_record()
     //data_record->RPM_avg += rounding;
     //data_record->RPM_avg = (unsigned int)(60000*(unsigned long int)data_record->RPM_no_of_samples/data_record->RPM_avg);  
 //  }
-}
-/* writes the current data record to serial port and SD card as required */
-void write_data_record()
-{
-  /* data record to read */
-  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
 
-  /* we can break this down into subsections if the overall process time
-   * is greater than the shortest snesor read interval */
-   
   /* hash the data for hex storage*/
-  DATA_STORAGE data_store = {data_record, sizeof(DATA_STORAGE), 0};
+  
+  data_store.data = (byte*)data_record;
+  data_store.bytes_stored = sizeof(DATA_STORAGE);
   hash_data(&data_store);
+}
 
+
+/* writes the current data record to serial port and SD card as required */
+static byte write_data_step = 0;
+
+
+bool write_serial_data_record()
+{
   /* send the data to the serial port */
   if(flags.do_serial_write)
   {
+    #ifdef DEBUG_SERIAL_TIME    
+    unsigned int timestamp_us = micros();
+    Serial.print(F("ser_stp: ")); Serial.println(write_data_step);
+    #endif
+
+    /* data record to read */
+    DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;//&Data_Record[1-Data_Record_write_idx];//
+  
     if(flags.do_serial_write_hex)
     {
-      
+      write_data_step = 0;
       Serial.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
       Serial.write(data_store.hash);                                              //write the hash value
       Serial.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
     }
     else
     {
-      Serial.println(F("----------"));
-      MAKE_STRING(RECORD_VER_C);    Serial.print(RECORD_VER_C_str);     Serial.println(DATA_RECORD_VERSION);
-      MAKE_STRING(TIMESTAMP_C);     Serial.print(TIMESTAMP_C_str);      Serial.println(data_record->timestamp);
-
-      
-      Serial.print(F("A0_avg: "));      Serial.println(data_record->A0_avg);
-      Serial.print(F("A1_avg: "));      Serial.println(data_record->A1_avg);
-      Serial.print(F("A2_avg: "));      Serial.println(data_record->A2_avg);
-      Serial.print(F("A3_avg: "));      Serial.println(data_record->A3_avg);
-
-      Serial.print(F("ANA samples: "));      Serial.println(data_record->ANA_no_of_samples);
-      STRING_BUFFER(A0_C);
-      GET_STRING(A0_C);             serial_print_int_array(data_record->A0, data_record->ANA_no_of_samples, string);
-      GET_STRING(A1_C);             serial_print_int_array(data_record->A1, data_record->ANA_no_of_samples, string);
-      GET_STRING(A2_C);             serial_print_int_array(data_record->A2, data_record->ANA_no_of_samples, string);
-      GET_STRING(A3_C);             serial_print_int_array(data_record->A3, data_record->ANA_no_of_samples, string);
-      Serial.print(F("EGT_avg"));      Serial.println(data_record->EGT_avg);
-      Serial.print(F("EGT samples: "));      Serial.println(data_record->EGT_no_of_samples);
-      MAKE_STRING(EGT1_C);          serial_print_int_array(data_record->EGT, data_record->EGT_no_of_samples, EGT1_C_str);
-      MAKE_STRING(RPM_AVG);         Serial.print(RPM_AVG_str);          Serial.println(data_record->RPM_avg);
-      MAKE_STRING(RPM_NO_OF_TICKS); Serial.print(RPM_NO_OF_TICKS_str);  Serial.println(data_record->RPM_no_of_ticks);
-      MAKE_STRING(RPM_TICK_TIMES);  serial_print_byte_array(data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, RPM_TICK_TIMES_str);
-      Serial.println(F("----------"));
+      switch(write_data_step++)
+      {
+        case 0: 
+          {
+            Serial.println(F("----------"));
+            MAKE_STRING(RECORD_VER_C);        Serial.print(RECORD_VER_C_str);     Serial.println(DATA_RECORD_VERSION);
+            MAKE_STRING(TIMESTAMP_C);         Serial.print(TIMESTAMP_C_str);      Serial.println(data_record->timestamp);
+          }
+          break;
+        case 1: 
+          {
+            Serial.print(F("A0_avg: "));      Serial.println(data_record->A0_avg);
+            Serial.print(F("A1_avg: "));      Serial.println(data_record->A1_avg);
+            Serial.print(F("A2_avg: "));      Serial.println(data_record->A2_avg);
+            Serial.print(F("A3_avg: "));      Serial.println(data_record->A3_avg);
+            Serial.print(F("ANA samples: ")); Serial.println(data_record->ANA_no_of_samples);
+          }
+          break;
+        case 2:
+            serial_print_int_array(data_record->A0, data_record->ANA_no_of_samples, A0_C);
+            break;
+        case 3:
+            serial_print_int_array(data_record->A1, data_record->ANA_no_of_samples, A1_C);
+            break;
+        case 4:
+            serial_print_int_array(data_record->A2, data_record->ANA_no_of_samples, A2_C);
+            break;
+        case 5:
+            serial_print_int_array(data_record->A3, data_record->ANA_no_of_samples, A3_C);
+            break;
+        case 6:
+          {
+            Serial.print(F("EGT_avg:"));       Serial.println(data_record->EGT_avg);
+            Serial.print(F("EGT samples: ")); Serial.println(data_record->EGT_no_of_samples);
+            break;
+          }
+        case 7:
+            serial_print_int_array(data_record->EGT, data_record->EGT_no_of_samples, EGT1_C);
+            break;
+        case 8:
+          {
+            MAKE_STRING(RPM_AVG);             Serial.print(RPM_AVG_str);          Serial.println(data_record->RPM_avg);
+            MAKE_STRING(RPM_NO_OF_TICKS);     Serial.print(RPM_NO_OF_TICKS_str);  Serial.println(data_record->RPM_no_of_ticks);
+            break;
+          }
+        case 9:
+          {
+            serial_print_byte_array(data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, RPM_TICK_TIMES);
+            Serial.println(F("----------"));
+          }
+        default:
+          write_data_step = 0;
+          break;
+      }
     }
+    #ifdef DEBUG_SERIAL_TIME
+    timestamp_us = micros() - timestamp_us;
+    Serial.print(F("t_ser us: "));
+    Serial.println(timestamp_us);
+    #endif
   }
+  return write_data_step == 0;
+}
 
-/* send the data to the SD card, if available */
+bool write_sdcard_data_record()
+{
+  
+  /* send the data to the SD card, if available */
   if(flags.do_sdcard_write && flags.sd_card_available)
   {
-#ifdef DEBUG_SDCARD_TIME    
-    unsigned int timestamp_ms = millis();
-#endif
+    #ifdef DEBUG_SDCARD_TIME    
+    unsigned int timestamp_us = micros();
+    Serial.print(F("sdc_stp: ")); Serial.println(write_data_step);
+    #endif
+
+    /* data record to read */
+    DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;//&Data_Record[1-Data_Record_write_idx];//
+
+//    Serial.print(F("wds_addr"));
+//    Serial.println((unsigned int)&data_store);
+//    Serial.print(F("wdr_addr"));
+//    Serial.println((unsigned int)&Data_Record[1-Data_Record_write_idx]);
+//    Serial.print(F("wdr_saddr"));
+//    Serial.println((unsigned int)data_store.data);
     
-    File log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);
-    if (log_data_file)
+    static File log_data_file; //costs 35 bytes
+    
+    /* replace all these serial calls with SD card file calls */
+    if(flags.do_sdcard_write_hex)
     {
-      /* replace all these serial calls with SD card file calls */
-      if(flags.do_serial_write_hex)
-      {
+      write_data_step = 0;
+      log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);
+      if (log_data_file)
+      {    
+       
         log_data_file.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
         log_data_file.write(data_store.hash);                                              //write the hash value
         log_data_file.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
+        log_data_file.close();
       }
-      else
-      {
-        //MAKE_STRING(RECORD_VER_C);    log_data_file.print(RECORD_VER_C_str);    log_data_file.println(DATA_RECORD_VERSION);
-        MAKE_STRING(TIMESTAMP_C);     log_data_file.print(TIMESTAMP_C_str);     log_data_file.println(data_record->timestamp);
-        STRING_BUFFER(A0_C);
-        GET_STRING(A0_C);             file_print_int_array(&log_data_file, data_record->A0, ANALOG_SAMPLES_PER_UPDATE, string);
-        GET_STRING(A1_C);             file_print_int_array(&log_data_file, data_record->A1, ANALOG_SAMPLES_PER_UPDATE, string);
-        GET_STRING(A2_C);             file_print_int_array(&log_data_file, data_record->A2, ANALOG_SAMPLES_PER_UPDATE, string);
-        GET_STRING(A3_C);             file_print_int_array(&log_data_file, data_record->A3, ANALOG_SAMPLES_PER_UPDATE, string);
-        MAKE_STRING(EGT1_C);          file_print_int_array(&log_data_file, data_record->EGT, EGT_SAMPLES_PER_UPDATE, EGT1_C_str);
-        MAKE_STRING(RPM_AVG);         log_data_file.print(RPM_AVG_str);         log_data_file.println(data_record->RPM_avg);
-        MAKE_STRING(RPM_NO_OF_TICKS); log_data_file.print(RPM_NO_OF_TICKS_str); log_data_file.println(data_record->RPM_no_of_ticks);
-        MAKE_STRING(RPM_TICK_TIMES);  file_print_byte_array(&log_data_file, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, RPM_TICK_TIMES_str);
-      }
-      log_data_file.close();
-
-#ifdef DEBUG_SDCARD_TIME
-      timestamp_ms = millis() - timestamp_ms;
-      Serial.print(F("SDCard Access Time (ms): "));
-      Serial.println(timestamp_ms);
+      
     }
     else
     {
-      Serial.println(F("Fail: open output file"));
-#endif
+      switch(write_data_step++)
+      {
+        case 0:
+          {
+            if (!log_data_file) 
+            {
+              log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);
+              if (!log_data_file)
+              { 
+                write_data_step = 0; //reset to 0 if unable to open
+              }
+            }
+          } break;
+        case 1:
+          {
+            log_data_file.println(F("----------"));
+            MAKE_STRING(TIMESTAMP_C);                 log_data_file.print(TIMESTAMP_C_str);      log_data_file.println(data_record->timestamp);
+          } break;
+        case 2:
+          {
+            log_data_file.print(F("A0_avg: "));       log_data_file.println(data_record->A0_avg);
+            log_data_file.print(F("A1_avg: "));       log_data_file.println(data_record->A1_avg);
+          } break;
+        case 3:
+          {
+            log_data_file.print(F("A2_avg: "));       log_data_file.println(data_record->A2_avg);
+            log_data_file.print(F("A3_avg: "));       log_data_file.println(data_record->A3_avg);
+          } break;
+        case 4:
+          {
+            log_data_file.print(F("ANA samples: "));  log_data_file.println(data_record->ANA_no_of_samples);
+          } break;
+        case 5:
+          {
+            file_print_int_array(&log_data_file, data_record->A0, data_record->ANA_no_of_samples, A0_C);
+          } break;
+        case 6:
+          {
+            file_print_int_array(&log_data_file, data_record->A1, data_record->ANA_no_of_samples, A1_C);
+          } break;
+        case 7:
+          {
+            file_print_int_array(&log_data_file, data_record->A2, data_record->ANA_no_of_samples, A2_C);
+          } break;
+        case 8:
+          {
+            file_print_int_array(&log_data_file, data_record->A3, data_record->ANA_no_of_samples, A3_C);
+          } break;
+        case 9:
+          {
+            log_data_file.print(F("EGT_avg: "));        log_data_file.println(data_record->EGT_avg);
+            log_data_file.print(F("EGT samples: "));  log_data_file.println(data_record->EGT_no_of_samples);
+          } break;
+        case 10:
+          {
+            file_print_int_array(&log_data_file, data_record->EGT, data_record->EGT_no_of_samples, EGT1_C);
+          } break;
+        case 11:
+          {
+            MAKE_STRING(RPM_AVG);                     log_data_file.print(RPM_AVG_str);          log_data_file.println(data_record->RPM_avg);
+            MAKE_STRING(RPM_NO_OF_TICKS);             log_data_file.print(RPM_NO_OF_TICKS_str);  log_data_file.println(data_record->RPM_no_of_ticks);
+          } break;
+        case 12:
+          {
+            file_print_byte_array(&log_data_file, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, RPM_TICK_TIMES);
+          } break;
+        case 13:
+          {
+            log_data_file.close();
+          }
+        default:
+          write_data_step = 0;
+          break;
+      }
+      
     }
+
+    #ifdef DEBUG_SDCARD_TIME
+    timestamp_us = micros() - timestamp_us;
+    Serial.print(F("t_sdc us: "));
+    Serial.println(timestamp_us);
+    #endif
   }
-  
+  return write_data_step == 0;
 }

@@ -32,7 +32,7 @@ void file_print_date_time(const DateTime t_now, File file)
   file.print(string);
   GET_STRING(LIST_SEPARATOR);
   file.print(string);
-  date_to_string(t_now, string);
+  time_to_string(t_now, string);
   file.println(string);
 } 
 void date_to_string(DateTime t_now, char *string)
