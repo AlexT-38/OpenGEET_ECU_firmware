@@ -175,7 +175,7 @@ void finalise_record()
 //  if(data_record->RPM_no_of_samples > 0)
 //  {
     // for rpm, we can approximate by the number of ticks
-    data_record->RPM_avg = data_record->RPM_no_of_ticks * 60000/UPDATE_INTERVAL_ms;
+    data_record->RPM_avg = (((unsigned long)data_record->RPM_no_of_ticks * 60000)/data_record->RPM_avg);
     // for a more acurate reading, we must sum all tick intervals
     // and divide by number of ticks
     // but this should be sufficient
@@ -295,15 +295,8 @@ bool write_sdcard_data_record()
     #endif
 
     /* data record to read */
-    DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;//&Data_Record[1-Data_Record_write_idx];//
+    DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;
 
-//    Serial.print(F("wds_addr"));
-//    Serial.println((unsigned int)&data_store);
-//    Serial.print(F("wdr_addr"));
-//    Serial.println((unsigned int)&Data_Record[1-Data_Record_write_idx]);
-//    Serial.print(F("wdr_saddr"));
-//    Serial.println((unsigned int)data_store.data);
-    
     static File log_data_file; //costs 35 bytes
     
     /* replace all these serial calls with SD card file calls */
