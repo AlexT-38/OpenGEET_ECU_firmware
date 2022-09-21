@@ -13,7 +13,7 @@ void rpm_count(void)
     unsigned int timenow_us = micros();
     unsigned int elapsed_time = timenow_us - rpm_last_tick_time_us;
     /* update last tick time to current tick */
-    rpm_last_tick_time_us = timenow;
+    rpm_last_tick_time_us = timenow_us;
     /* convert to ms */
     elapsed_time = (elapsed_time + 500) / 1000;
     /* clamp time to fit datatype */
