@@ -19,12 +19,12 @@ PID RPM_control;
 
 void configure_PID()
 {
-  RPM_control.target = rpm_last_tick_time_us;
+  RPM_control.target = rpm_last_tick_time_ms;
 }
 void update_PID()
 {
   long result = 0;
-  int err = RPM_control.target - rpm_last_tick_time_us;
+  int err = RPM_control.target - rpm_last_tick_time_ms;
 
   RPM_control.d = err - RPM_control.p;
   RPM_control.p = err;

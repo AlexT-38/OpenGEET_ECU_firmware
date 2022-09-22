@@ -20,7 +20,7 @@ typedef struct data_record
   int EGT[EGT_SAMPLES_PER_UPDATE];
   int EGT_avg;
   byte EGT_no_of_samples;
-  int RPM_avg;                          //average rpm over this time period, can be caluclated from number of ticks and update rate
+  unsigned int RPM_avg;                          //average rpm over this time period, can be caluclated from number of ticks and update rate
   byte RPM_no_of_ticks;                 //so we can use bytes for storage here and have 235RPM as the slowest measurable rpm by tick time.
   byte RPM_tick_times_ms[MAX_RPM_TICKS_PER_UPDATE];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
 } DATA_RECORD; //... bytes per record with current settings

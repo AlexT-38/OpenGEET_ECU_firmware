@@ -56,11 +56,12 @@
 //#define DEBUG_DISPLAY_TIME    //measure how long draw screen takes
 //#define DEBUG_SDCARD_TIME   //measure how long SD card access takes
 //#define DEBUG_SERIAL_TIME
-#define DEBUG_PID_TIME      //measure how long the pid loop takes
+//#define DEBUG_PID_TIME      //measure how long the pid loop takes
 //#define DEBUG_ANALOG_TIME   //measure how long analog read and processing takes
 //#define DEBUG_DIGITAL_TIME  //measure how long reading from digital sensors takes
 //#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
+#define DEBUG_RPM_COUNTER
 
 #endif
 
@@ -70,12 +71,7 @@
 
 
 #include "strings.h"
-
 #include "RPM_counter.h"
-
-
-
-
 #include "servos.h"
 #include "flags.h"
 #include "eeprom.h"
@@ -173,8 +169,9 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
 #define MAX_RPM                     4500
 #define MIN_RPM_TICK_INTERVAL_ms    (60000/MAX_RPM)
 #define MAX_RPM_TICKS_PER_UPDATE    (UPDATE_INTERVAL_ms/MIN_RPM_TICK_INTERVAL_ms)
-#define MAX_RPM_TICK_INTERVAL_ms    250
-#define MIN_RPM                     (60000/MAX_RPM_TICK_INTERVAL_ms)
+#define MIN_RPM                     1
+#define MAX_RPM_TICK_INTERVAL_ms    (60000/MIN_RPM)
+
 
 #define PID_UPDATE_INTERVAL_ms      50
 #define PID_UPDATE_START_ms         (PID_UPDATE_INTERVAL_ms - 10)
@@ -226,7 +223,7 @@ int lmap( int x,  int in_min,  int in_max,  int out_min,  int out_max)
 /* if input range is a power of two, this function is much faster */
 int ib2map(int x, int in_min, byte in_range_log2, int out_min, int out_max)
 {
-  return (int)(((long)(x - in_min) * (long)(out_max - out_min)) >> in_range_log2 ) + out_min;
+  return ((int)(((long)(x - in_min) * (long)(out_max - out_min)) >> in_range_log2 )) + out_min;
 }
 
 /* for mapping ADC values, we can remove some extraneous parameters and add rounding */
@@ -373,7 +370,7 @@ void setup() {
   EEP_GET(flags,flags);
 
   //override flags in eeprom
-  flags.do_serial_write = false;
+  flags.do_serial_write = true;
   flags.do_sdcard_write = true;
 
 
@@ -500,9 +497,9 @@ void process_analog_inputs()
   //log the analog values, if there's space in the current record
   if (CURRENT_RECORD.ANA_no_of_samples < ANALOG_SAMPLES_PER_UPDATE)
   {
-    //we'll continue to log raw values for now
+    //log calibrated data
     unsigned int analog_index = CURRENT_RECORD.ANA_no_of_samples++;
-    CURRENT_RECORD.A0[analog_index] = a0;
+    CURRENT_RECORD.A0[analog_index] = MAP_pressure_abs;
     CURRENT_RECORD.A1[analog_index] = a1;
     CURRENT_RECORD.A2[analog_index] = a2;
     CURRENT_RECORD.A3[analog_index] = a3;
@@ -626,8 +623,6 @@ void loop() {
   }
   if(update_active)
   {
-
-
     update_active = process_update_loop();
     
     //update the time

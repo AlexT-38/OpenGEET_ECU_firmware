@@ -138,7 +138,7 @@ void file_print_byte_array(File *file, byte *array_data, unsigned int array_size
 void reset_record()
 {
   Data_Record[1-Data_Record_write_idx] = (DATA_RECORD){0};
-  Data_Record[1-Data_Record_write_idx].timestamp = 0;//millis();
+  Data_Record[1-Data_Record_write_idx].timestamp = 0;//millis();//
 }
 
 
@@ -172,18 +172,11 @@ void finalise_record()
     data_record->EGT_avg += rounding;
     data_record->EGT_avg /= data_record->EGT_no_of_samples;
   }
-//  if(data_record->RPM_no_of_samples > 0)
-//  {
-    // for rpm, we can approximate by the number of ticks
-    data_record->RPM_avg = (((unsigned long)data_record->RPM_no_of_ticks * 60000)/data_record->RPM_avg);
-    // for a more acurate reading, we must sum all tick intervals
-    // and divide by number of ticks
-    // but this should be sufficient
-    
-    //unsigned int rounding = data_record->RPM_no_of_samples/2;
-    //data_record->RPM_avg += rounding;
-    //data_record->RPM_avg = (unsigned int)(60000*(unsigned long int)data_record->RPM_no_of_samples/data_record->RPM_avg);  
-//  }
+  //keep elapsed time in a sensible range to avoid overflows
+  rpm_clip_time();
+  // get the average rpm for this record 
+  data_record->RPM_avg = get_rpm(data_record);
+
 
   /* hash the data for hex storage*/
   
