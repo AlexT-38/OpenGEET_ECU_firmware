@@ -23,11 +23,12 @@ struct eeprom
  *  fake a struct at a void address to get the member sizes 
  */
 #define EEP_SIZEOF(member)        sizeof(((struct eeprom *)0)->member)
+#define EEP_SIZEOF_ARR(member)    sizeof(((struct eeprom *)0)->member[0])
 #define EEP_ADDR(member)          offsetof(struct eeprom, member)
 #define EEP_GET(member,dst)       EEPROM.get(EEP_ADDR(member), dst);
-#define EEP_GET_N(member,n,dst)   EEPROM.get(EEP_ADDR(member)+EEP_SIZEOF(member)*n, dst);
+#define EEP_GET_N(member,n,dst)   EEPROM.get(EEP_ADDR(member)+(EEP_SIZEOF_ARR(member)*n), dst);
 #define EEP_PUT(member,src)       EEPROM.put(EEP_ADDR(member), src);
-#define EEP_PUT_N(member,n,src)   EEPROM.put(EEP_ADDR(member)+EEP_SIZEOF(member)*n, src);
+#define EEP_PUT_N(member,n,src)   EEPROM.put(EEP_ADDR(member)+(EEP_SIZEOF_ARR(member)*n), src);
 
 
 

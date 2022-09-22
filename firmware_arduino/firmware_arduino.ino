@@ -59,6 +59,8 @@
 #define DEBUG_PID_TIME      //measure how long the pid loop takes
 //#define DEBUG_ANALOG_TIME   //measure how long analog read and processing takes
 //#define DEBUG_DIGITAL_TIME  //measure how long reading from digital sensors takes
+//#define DEBUG_SERVO
+//#define DEBUG_EEP_RESET
 
 #endif
 
@@ -371,7 +373,7 @@ void setup() {
   EEP_GET(flags,flags);
 
   //override flags in eeprom
-  flags.do_serial_write = true;
+  flags.do_serial_write = false;
   flags.do_sdcard_write = true;
 
 
