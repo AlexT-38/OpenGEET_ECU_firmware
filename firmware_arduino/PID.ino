@@ -85,7 +85,7 @@ void process_pid_loop()
     EEP_GET_N(servo_min_us,n, servo_min_us);
     EEP_GET_N(servo_max_us,n, servo_max_us);
     //map input to output range
-    unsigned int servo_pos_us = amap(sv_targets[n], servo_min_us, servo_max_us);
+    unsigned int servo_pos_us = MAP_SERVO(sv_targets[n], servo_min_us, servo_max_us);
     //write output
     servo[n].writeMicroseconds(servo_pos_us);
     #ifdef DEBUG_SERVO
@@ -98,6 +98,7 @@ void process_pid_loop()
 //this is taking about 180us, which seems far to much.
 // perhaps it because the map function uses long ints?
 // yep, using short ints reduces the time to 52us
+// odd, I've futher optimised map but performance is still 52us?
   #ifdef DEBUG_PID_TIME
   timestamp_us = micros() - timestamp_us;
   Serial.print(F("t_pid us: "));
