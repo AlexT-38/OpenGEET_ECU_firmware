@@ -1,4 +1,3 @@
-
 /*
  * OpenGEET Engine Control Unit firmware (Arduino)
  * Created by A Timiney, 13/08/2022
@@ -45,20 +44,7 @@
 #include <Servo.h>      //servo control disables analog write on pins 9 and 10
 
 
-//settings for the SoftI2CMaster library, see https://github.com/felias-fogg/SoftI2CMaster
-#define I2C_HARDWARE 1      
-#define SDA_PORT PORTC
-#define SDA_PIN 4
-#define SCL_PORT PORTC
-#define SCL_PIN 5
-//#define I2C_FASTMODE 1
-
-#include<SoftI2CMaster.h>
-
-// struct for storiong date time info
-typedef struct datetime{
-  byte  year, month, day, hour, minute, second;  
-}DateTime;
+#include "tiny_rtc.h"
 
 #define DEBUG
 
@@ -70,124 +56,27 @@ typedef struct datetime{
 //#define DEBUG_DISPLAY_TIME    //measure how long draw screen takes
 //#define DEBUG_SDCARD_TIME   //measure how long SD card access takes
 //#define DEBUG_SERIAL_TIME
-//#define DEBUG_PID_TIME      //measure how long the pid loop takes
+#define DEBUG_PID_TIME      //measure how long the pid loop takes
 //#define DEBUG_ANALOG_TIME   //measure how long analog read and processing takes
 //#define DEBUG_DIGITAL_TIME  //measure how long reading from digital sensors takes
 
 #endif
 
 
-// PROGMEM STRING MACROS
-// see the docs: https://www.nongnu.org/avr-libc/user-manual/group__avr__pgmspace.html
-// string literals consume ram unless they are declared as PROGMEM variables
-// for stricly one off strings being passed to Serial.print(), use F("string literal")
-// otherwise use the following macros to fetch and or initialse a buffer for a given PROGMEM string
-// (further reading of the docs may reveal a less verbose method)
+#define PID_ENABLED           //control servos using PID
+#define PID_MODE_RPM_ONLY     //rpm control single servo output
 
 
-// buffers should come off the stack after last usage and once it's reached the top of the stack,
-// we can reuse buffer variable names by placing all calls to init and read that buffer in separate {} blocks
-// keep buffer declarations close to where they are used
+#include "strings.h"
 
-#define STRING_BUFFER(STRING_NAME)  char string[strlen_P(STRING_NAME)+1]
-#define MAKE_STRING(STRING_NAME)  char STRING_NAME ## _str[strlen_P(STRING_NAME)+1]; strcpy_P(STRING_NAME ## _str,STRING_NAME)
-#define PUT_STRING(STRING_NAME, buffer) strcpy_P(buffer, STRING_NAME);
-#define GET_STRING(STRING_NAME) strcpy_P(string, STRING_NAME);
-
-// define them as consts here and delete the original 
-const char DATE[] PROGMEM = __DATE__;
-const char TIME[] PROGMEM = __TIME__;
-const char FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller";
-const char FIRMWARE_VERSION[]  PROGMEM = "v0.1";
-const char LIST_SEPARATOR[] PROGMEM = ", ";
-const char CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or not present.";
-const char CARD_INITIALISED[] PROGMEM = "SD Card initialised.";
-const char RECORD_VER_C[] PROGMEM = "Record Ver.: ";
-const char TIMESTAMP_C[] PROGMEM = "Timestamp: ";
-const char A0_C[] PROGMEM = "A0: ";
-const char A1_C[] PROGMEM = "A1: ";
-const char A2_C[] PROGMEM = "A2: ";
-const char A3_C[] PROGMEM = "A3: ";
-const char EGT1_C[] PROGMEM = "EGT1: ";
-const char RPM_AVG[] PROGMEM = "RPM avg: ";
-const char RPM_NO_OF_TICKS[] PROGMEM = "RPM no of ticks: ";
-const char RPM_TICK_TIMES[] PROGMEM = "RPM tick times (ms): ";
-const char OUTPUT_FILE_NAME_C[] PROGMEM = "Output File Name: ";
-const char DEFAULT_FILENAME[] PROGMEM = "datalog";
-const char FILE_EXT_TXT[] PROGMEM = ".txt";
-const char FILE_EXT_RAW[] PROGMEM = ".raw";
-
-const char EGT1_DEGC[] PROGMEM = "EGT1 degC";
-const char RPM[] PROGMEM = "RPM";
-const char A0_VALUE[] PROGMEM = "A0 value";
-const char A1_VALUE[] PROGMEM = "A1 value";
-const char A2_VALUE[] PROGMEM = "A2 value";
-const char A3_VALUE[] PROGMEM = "A3 value";
-const char TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
-/*
+#include "RPM_counter.h"
 
 
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
-*/
 
-// int to char conversion for hex and decimal
-const char PROGMEM hex_char[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-#define HEX_CHAR(value)   pgm_read_byte_near(hex_char + (value&0xf))
-#define DEC_CHAR(value)   ('0' + (value%10))
 
-// eeprom addresses
-/* as there is no way of incrementing a macro using the preprocessesor,
- * an altternative method of assigning eeprom addresses is required
- * my best guess just now is to define a struct and use some built in 
- * function to get the offsets
- * indeed, the following concludes with the same:
- * https://forum.arduino.cc/t/solved-how-to-structure-data-in-eeprom-variable-address/196538
- * the function is __builtin_offsetof also defined as offsetof (type, member | .member | [expr])
- */
-
-/* flags for controlling log destination and format */
-
-#define GET_FLAG(flag)  ((flags&(1<<flag)) != 0)
-#define SET_FLAG(flag)  (flags |= (1<<flag))
-#define CLR_FLAG(flag)  (flags &= ~(1<<flag))
-#define TOG_FLAG(flag)  (flags ^= (1<<flag))
-//byte flags;
-//#define FLAG_...       1
-
-//alternatively, use bitfields
-//some of these flags need to be stored in EEPROM, some do not
-typedef struct {
-    byte do_serial_write:1;
-    byte do_serial_write_hex:1;
-    byte do_sdcard_write:1;
-    byte do_sdcard_write_hex:1;
-    byte sd_card_available:1;
-}FLAGS;
-
-FLAGS flags;
-
-#define EEP_VERSION 0
-struct eeprom
-{
-    byte         eep_version;
-    unsigned int servo0_min_us, servo0_max_us;
-    unsigned int servo1_min_us, servo1_max_us;
-    unsigned int servo2_min_us, servo2_max_us;
-    unsigned int map_cal_zero, map_cal_min;
-    unsigned int knob_0_min, knob_0_max;        //not sure why I thought this was neccessary
-    unsigned int knob_1_min, knob_1_max;
-    unsigned int knob_2_min, knob_2_max;
-    FLAGS        flags;
-    
-};
-#define EEP_ADDR(member)      offsetof(struct eeprom, member)
-#define EEP_GET(member,dst)   EEPROM.get(EEP_ADDR(member), dst);
-#define EEP_PUT(member,src)   EEPROM.put(EEP_ADDR(member), src);
+#include "servos.h"
+#include "flags.h"
+#include "eeprom.h"
 
 // sketching out some constants for IO, with future upgradability in mind
 
@@ -216,8 +105,32 @@ struct eeprom
 #define SENSOR_TYPE_MAP_1         ST_ANALOG
 #define PIN_INPUT_MAP_1           A2
 //#define SENSOR_MAP_1_NAME         "Reactor Fuel Inlet Pressure"
-#define SENSOR_MAP_1_MIN          1000    //analog sample value for absolute zero pressure
-#define SENSOR_MAP_1_ZERO         80      //analog sample value for 1 atm pressure
+
+//calibration values for Lemark LMS184 1 bar MAP sensor
+//specifying them as Long type to ensure correct evaluation
+#define SENSOR_MAP_CAL_HIGH_LSb     39L    //analog sample value for the high cal point
+#define SENSOR_MAP_CAL_LOW_LSb     969L    //analog sample value for the low cal point
+
+#define SENSOR_MAP_CAL_HIGH_mbar  1050L    //absolute pressure at the high cal point
+#define SENSOR_MAP_CAL_LOW_mbar    200L    //absolute pressure at the low cal point
+
+#define SENSOR_MAP_CAL_MAX_LSb       0L    //adc value for maximum possible pressure value
+#define SENSOR_MAP_CAL_MIN_LSb    1024L    //adc value for minimum possible pressure value
+
+/* while using these points to map the analog input is technically correct
+ *  we can get better performance if the input range is a power of two,
+ *  (which it is, being 10bit adc)
+ *  so we can rescale HIGH_mbar and LOW_mbar to fit the range
+ */
+// hopefully this will be evaluated at compile time! //yeah, this seems to be as fast as casting and writing an interger literal, and fractionally slower than a non cast literal
+#define SENSOR_CAL_LIMIT_out(in_limit, in_low, in_high, out_low, out_high)   ( ( ((in_limit-in_low) * (out_high-out_low)) / (in_high-in_low)  ) + out_low + 0.5)
+
+#define SENSOR_MAP_CAL_MAX_mbar   (int)SENSOR_CAL_LIMIT_out( SENSOR_MAP_CAL_MAX_LSb, SENSOR_MAP_CAL_LOW_LSb, SENSOR_MAP_CAL_HIGH_LSb, SENSOR_MAP_CAL_LOW_mbar ,SENSOR_MAP_CAL_HIGH_mbar)
+#define SENSOR_MAP_CAL_MIN_mbar   (int)SENSOR_CAL_LIMIT_out( SENSOR_MAP_CAL_MIN_LSb, SENSOR_MAP_CAL_LOW_LSb, SENSOR_MAP_CAL_HIGH_LSb, SENSOR_MAP_CAL_LOW_mbar ,SENSOR_MAP_CAL_HIGH_mbar)
+/* these should evaluate to 150 and 1086 respectively
+ *  and now do after specifying the types of the parameter constants or at least close enoug
+ *  they are 150 and 1085, so  some very minor rounding errors that can be disregarded
+ */
 
 // temperature sensor configuration
 #define NO_OF_EGT_SENSORS         1
@@ -234,44 +147,6 @@ struct eeprom
   #if SENSOR_MODEL_EGT_1 == MAX6675
 GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
   #endif
-#endif
-
-//min max values for the control knobs
-#define KNOB_0_MIN 90
-#define KNOB_0_MAX 930
-#define KNOB_1_MIN 10
-#define KNOB_1_MAX 1014
-#define KNOB_2_MIN 10
-#define KNOB_2_MAX 1014
-
-// servo output configuration
-#define NO_OF_SERVOS              3
-
-// servo 1
-#if NO_OF_SERVOS > 0
-  #define PIN_SERVO_0               3
-  #define SERVO_0_MAX               750     //signal to move valve to 'closed' position
-  #define SERVO_0_MIN               2300    //signal to move valve to 'open' position
-//  #define SERVO_0_NAME              "Reactor Inlet Valve Servo"
-Servo servo0;
-#endif
-
-// servo 2
-#if NO_OF_SERVOS > 1
-  #define PIN_SERVO_1               5
-  #define SERVO_1_MAX               750     //signal to move valve to 'closed' position
-  #define SERVO_1_MIN               2300    //signal to move valve to 'open' position
-//  #define SERVO_1_NAME              "Engine Inlet Valve Servo"
-Servo servo1;
-#endif
-
-// servo 3
-#if NO_OF_SERVOS > 2
-  #define PIN_SERVO_2               6       //'stop/freewheel' is assumed to be centre
-  #define SERVO_2_MAX               2300    //signal to set BLDC controller to full 'drive' 
-  #define SERVO_2_MIN               750     //signal to set BLDC controller to full 'brake'
-//  #define SERVO_2_NAME              "Starter/Generator Motor Control"
-Servo servo2;
 #endif
 
 
@@ -307,56 +182,18 @@ typedef void(*SCREEN_DRAW_FUNC)(void);
 /* pointer to the func to use to draw the screen */
 SCREEN_DRAW_FUNC draw_screen_func;
 
-/* struct for storing sensor samples over the update period */
-#define DATA_RECORD_VERSION     1
-
-typedef struct data_record
-{
-  long int timestamp;                   // TODO: use the RTC for this
-  unsigned int A0[ANALOG_SAMPLES_PER_UPDATE];    // TODO: replace these with meaningful values, consider seperate update rates, lower resolution
-  unsigned int A1[ANALOG_SAMPLES_PER_UPDATE];
-  unsigned int A2[ANALOG_SAMPLES_PER_UPDATE];
-  unsigned int A3[ANALOG_SAMPLES_PER_UPDATE];
-  unsigned int A0_avg;
-  unsigned int A1_avg;
-  unsigned int A2_avg;
-  unsigned int A3_avg;
-  byte ANA_no_of_samples;
-  int EGT[EGT_SAMPLES_PER_UPDATE];
-  int EGT_avg;
-  byte EGT_no_of_samples;
-  int RPM_avg;                          //average rpm over this time period, can be caluclated from number of ticks and update rate
-  byte RPM_no_of_ticks;                 //so we can use bytes for storage here and have 235RPM as the slowest measurable rpm by tick time.
-  byte RPM_tick_times_ms[MAX_RPM_TICKS_PER_UPDATE];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
-} DATA_RECORD; //... bytes per record with current settings
-
-/* struct for wrapping around any data */ //this is unneccesarily general
-typedef struct data_storage
-{
-  unsigned int bytes_stored;
-  byte hash;
-  byte *data;
-}DATA_STORAGE;
-
-
-
-
-/* the records to write to */
-DATA_RECORD Data_Record[2];
-/* the index of the currently written record */
-byte Data_Record_write_idx = 0;
-
-#define CURRENT_RECORD    Data_Record[Data_Record_write_idx]
-char output_filename[13] = ""; //8+3 format
+#include "records.h"
 
 
 /* some low resolution mapped analog values 
- *  as ram has been cleaned up, we can consider making these high resolution 
+ *  as ram has been cleaned up, these are now high resolution 
  */
-byte MAP_pressure_abs;
-byte KNOB_value_0;
-byte KNOB_value_1;
-byte KNOB_value_2;
+unsigned int MAP_pressure_abs;
+unsigned int KNOB_value_0;
+unsigned int KNOB_value_1;
+unsigned int KNOB_value_2;
+#define KNOB_RANGE_BITS 10
+
 
 
 static int update_timestamp = 0; //not much I can do easily about these timestamps
@@ -365,9 +202,99 @@ static int egt_timestamp = 0;    //more optimal if all intervals have large comm
 static int pid_timestamp = 0;    //they probably dont need to be long ints though.
                                  //short ints can handle an interval of 32 seconds
 
-int mmap(int x, int in_min, int in_max, int out_min, int out_max)
+/* some alternate, possibly faster mapping functions 
+ *  map : 39673   - built in function
+ *  imap :14914   - copy of map, using 16bit integers only. bit range of input and output limited to 16 total
+ *  lmap : 38538 - copy of map, inputs and output are 16bit, cast to long where needed
+ *  ib2map: 643   - copy of map, but input range is a power of 2. eliminates division, thus much faster
+ *  ob2map: 39675 - copy of ib2map, but output range is power of 2. no benefit
+ */
+  
+
+int imap(int x, int in_min, int in_max, int out_min, int out_max)
 {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+  return ((x - in_min) * (out_max - out_min) / (in_max - in_min)) + out_min;
+}
+
+int lmap( int x,  int in_min,  int in_max,  int out_min,  int out_max)
+{
+  return (int)((( long)(x - in_min) * (out_max - out_min)) / (in_max - in_min)) + out_min;
+}
+
+/* if input range is a power of two, this function is much faster */
+int ib2map(int x, int in_min, byte in_range_log2, int out_min, int out_max)
+{
+  return (int)(((long)(x - in_min) * (long)(out_max - out_min)) >> in_range_log2 ) + out_min;
+}
+
+/* for mapping ADC values, we can remove some extraneous parameters and add rounding */
+int amap(int x, int out_min, int out_max)
+{
+  long result = ((long)x * (out_max - out_min)) + (1 << 9);
+  return (int)(result >> 10) + out_min;
+}
+
+void test_map_implementations()
+{
+  Serial.println(F("Testing mmap:"));
+
+  MAKE_STRING(LIST_SEPARATOR);
+  
+  unsigned long tt = 0;
+  unsigned int total = 0;
+  for (byte in_max =4; in_max < 15; in_max += 2)
+  {
+    for (byte out_max =4; out_max < 15; out_max += 2)
+    {
+      for (byte in_val =0; in_val < in_max; in_val++)
+      {
+        unsigned int iv = (1<<in_val);//in_val;//
+        unsigned int im = (1<<in_max);//in_max;//
+        unsigned int om = (1<<out_max);//out_max;//
+        unsigned int t;
+        
+        volatile unsigned int out;
+        int n = 1000;
+
+        t = micros();
+        while( n--)  
+        //{ out = ib2map(iv, 0, im, 0, om );}
+        { out = lmap(iv, 0, im, 0, om );}
+        //{out = SENSOR_MAP_CAL_MAX_mbar;} //760 val = 170 - both these values are wrong
+        //{out = SENSOR_MAP_CAL_MIN_mbar;} //760   val = 220
+        //{out = (const int)(1.0);}  //760
+        //{out = (const int)(1);} //760
+         //{out = 0;} //628
+        t = micros()-t;
+        
+        tt += t;
+        total++;
+
+        iv = (1<<in_val);
+        im = (1<<in_max);
+        om = (1<<out_max);        
+        Serial.print(F("dt, o, om, im, i: "));
+        Serial.print(t);
+        Serial.print(LIST_SEPARATOR_str);
+        Serial.print(out);
+        Serial.print(LIST_SEPARATOR_str);
+        Serial.print(om);
+        Serial.print(LIST_SEPARATOR_str);
+        Serial.print(im);
+        Serial.print(LIST_SEPARATOR_str);
+        Serial.print(iv);
+        Serial.println();
+      }
+    }
+  }
+  Serial.print(F("mean time: "));
+  Serial.println(tt/total);
+
+  // mmap :14914
+  // map : 39673
+  // ulmap : 38538
+  // ib2map: 643
+  // ob2map: 39675
 }
 
 void setup() {
@@ -385,16 +312,11 @@ void setup() {
   configiure_rpm_counter();
   
   //initialise servos
-  #if NO_OF_SERVOS > 0
-  servo0.attach(PIN_SERVO_0);
-  #endif
-  #if NO_OF_SERVOS > 1
-  servo1.attach(PIN_SERVO_1);
-  #endif
-  #if NO_OF_SERVOS > 2
-  servo2.attach(PIN_SERVO_2);
-  #endif
-
+  byte servo_pins[] = {PIN_SERVO_0,PIN_SERVO_1,PIN_SERVO_2};
+  for(byte n=0; n<NO_OF_SERVOS; n++)
+  {
+    servo[n].attach(servo_pins[n]);
+  }
   
   //fetch the firmware fersion string
   
@@ -515,13 +437,27 @@ void setup() {
 
 
   //set initial servo conditions
-  servo0.writeMicroseconds(map(1,0,2,SERVO_0_MIN, SERVO_0_MAX));
-  servo1.writeMicroseconds(map(1,0,2,SERVO_1_MIN, SERVO_1_MAX));
-  servo2.writeMicroseconds(map(1,0,2,SERVO_2_MIN, SERVO_2_MAX));
+  for(byte n=0;n<NO_OF_SERVOS;n++)
+  {
+    int smin, smax;
+    EEP_GET_N(servo_min_us,n, smin);
+    EEP_GET_N(servo_max_us,n, smax);
+    servo[n].writeMicroseconds((smin + smax) >>1);
+  }
+
+
+  // test the map functions
+  //test_map_implementations();
+
+  
+  Serial.println((int)SENSOR_MAP_CAL_MIN_mbar);
+  Serial.println((int)SENSOR_MAP_CAL_MAX_mbar);
+    
+
   
   // wait for MAX chip to stabilize, and to see the splash screen
   delay(4000);
-//  while(1);
+  //while(1);
 
   int timenow = millis();
 
@@ -548,22 +484,16 @@ void process_analog_inputs()
 
   //do some sort of processing with these values
   //for now we want to use a1-a3 to directly control servos
-  // and convert a0 to a vaccuum as a percentile (or roughly kPa)
+  // and convert a0 to millibar (abs) using factory calibration points
   // we need to store these values statically, 
   // and reference them in a pid control loop that controls servo output
-  int map_min, map_max, val;
-  
-  EEP_GET(map_cal_min, map_min);    EEP_GET(map_cal_zero, map_max);
-  MAP_pressure_abs = constrain(mmap(a0, map_min, map_max, 0, 101), 0, 255); 
 
-  EEP_GET(knob_0_min, map_min);     EEP_GET(knob_0_max, map_max);
-  KNOB_value_0 = constrain(mmap(a1, map_min, map_max, 0, 256), 0, 255); 
+  // scale sensor reading to give gauge vacuum 
+  MAP_pressure_abs = amap(a0, SENSOR_MAP_CAL_MIN_mbar, SENSOR_MAP_CAL_MAX_mbar); 
 
-  EEP_GET(knob_1_min, map_min);     EEP_GET(knob_1_max, map_max);
-  KNOB_value_1 = constrain(mmap(a2, map_min, map_max, 0, 256), 0, 255);
-
-  EEP_GET(knob_2_min, map_min);     EEP_GET(knob_2_max, map_max);
-  KNOB_value_2 = constrain(mmap(a3, map_min, map_max, 0, 256), 0, 255);
+  KNOB_value_0 = a1;
+  KNOB_value_1 = a2;
+  KNOB_value_2 = a3;
   
   //log the analog values, if there's space in the current record
   if (CURRENT_RECORD.ANA_no_of_samples < ANALOG_SAMPLES_PER_UPDATE)
@@ -609,61 +539,7 @@ void process_digital_inputs()
 }
 
 
-void process_pid_loop()
-{
-  #ifdef DEBUG_PID_TIME
-  unsigned int timestamp_us = micros();
-  #endif
-  
-  // process invloves somthing like:
-  // opening the air managemnt valve to increase rpm, closing to reduce rpm
-  // opening reactor inlet valve to reduce vacuum, closing to increace vacuum
-  // opening RIV and closing AMV to reduce exhaust temperature
 
-  //this will be detirmined after collecting some data under manual control
-  // which is the point in datalogging
-
-  // buffers for the eeprom min max values
-  unsigned int servo_min_us, servo_max_us;
-  unsigned int servo_pos_us;
-  
-#if NO_OF_SERVOS > 0
-  // fetch the servo times from eeprom
-  EEP_GET(servo0_min_us, servo_min_us);
-  EEP_GET(servo0_max_us, servo_max_us);
-  servo_pos_us = mmap(KNOB_value_0, 0, 256, servo_min_us, servo_max_us);
-  servo0.writeMicroseconds(servo_pos_us);
-  #ifdef DEBUG_SERVO
-  Serial.print(F("sv0: ")); Serial.println(servo_pos_us);
-  #endif
-#endif
-#if NO_OF_SERVOS > 1
-  EEP_GET(servo1_min_us, servo_min_us);
-  EEP_GET(servo1_max_us, servo_max_us);
-  servo_pos_us = mmap(KNOB_value_1, 0, 256, servo_min_us, servo_max_us);
-  servo1.writeMicroseconds(servo_pos_us);
-  #ifdef DEBUG_SERVO
-  Serial.print(F("sv1: ")); Serial.println(servo_pos_us);
-  #endif
-#endif
-#if NO_OF_SERVOS > 2
-  EEP_GET(servo2_min_us, servo_min_us);
-  EEP_GET(servo2_max_us, servo_max_us);
-  servo_pos_us = mmap(KNOB_value_2, 0, 256, servo_min_us, servo_max_us);
-  servo2.writeMicroseconds(servo_pos_us);
-  #ifdef DEBUG_SERVO
-  Serial.print(F("sv2: ")); Serial.println(servo_pos_us);
-  #endif
-#endif
-//this is taking about 180us, which seems far to much.
-// perhaps it because the map function uses long ints?
-// yep, using short ints reduces the time to 52us
-  #ifdef DEBUG_PID_TIME
-  timestamp_us = micros() - timestamp_us;
-  Serial.print(F("t_pid us: "));
-  Serial.println(timestamp_us);
-  #endif
-}
 
 /* opens comms to display chip and calls the current screen's draw function */
 static byte draw_step = 0;
