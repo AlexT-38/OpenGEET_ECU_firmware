@@ -223,7 +223,7 @@ bool write_serial_data_record()
           break;
         case 1: 
           {
-            Serial.print(F("A0_avg: "));      Serial.println(data_record->A0_avg);
+            Serial.print(F("MAP_avg: "));      Serial.println(data_record->A0_avg);
             Serial.print(F("A1_avg: "));      Serial.println(data_record->A1_avg);
             Serial.print(F("A2_avg: "));      Serial.println(data_record->A2_avg);
             Serial.print(F("A3_avg: "));      Serial.println(data_record->A3_avg);
@@ -231,7 +231,7 @@ bool write_serial_data_record()
           }
           break;
         case 2:
-            serial_print_int_array(data_record->A0, data_record->ANA_no_of_samples, A0_C);
+            serial_print_int_array(data_record->A0, data_record->ANA_no_of_samples, MAP_C);
             break;
         case 3:
             serial_print_int_array(data_record->A1, data_record->ANA_no_of_samples, A1_C);
@@ -329,7 +329,7 @@ bool write_sdcard_data_record()
           } break;
         case 2:
           {
-            log_data_file.print(F("A0_avg: "));       log_data_file.println(data_record->A0_avg);
+            log_data_file.print(F("MAP_avg: "));       log_data_file.println(data_record->A0_avg);
             log_data_file.print(F("A1_avg: "));       log_data_file.println(data_record->A1_avg);
           } break;
         case 3:
@@ -343,7 +343,7 @@ bool write_sdcard_data_record()
           } break;
         case 5:
           {
-            file_print_int_array(&log_data_file, data_record->A0, data_record->ANA_no_of_samples, A0_C);
+            file_print_int_array(&log_data_file, data_record->A0, data_record->ANA_no_of_samples, MAP_C);
           } break;
         case 6:
           {

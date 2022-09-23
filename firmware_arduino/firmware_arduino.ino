@@ -63,6 +63,7 @@
 //#define DEBUG_EEP_RESET
 //#define DEBUG_RPM_COUNTER
 //#define DEBUG_MAP_CAL
+#define DEBUG_SCREEN_RES
 #endif
 
 
@@ -71,10 +72,12 @@
 
 
 #include "strings.h"
+#include "screens.h"
 #include "RPM_counter.h"
 #include "servos.h"
 #include "flags.h"
 #include "eeprom.h"
+
 
 // sketching out some constants for IO, with future upgradability in mind
 
@@ -82,7 +85,7 @@
 #define PIN_LOG_SDCARD_CS         10
 
 //rpm counter interrupt pin
-#define PIN_RPM_COUNTER_INPUT     2 //INT0
+#define PIN_RPM_COUNTER_INPUT     2 //INT0 -this clashes with the gameduino interupt pin
 
 // control input pins
 #define PIN_CONTROL_INPUT_1       A0
@@ -182,10 +185,7 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
 #define PID_UPDATE_INTERVAL_ms      50
 #define PID_UPDATE_START_ms         (PID_UPDATE_INTERVAL_ms - 10)
 
-typedef void(*SCREEN_DRAW_FUNC)(void);
 
-/* pointer to the func to use to draw the screen */
-SCREEN_DRAW_FUNC draw_screen_func;
 
 #include "records.h"
 
@@ -398,41 +398,8 @@ void setup() {
     generate_file_name();
   }
 
-  
-  //initialise the display
-  GD.begin(0);
+  screen_draw_flash(firwmare_string, string);
 
-  // draw splash screen...
-  GD.Clear();
-
-  //firmware name and version
-  GD.cmd_text(GD.w/2, GD.h/2-32, 29, OPT_CENTER, firwmare_string);
-
-  //date and time
-  char datetime_string[11];
-  date_to_string(t_compile, datetime_string);
-  GD.cmd_text(GD.w/2-48,  GD.h/2, 26, OPT_CENTER, datetime_string);
-  time_to_string(t_compile, datetime_string);
-  GD.cmd_text(GD.w/2+48,  GD.h/2, 26, OPT_CENTER, datetime_string);
-
-  //sd card status
-  GD.cmd_text(GD.w/2, GD.h-32, 27, OPT_CENTER, string);
-  
-  //output file name, if valid           
-  if (flags.sd_card_available && flags.do_sdcard_write)
-  {
-    MAKE_STRING(OUTPUT_FILE_NAME_C);
-    GD.cmd_text(GD.w/2, GD.h/2+64, 26, OPT_CENTERY | OPT_RIGHTX, OUTPUT_FILE_NAME_C_str);
-    GD.cmd_text(GD.w/2, GD.h/2+64, 26, OPT_CENTERY, output_filename);
-  }
-  
-  // show the screen  
-  GD.swap();
-  // free the SPI port
-  GD.__end();
-
-  //set the first screen to be drawn
-  draw_screen_func = draw_basic;
 
   //start the ADC
   analogRead(A0);
@@ -580,33 +547,7 @@ void process_digital_inputs()
 
 
 
-/* opens comms to display chip and calls the current screen's draw function */
-static byte draw_step = 0;
 
-void draw_screen()
-{
-  if (draw_screen_func != NULL)
-  {
-    #ifdef DEBUG_DISPLAY_TIME
-    unsigned int timestamp_us = micros();
-    #endif
-  
-    /* restart comms with the FT810 */
-    GD.resume();
-    /* draw the current screen */
-    draw_screen_func();
-    /* display the screen when done */
-    GD.swap();
-    /* stop comms to FT810, so other devices (ie MAX6675, SD CARD) can use the bus */
-    GD.__end();
-
-    #ifdef DEBUG_DISPLAY_TIME
-    timestamp_us = micros() - timestamp_us;
-    Serial.print(F("t_dsp us: "));
-    Serial.println(timestamp_us);
-    #endif
-  }
-}
 
 static byte update_step = 0;
 

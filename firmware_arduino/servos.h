@@ -6,7 +6,7 @@
 Servo servo[NO_OF_SERVOS];
 
 // servo pins 
-#define PIN_SERVO_0               3
+#define PIN_SERVO_0               3     //uses INT1, making INT0 the only one available
 #define PIN_SERVO_1               5
 #define PIN_SERVO_2               6
 

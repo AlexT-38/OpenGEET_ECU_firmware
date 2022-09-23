@@ -22,13 +22,13 @@
 const char DATE[] PROGMEM = __DATE__;
 const char TIME[] PROGMEM = __TIME__;
 const char FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller";
-const char FIRMWARE_VERSION[]  PROGMEM = "v0.1";
+const char FIRMWARE_VERSION[]  PROGMEM = "v0.2";
 const char LIST_SEPARATOR[] PROGMEM = ", ";
 const char CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or not present.";
 const char CARD_INITIALISED[] PROGMEM = "SD Card initialised.";
 const char RECORD_VER_C[] PROGMEM = "Record Ver.: ";
 const char TIMESTAMP_C[] PROGMEM = "Timestamp: ";
-const char A0_C[] PROGMEM = "A0: ";
+const char MAP_C[] PROGMEM = "MAP: ";
 const char A1_C[] PROGMEM = "A1: ";
 const char A2_C[] PROGMEM = "A2: ";
 const char A3_C[] PROGMEM = "A3: ";
@@ -43,10 +43,10 @@ const char FILE_EXT_RAW[] PROGMEM = ".raw";
 
 const char EGT1_DEGC[] PROGMEM = "EGT1 degC";
 const char RPM[] PROGMEM = "RPM";
-const char A0_VALUE[] PROGMEM = "A0 value";
-const char A1_VALUE[] PROGMEM = "A1 value";
-const char A2_VALUE[] PROGMEM = "A2 value";
-const char A3_VALUE[] PROGMEM = "A3 value";
+const char MAP_MBAR[] PROGMEM = "MAP mbar";
+const char INPUT_1[] PROGMEM = "Input 1";
+const char INPUT_2[] PROGMEM = "Input 2";
+const char INPUT_3[] PROGMEM = "Input 3";
 const char TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
 /*
 
