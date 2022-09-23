@@ -61,8 +61,8 @@
 //#define DEBUG_DIGITAL_TIME  //measure how long reading from digital sensors takes
 //#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
-#define DEBUG_RPM_COUNTER
-
+//#define DEBUG_RPM_COUNTER
+//#define DEBUG_MAP_CAL
 #endif
 
 
@@ -112,8 +112,8 @@
 #define SENSOR_MAP_CAL_HIGH_mbar  1050L    //absolute pressure at the high cal point
 #define SENSOR_MAP_CAL_LOW_mbar    200L    //absolute pressure at the low cal point
 
-#define SENSOR_MAP_CAL_MAX_LSb       0L    //adc value for maximum possible pressure value
-#define SENSOR_MAP_CAL_MIN_LSb    1024L    //adc value for minimum possible pressure value
+#define SENSOR_MAP_CAL_MAX_LSb    1024L    //adc value for maximum possible pressure value
+#define SENSOR_MAP_CAL_MIN_LSb       0L    //adc value for minimum possible pressure value
 
 /* while using these points to map the analog input is technically correct
  *  we can get better performance if the input range is a power of two,
@@ -122,12 +122,18 @@
  */
 // hopefully this will be evaluated at compile time! //yeah, this seems to be as fast as casting and writing an interger literal, and fractionally slower than a non cast literal
 #define SENSOR_CAL_LIMIT_out(in_limit, in_low, in_high, out_low, out_high)   ( ( ((in_limit-in_low) * (out_high-out_low)) / (in_high-in_low)  ) + out_low + 0.5)
-
-#define SENSOR_MAP_CAL_MAX_mbar   (int)SENSOR_CAL_LIMIT_out( SENSOR_MAP_CAL_MAX_LSb, SENSOR_MAP_CAL_LOW_LSb, SENSOR_MAP_CAL_HIGH_LSb, SENSOR_MAP_CAL_LOW_mbar ,SENSOR_MAP_CAL_HIGH_mbar)
-#define SENSOR_MAP_CAL_MIN_mbar   (int)SENSOR_CAL_LIMIT_out( SENSOR_MAP_CAL_MIN_LSb, SENSOR_MAP_CAL_LOW_LSb, SENSOR_MAP_CAL_HIGH_LSb, SENSOR_MAP_CAL_LOW_mbar ,SENSOR_MAP_CAL_HIGH_mbar)
+//lim=maxlsb=0, in=lim-inlo=-969, outrng=outhi-outlo=850, numr=in*outrng=-823650, inrng=inhi-inlo=-930, outfrac=numr/inrng=885, out=outfrac+outlo=1085
+//lim=minlsb=1024, in=lim-inlo=55, outrng=outhi-outlo=850, numr=in*outrng=46750, inrng=inhi-inlo=-930, outfrac=numr/inrng=-50, out=outfrac+outlo=150
+#define SENSOR_MAP_CAL_MAX_mbar   (int)SENSOR_CAL_LIMIT_out( (float)SENSOR_MAP_CAL_MAX_LSb, SENSOR_MAP_CAL_LOW_LSb, SENSOR_MAP_CAL_HIGH_LSb, SENSOR_MAP_CAL_LOW_mbar ,SENSOR_MAP_CAL_HIGH_mbar)
+#define SENSOR_MAP_CAL_MIN_mbar   (int)SENSOR_CAL_LIMIT_out( (float)SENSOR_MAP_CAL_MIN_LSb, SENSOR_MAP_CAL_LOW_LSb, SENSOR_MAP_CAL_HIGH_LSb, SENSOR_MAP_CAL_LOW_mbar ,SENSOR_MAP_CAL_HIGH_mbar)
 /* these should evaluate to 150 and 1086 respectively
  *  and now do after specifying the types of the parameter constants or at least close enoug
  *  they are 150 and 1085, so  some very minor rounding errors that can be disregarded
+ *  
+ *  Actually they are evaluating as 1085 and 150 for some bizare reason I cannot see
+ *  I'm just going to swap MIN/MAX LSb and live with not knowing why
+ *  
+ *  Rounding fixed by specifiying float literals
  */
 
 // temperature sensor configuration
@@ -448,10 +454,35 @@ void setup() {
   // test the map functions
   //test_map_implementations();
 
+
+
+#ifdef DEBUG_MAP_CAL
+// SENSOR_CAL_LIMIT_out(in_limit, in_low, in_high, out_low, out_high)   ( ( ((in_limit-in_low) * (out_high-out_low)) / (in_high-in_low)  ) + out_low + 0.5)
+// SENSOR_MAP_CAL_MAX_mbar   (int)SENSOR_CAL_LIMIT_out( SENSOR_MAP_CAL_MAX_LSb, SENSOR_MAP_CAL_LOW_LSb, SENSOR_MAP_CAL_HIGH_LSb, SENSOR_MAP_CAL_LOW_mbar ,SENSOR_MAP_CAL_HIGH_mbar)
+// SENSOR_MAP_CAL_MIN_mbar   (int)SENSOR_CAL_LIMIT_out( SENSOR_MAP_CAL_MIN_LSb, SENSOR_MAP_CAL_LOW_LSb, SENSOR_MAP_CAL_HIGH_LSb, SENSOR_MAP_CAL_LOW_mbar ,SENSOR_MAP_CAL_HIGH_mbar)
+
+  Serial.print(F("map cal LOW LSb  : "));
+  Serial.println((int)SENSOR_MAP_CAL_LOW_LSb);
+  Serial.print(F("map cal HIGH LSb : "));
+  Serial.println((int)SENSOR_MAP_CAL_HIGH_LSb);
+
+  Serial.print(F("map cal LOW mbar : "));
+  Serial.println((int)SENSOR_MAP_CAL_LOW_mbar);
+  Serial.print(F("map cal HIGH mbar: "));
+  Serial.println((int)SENSOR_MAP_CAL_HIGH_mbar);
+
+  Serial.print(F("map cal MIN LSb  : "));
+  Serial.println((int)SENSOR_MAP_CAL_MIN_LSb);
+  Serial.print(F("map cal MAX LSb  : "));
+  Serial.println((int)SENSOR_MAP_CAL_MAX_LSb);
   
+  Serial.print(F("map cal MIN mbar : "));
   Serial.println((int)SENSOR_MAP_CAL_MIN_mbar);
+  Serial.print(F("map cal MAX mbar : "));
   Serial.println((int)SENSOR_MAP_CAL_MAX_mbar);
-    
+  
+  Serial.println();
+#endif
 
   
   // wait for MAX chip to stabilize, and to see the splash screen
@@ -489,6 +520,15 @@ void process_analog_inputs()
 
   // scale sensor reading to give gauge vacuum 
   MAP_pressure_abs = amap(a0, SENSOR_MAP_CAL_MIN_mbar, SENSOR_MAP_CAL_MAX_mbar); 
+
+  #ifdef DEBUG_MAP_CAL
+  Serial.print(F("map cal; in, min, max, out: "));
+  Serial.print(a0); Serial.print(F(", "));
+  Serial.print(SENSOR_MAP_CAL_MIN_mbar); Serial.print(F(", "));
+  Serial.print(SENSOR_MAP_CAL_MAX_mbar); Serial.print(F(", "));
+  Serial.print(MAP_pressure_abs); Serial.print(F(", "));
+  Serial.println();
+  #endif
 
   KNOB_value_0 = a1;
   KNOB_value_1 = a2;
