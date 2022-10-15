@@ -34,6 +34,8 @@ typedef struct {
 typedef struct {
     byte sd_card_available:1;
     byte logging_active:1;
+    byte redraw_pending:1;
+    byte update_active:1;
     byte engine_running:1;    //true if rpm is above minimum
     byte engine_starting:1;   //true when motor is being commanded to to turn the engine over
     byte reactor_running:1;   //once we have a foolproof way of checking the functioning of the reactor, it will be stored here

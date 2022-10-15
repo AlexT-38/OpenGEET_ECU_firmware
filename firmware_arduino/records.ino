@@ -193,7 +193,7 @@ static byte write_data_step = 0;
 bool write_serial_data_record()
 {
   /* send the data to the serial port */
-  if(flags_config.do_serial_write)
+  if(flags_status.logging_active && flags_config.do_serial_write)
   {
     #ifdef DEBUG_SERIAL_TIME    
     unsigned int timestamp_us = micros();
@@ -280,7 +280,7 @@ bool write_sdcard_data_record()
 {
   
   /* send the data to the SD card, if available */
-  if(flags_config.do_sdcard_write && flags_status.sd_card_available)
+  if(flags_status.logging_active && flags_config.do_sdcard_write && flags_status.sd_card_available)
   {
     #ifdef DEBUG_SDCARD_TIME    
     unsigned int timestamp_us = micros();

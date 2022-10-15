@@ -47,17 +47,36 @@
 #define TOUCH_NONE      255
 
 //tough tag assignments
-#define TAG_NONE        0
-#define TAG_INVALID     255
 
-#define TAG_SCREEN_1    1
-#define TAG_SCREEN_2    2
-#define TAG_SCREEN_3    3
-#define TAG_SCREEN_4    4
-#define TAG_SCREEN_5    5
 
-#define TAG_LOG_START   10
-#define TAG_LOG_STOP    11
+typedef enum tags
+{
+  TAG_NONE     =   0,
+  
+
+  TAG_SCREEN_1,
+  TAG_SCREEN_2,
+  TAG_SCREEN_3,
+  TAG_SCREEN_4,
+  TAG_SCREEN_5,
+
+  TAG_LOG_START, //could be one tag: start/stop
+  TAG_LOG_STOP,
+  TAG_LOG_TOGGLE_SDCARD,
+  TAG_LOG_TOGGLE_SERIAL,
+  TAG_LOG_TOGGLE_SDCARD_HEX,
+  TAG_LOG_TOGGLE_SERIAL_HEX,
+  
+  TAG_CAL_SV0,
+  TAG_CAL_SV1,
+  TAG_CAL_SV2,
+
+  TAG_ENGINE_START,
+  TAG_ENGINE_STOP,
+
+  TAG_INVALID   =  255,
+  
+}TAGS_EN;
 
 typedef enum screen
 {

@@ -16,14 +16,14 @@ static byte draw_step = 0;
 
 byte draw_screen()
 {
-  byte keep_going = true;
+  flags_status.redraw_pending = true;
   
   // check if enough time has passed since the last redraw
   int time_now = millis();
   if ((time_now - display_timestamp) > 0)
   {
     display_timestamp = time_now + SCREEN_REDRAW_INTERVAL_MIN_ms;
-    keep_going = false;
+    flags_status.redraw_pending = false;
     
     if (draw_screen_funcs[current_screen] != NULL)
     {
@@ -46,25 +46,34 @@ byte draw_screen()
       Serial.println(timestamp_us);
       #endif
     }
+
   }
-  return keep_going;
+  return flags_status.redraw_pending;
 }
 
-/* touch handling */
+/* touch handling - avoid heavy lifting in this funtion */
 static byte touch_tag = TAG_NONE;
 static byte touch_event = TOUCH_NONE;
 void read_touch()
 {
+
+  #ifdef DEBUG_TOUCH_TIME
+  unsigned int timestamp_us = micros();
+  #endif
+  
   // fetch the current tag
   byte tag = GD.rd(REG_TOUCH_TAG);
 
   //check for change in tag
   if (tag != touch_tag)
   {
+    //detirmine the event type - for simplicities' sake, we have only on and off events, maybe cancel also
     if(touch_tag == 0) touch_event = TOUCH_ON;
     else if(tag == 0) touch_event = TOUCH_OFF;
     touch_tag = tag;
 
+    bool redraw = true;
+    
     switch(tag)
     {
       case TAG_SCREEN_1:
@@ -83,11 +92,36 @@ void read_touch()
         if(touch_event == TOUCH_OFF)  current_screen = SCREEN_5;
         break;
       case TAG_LOG_START:
+        //if not previously logging and an sd card is available, generate the filename for logging
+        if(!flags_status.logging_active && flags_status.sd_card_available) generate_file_name();
+        flags_status.logging_active = true;
         break;
       case TAG_LOG_STOP:
+        flags_status.logging_active = false;
         break;
+      case TAG_CAL_SV0:
+        //calibrate_servo(0);
+        break;
+      case TAG_CAL_SV1:
+        //calibrate_servo(1);
+        break;
+      case TAG_CAL_SV2:
+        //calibrate_servo(2);
+        break;
+      case TAG_ENGINE_START:
+        break;
+      case TAG_ENGINE_STOP:
+        break;
+      default:
+        redraw = false;
     }
   }
+
+  #ifdef DEBUG_TOUCH_TIME
+  timestamp_us = micros() - timestamp_us;
+  Serial.print(F("t_dsp us: "));
+  Serial.println(timestamp_us);
+  #endif
 }
 
 /* drawing utility functions */

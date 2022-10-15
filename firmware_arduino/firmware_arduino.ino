@@ -51,19 +51,20 @@
 //keep debug strings short to limit time spent sending them
 
 #ifdef DEBUG                  //enable debugging readouts
-//#define DEBUG_LOOP          //mprint out loop markers and update time
-//#define DEBUG_UPDATE_TIME     //measure how long an update takes
-//#define DEBUG_DISPLAY_TIME    //measure how long draw screen takes
-//#define DEBUG_SDCARD_TIME   //measure how long SD card access takes
-//#define DEBUG_SERIAL_TIME
-//#define DEBUG_PID_TIME      //measure how long the pid loop takes
-//#define DEBUG_ANALOG_TIME   //measure how long analog read and processing takes
-//#define DEBUG_DIGITAL_TIME  //measure how long reading from digital sensors takes
+//#define DEBUG_LOOP          //mprint out loop markers and update time                 typ       max
+//#define DEBUG_UPDATE_TIME   //measure how long an update takes                    t:
+//#define DEBUG_DISPLAY_TIME  //measure how long draw screen takes                  t:
+//#define DEBUG_SDCARD_TIME   //measure how long SD card log write takes            t:
+//#define DEBUG_SERIAL_TIME   //measure how long serial log write takes             t:
+//#define DEBUG_PID_TIME      //measure how long the pid loop takes                 t:
+//#define DEBUG_ANALOG_TIME   //measure how long analog read and processing takes   t:
+//#define DEBUG_DIGITAL_TIME  //measure how long reading from digital sensors takes t:
+#define DEBUG_TOUCH_TIME    //measure how long reading and processing touch input t:
 //#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
 //#define DEBUG_RPM_COUNTER
 //#define DEBUG_MAP_CAL
-#define DEBUG_SCREEN_RES
+//#define DEBUG_SCREEN_RES    //print screen resolution during startup (should be WQVGA: 480 x 272)
 #endif
 
 
@@ -167,12 +168,12 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
 // digital themocouple update rate
 #define EGT_SAMPLE_INTERVAL_ms        250 //max update rate
 #define EGT_SAMPLES_PER_UPDATE        (UPDATE_INTERVAL_ms/EGT_SAMPLE_INTERVAL_ms)
-#define EGT_UPDATE_START_ms           (EGT_SAMPLE_INTERVAL_ms - 30)
+#define EGT_UPDATE_START_ms           (EGT_SAMPLE_INTERVAL_ms - 30) //220ms
 
 //analog input read rate
 #define ANALOG_SAMPLE_INTERVAL_ms     100   //record analog values this often
 #define ANALOG_SAMPLES_PER_UPDATE     (UPDATE_INTERVAL_ms/ANALOG_SAMPLE_INTERVAL_ms)
-#define ANALOG_UPDATE_START_ms        (ANALOG_SAMPLE_INTERVAL_ms - 20)
+#define ANALOG_UPDATE_START_ms        (ANALOG_SAMPLE_INTERVAL_ms - 20)  //80ms
 
 //rpm counter params
 #define MAX_RPM                       4500
@@ -183,10 +184,31 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
 
 
 #define PID_UPDATE_INTERVAL_ms        50
-#define PID_UPDATE_START_ms           (PID_UPDATE_INTERVAL_ms - 10)
+#define PID_UPDATE_START_ms           (PID_UPDATE_INTERVAL_ms - 10) //40ms
 
 #define SCREEN_REDRAW_INTERVAL_MIN_ms 100
 #define TOUCH_READ_INTERVAL_ms        50
+#define TOUCH_READ_START_ms           (TOUCH_READ_INTERVAL_ms + 10) //60ms
+
+
+/*          event         duration  
+ *                      typ.      max.    log sdcard    log serial
+ *      U - update
+ *      P - pid
+ *      T - touch
+ *      A - analog
+ *      E - egt
+ *      
+ *      10ms per char
+ *      
+ *      000   020   040   060   080   100   120   140   160   180   200   220   240   260   280   300   320   340   360   380   400   420   440   460   480
+ *      U  T        P     T     A  P     T        P     T     A  P     T  E     P     T     A  P     T        P     T     A  P     T        P     T  E  A  P
+ *                                    
+ *      500   520   540   560   580   600   620   640   660   680   700   720   740   760   780   800   820   840   860   880   900   920   940   960   980
+ *         T        P     T     A  P     T        P     T     A  P     T  E     P     T     A  P     T        P     T     A  P     T        P     T  E  A  P
+ * 
+ */
+
 
 #include "records.h"
 
@@ -466,6 +488,7 @@ void setup() {
   analog_timestamp = timenow + ANALOG_UPDATE_START_ms;
   egt_timestamp = timenow + EGT_UPDATE_START_ms;
   pid_timestamp = timenow + PID_UPDATE_START_ms;
+  touch_timestamp = timenow + TOUCH_READ_START_ms;
 }
 
 
@@ -590,7 +613,7 @@ void loop() {
   int elapsed_time;
   int timenow = millis();
 
-  static bool update_active = false;
+  
 
   /* get time left till next update */
   elapsed_time = update_timestamp - timenow;
@@ -599,15 +622,15 @@ void loop() {
   {
     /* set the timestamp for the next update */
     update_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
-    update_active = true;
+    flags_status.update_active = true;
     /* emit the timestamp interval of the current update, if debugging */
     #ifdef DEBUG_LOOP
     Serial.print(F("UPD: ")); Serial.println(timenow);
     #endif
   }
-  if(update_active)
+  if(flags_status.update_active)
   {
-    update_active = process_update_loop();
+    flags_status.update_active = process_update_loop();
     
     //update the time
     timenow = millis();
@@ -681,5 +704,32 @@ void loop() {
     //update the time
     timenow = millis();
   }
+
+
   
+  /* get time left till next update */
+  elapsed_time = touch_timestamp - timenow;
+  /* execute update if update interval has elapsed */
+  if(elapsed_time < 0)
+  {
+    /* set the timestamp for the next update */
+    int timelag = elapsed_time%TOUCH_READ_INTERVAL_ms;
+    touch_timestamp = timenow + TOUCH_READ_INTERVAL_ms + timelag;
+
+    //debug marker
+    #ifdef DEBUG_LOOP
+    Serial.print(F("TOUCH: ")); Serial.println(timenow);
+    #endif  
+
+    read_touch();
+
+    //update the time
+    timenow = millis();
+  }
+
+  /* redraw the screen if a touch occured and an update is not in progress */
+  if(!flags_status.update_active && flags_status.redraw_pending)
+  {
+    draw_screen();
+  }
 }
