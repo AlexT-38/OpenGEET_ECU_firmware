@@ -9,12 +9,12 @@
 
 #define GRID_SX(N)            (int)(SCREEN_W/N)
 #define GRID_SY(N)            (int)(SCREEN_H/N)
-#define GRID_XL(n,N)         (int)(SCREEN_W*n/N)
-#define GRID_YT(n,N)         (int)(SCREEN_H*n/N)
-#define GRID_XC(n,N)         (int)(SCREEN_W*((n<<1)+1)/(N<<1))
-#define GRID_YC(n,N)         (int)(SCREEN_H*((n<<1)+1)/(N<<1))
-#define GRID_XR(n,N)         (int)(SCREEN_W*(n+1)/N)
-#define GRID_YB(n,N)         (int)(SCREEN_H*(n+1)/N)
+#define GRID_XL(n,N)         (int)(n*GRID_SX(N))
+#define GRID_YT(n,N)         (int)(n*GRID_SY(N))
+#define GRID_XC(n,N)         (int)(((n<<1)+1)*GRID_SX(N<<1))
+#define GRID_YC(n,N)         (int)(((n<<1)+1)*GRID_SY(N<<1))
+#define GRID_XR(n,N)         (int)((n+1)*GRID_SX(N))
+#define GRID_YB(n,N)         (int)((n+1)*GRID_SY(N))
 
 #define SUBPIXEL_BITS    4
 #define SCREEN_BUILD_ID  4
@@ -30,6 +30,8 @@
 
 #define C_LABEL          RGB(0xC0,0xD0,0xD0)
 #define C_VALUE          RGB(0xFF,0xFF,0xD0)
+
+#define C_BUTTON_FG      RGB(0x00,0x10,0xD0)
 
 #define A_OPAQUE         255
 #define A_CLEAR          0
@@ -67,9 +69,13 @@ typedef enum tags
   TAG_LOG_TOGGLE_SDCARD_HEX,
   TAG_LOG_TOGGLE_SERIAL_HEX,
   
-  TAG_CAL_SV0,
-  TAG_CAL_SV1,
-  TAG_CAL_SV2,
+  TAG_CAL_SV0_TOP,
+  TAG_CAL_SV1_TOP,
+  TAG_CAL_SV2_TOP,
+
+  TAG_CAL_SV0_BOT,
+  TAG_CAL_SV1_BOT,
+  TAG_CAL_SV2_BOT,
 
   TAG_ENGINE_START,
   TAG_ENGINE_STOP,

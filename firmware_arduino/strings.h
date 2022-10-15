@@ -15,8 +15,10 @@
 
 #define STRING_BUFFER(STRING_NAME)  char string[strlen_P(STRING_NAME)+1]
 #define MAKE_STRING(STRING_NAME)  char STRING_NAME ## _str[strlen_P(STRING_NAME)+1]; strcpy_P(STRING_NAME ## _str,STRING_NAME)
-#define PUT_STRING(STRING_NAME, buffer) strcpy_P(buffer, STRING_NAME);
+#define READ_STRING(STRING_NAME, buffer) strcpy_P(buffer, STRING_NAME);
 #define GET_STRING(STRING_NAME) strcpy_P(string, STRING_NAME);
+
+#define READ_STRING_FROM(ARRAY_NAME, INDEX, buffer) strcpy_P(buffer, (char *)pgm_read_word(&(ARRAY_NAME[INDEX])));  // Necessary casts and dereferencing, just copy.
 
 // define them as consts here and delete the original 
 const char S_DATE[] PROGMEM = __DATE__;
@@ -53,8 +55,9 @@ const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
 
 const char S_BASIC[] PROGMEM = "Basic";
 const char S_PID_1[] PROGMEM = "PID 1";
-const char S_PID_2[] PROGMEM = "PID_2";
+const char S_PID_2[] PROGMEM = "PID 2";
 const char S_CONFIG[] PROGMEM = "Config";
+const char S_NONE[] PROGMEM = "None";
 
 /*
 const char NAME[] PROGMEM = "";

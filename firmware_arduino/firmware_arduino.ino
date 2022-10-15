@@ -352,11 +352,11 @@ void setup() {
   
   char firwmare_string[strlen_P(S_FIRMWARE_NAME) + strlen_P(S_FIRMWARE_VERSION) + strlen_P(S_COMMA) + 1];
   char *string_ptr = firwmare_string;
-  PUT_STRING(S_FIRMWARE_NAME, string_ptr);
+  READ_STRING(S_FIRMWARE_NAME, string_ptr);
   string_ptr += strlen_P(S_FIRMWARE_NAME);
-  PUT_STRING(S_COMMA, string_ptr);
+  READ_STRING(S_COMMA, string_ptr);
   string_ptr += strlen_P(S_COMMA);
-  PUT_STRING(S_FIRMWARE_VERSION, string_ptr);
+  READ_STRING(S_FIRMWARE_VERSION, string_ptr);
   
   //initialise the serial port:
   Serial.begin(1000000);  //for usb coms, no reason not to use fastest available baud rate - this turns out to be the biggest time usage during update/report

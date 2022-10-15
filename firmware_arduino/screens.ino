@@ -6,7 +6,9 @@
 typedef void(*SCREEN_DRAW_FUNC)(void);
 
 /* pointer to the func to use to draw the screen */
-SCREEN_DRAW_FUNC draw_screen_funcs[NO_OF_SCREENS] = {screen_draw_basic, NULL, NULL, NULL, screen_draw_config};
+const SCREEN_DRAW_FUNC draw_screen_funcs[NO_OF_SCREENS] = {screen_draw_basic, NULL, NULL, NULL, screen_draw_config};
+const char * const screen_labels[NO_OF_SCREENS] PROGMEM = {S_BASIC, S_NONE,S_NONE,S_NONE, S_CONFIG};
+
 
 SCREEN_EN current_screen = SCREEN_1;
 
@@ -33,6 +35,9 @@ byte draw_screen()
     
       /* restart comms with the FT810 */
       GD.resume();
+      /* common screen components */
+      draw_screen_background();
+      draw_screen_selector();
       /* draw the current screen */
       draw_screen_funcs[current_screen]();
       /* display the screen when done */
@@ -53,10 +58,11 @@ byte draw_screen()
 
 /* touch handling - avoid heavy lifting in this funtion */
 static byte touch_tag = TAG_NONE;
-static byte touch_event = TOUCH_NONE;
+
 void read_touch()
 {
-
+  byte touch_event = TOUCH_NONE;
+  
   #ifdef DEBUG_TOUCH_TIME
   unsigned int timestamp_us = micros();
   #endif
@@ -99,15 +105,15 @@ void read_touch()
       case TAG_LOG_STOP:
         flags_status.logging_active = false;
         break;
-      case TAG_CAL_SV0:
-        //calibrate_servo(0);
-        break;
-      case TAG_CAL_SV1:
-        //calibrate_servo(1);
-        break;
-      case TAG_CAL_SV2:
-        //calibrate_servo(2);
-        break;
+//      case TAG_CAL_SV0:
+//        //calibrate_servo(0);
+//        break;
+//      case TAG_CAL_SV1:
+//        //calibrate_servo(1);
+//        break;
+//      case TAG_CAL_SV2:
+//        //calibrate_servo(2);
+//        break;
       case TAG_ENGINE_START:
         break;
       case TAG_ENGINE_STOP:
@@ -302,8 +308,41 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   GD.cmd_text(pos_x+dx, pos_y-8, font_size, opts, str_ptr);
 }
 
-
-void draw_screen_selector(byte width)
+#define SCREEN_BUTTON_FONT 26
+#define SCREEN_BUTTON_XN  6
+void draw_screen_selector()
 {
-  
+  int colour_bg = C_BKG_NORMAL; 
+  byte gx = GRID_XL(0,SCREEN_BUTTON_XN);
+
+  char label[10];
+  int opt;
+
+  for(char n = 0; n<NO_OF_SCREENS; n++)
+  {
+    GD.Tag(TAG_SCREEN_1 + n);                                                                         //set the touch tag
+    opt = ( (current_screen == (SCREEN_1 + n)) || (touch_tag == (TAG_SCREEN_1 + n)) ) * OPT_FLAT;     //draw flat if currently selected, or button is touched
+    READ_STRING_FROM(screen_labels, n, label);
+    GD.cmd_button(GRID_XL(0,6), GRID_YT(n,NO_OF_SCREENS), GRID_SX(6), GRID_SY(NO_OF_SCREENS), SCREEN_BUTTON_FONT, opt, label);
+  }
+  GD.Tag(TAG_INVALID);
+}
+
+void draw_screen_background()
+{
+    /* data record to read */
+  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
+
+  int colour_bg = C_BKG_NORMAL;
+  /* simple background colour setting by rpm range
+     this should be changed to read from system status flags */
+  if (data_record->RPM_avg == 0)
+  {    colour_bg = C_BKG_STOPPED;  }
+  else if (data_record->RPM_avg < 1300 || data_record->RPM_avg > 3800)
+  {    colour_bg = C_BKG_WARNING;  }
+  else
+  {    colour_bg = C_BKG_RUNNING;  }
+
+  GD.ClearColorRGB(colour_bg);
+  GD.Clear();
 }

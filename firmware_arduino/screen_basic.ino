@@ -4,34 +4,17 @@
 #ifdef XN
 #undef XN
 #endif
-#define XN 4
+#define XN 5
 #ifdef YN
 #undef YN
 #endif
 #define YN 4
 void screen_draw_basic()
 {
-  int colour_bg = C_BKG_NORMAL;
-  
-  byte gx, gy;
-  static int pos_y;
-  static int pos_x;
+  byte gx, gy=0;
 
   /* data record to read */
   DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
-
-  /* simple background colour setting by rpm range
-     this should be changed to read from system status flags
-     and probably be universal for all screens */
-  if (data_record->RPM_avg == 0)
-  {    colour_bg = C_BKG_STOPPED;  }
-  else if (data_record->RPM_avg < 1300 || data_record->RPM_avg > 3800)
-  {    colour_bg = C_BKG_WARNING;  }
-  else
-  {    colour_bg = C_BKG_RUNNING;  }
-
-  GD.ClearColorRGB(colour_bg);
-  GD.Clear();
   
   // Right hand column
   gx = XN-1;
