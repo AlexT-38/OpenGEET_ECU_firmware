@@ -17,7 +17,7 @@ void generate_file_name()
 
   // set the file extension
   str_ptr = output_filename + 8;
-  if(flags.do_sdcard_write_hex) {strcpy_P(str_ptr,FILE_EXT_RAW);}
+  if(flags_config.do_sdcard_write_hex) {strcpy_P(str_ptr,FILE_EXT_RAW);}
   else                          {strcpy_P(str_ptr,FILE_EXT_TXT);}
 
   //set the base name from the year month and day
@@ -57,7 +57,7 @@ void generate_file_name()
     dataFile.close();
     
     Serial.println(F("Opened OK"));
-    flags.do_sdcard_write = true;
+    flags_config.do_sdcard_write = true;
 
     if(nn == 0)
     {
@@ -67,7 +67,7 @@ void generate_file_name()
   else
   {
     Serial.println(F("Open FAILED"));
-    flags.do_sdcard_write = false;
+    flags_config.do_sdcard_write = false;
   }
 
 }
@@ -193,7 +193,7 @@ static byte write_data_step = 0;
 bool write_serial_data_record()
 {
   /* send the data to the serial port */
-  if(flags.do_serial_write)
+  if(flags_config.do_serial_write)
   {
     #ifdef DEBUG_SERIAL_TIME    
     unsigned int timestamp_us = micros();
@@ -203,7 +203,7 @@ bool write_serial_data_record()
     /* data record to read */
     DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;//&Data_Record[1-Data_Record_write_idx];//
   
-    if(flags.do_serial_write_hex)
+    if(flags_config.do_serial_write_hex)
     {
       write_data_step = 0;
       Serial.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
@@ -280,7 +280,7 @@ bool write_sdcard_data_record()
 {
   
   /* send the data to the SD card, if available */
-  if(flags.do_sdcard_write && flags.sd_card_available)
+  if(flags_config.do_sdcard_write && flags_status.sd_card_available)
   {
     #ifdef DEBUG_SDCARD_TIME    
     unsigned int timestamp_us = micros();
@@ -293,7 +293,7 @@ bool write_sdcard_data_record()
     static File log_data_file; //costs 35 bytes
     
     /* replace all these serial calls with SD card file calls */
-    if(flags.do_sdcard_write_hex)
+    if(flags_config.do_sdcard_write_hex)
     {
       write_data_step = 0;
       log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);

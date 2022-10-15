@@ -161,31 +161,32 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
 // update rates
 
 // screen/log file update
-#define UPDATE_INTERVAL_ms          1000
-#define UPDATE_START_ms             (UPDATE_INTERVAL_ms + 0)      //setting update loops to start slightly offset so they aren't tying to execute at the same time
+#define UPDATE_INTERVAL_ms            1000
+#define UPDATE_START_ms               (UPDATE_INTERVAL_ms + 0)      //setting update loops to start slightly offset so they aren't tying to execute at the same time
 
 // digital themocouple update rate
-#define EGT_SAMPLE_INTERVAL_ms      250 //max update rate
-#define EGT_SAMPLES_PER_UPDATE      (UPDATE_INTERVAL_ms/EGT_SAMPLE_INTERVAL_ms)
-#define EGT_UPDATE_START_ms         (EGT_SAMPLE_INTERVAL_ms - 30)
+#define EGT_SAMPLE_INTERVAL_ms        250 //max update rate
+#define EGT_SAMPLES_PER_UPDATE        (UPDATE_INTERVAL_ms/EGT_SAMPLE_INTERVAL_ms)
+#define EGT_UPDATE_START_ms           (EGT_SAMPLE_INTERVAL_ms - 30)
 
 //analog input read rate
-#define ANALOG_SAMPLE_INTERVAL_ms   100   //record analog values this often
-#define ANALOG_SAMPLES_PER_UPDATE   (UPDATE_INTERVAL_ms/ANALOG_SAMPLE_INTERVAL_ms)
-#define ANALOG_UPDATE_START_ms      (ANALOG_SAMPLE_INTERVAL_ms - 20)
+#define ANALOG_SAMPLE_INTERVAL_ms     100   //record analog values this often
+#define ANALOG_SAMPLES_PER_UPDATE     (UPDATE_INTERVAL_ms/ANALOG_SAMPLE_INTERVAL_ms)
+#define ANALOG_UPDATE_START_ms        (ANALOG_SAMPLE_INTERVAL_ms - 20)
 
 //rpm counter params
-#define MAX_RPM                     4500
-#define MIN_RPM_TICK_INTERVAL_ms    (60000/MAX_RPM)
-#define MAX_RPM_TICKS_PER_UPDATE    (UPDATE_INTERVAL_ms/MIN_RPM_TICK_INTERVAL_ms)
-#define MIN_RPM                     1
-#define MAX_RPM_TICK_INTERVAL_ms    (60000/MIN_RPM)
+#define MAX_RPM                       4500
+#define MIN_RPM_TICK_INTERVAL_ms      (60000/MAX_RPM)
+#define MAX_RPM_TICKS_PER_UPDATE      (UPDATE_INTERVAL_ms/MIN_RPM_TICK_INTERVAL_ms)
+#define MIN_RPM                       1
+#define MAX_RPM_TICK_INTERVAL_ms      (60000/MIN_RPM)
 
 
-#define PID_UPDATE_INTERVAL_ms      50
-#define PID_UPDATE_START_ms         (PID_UPDATE_INTERVAL_ms - 10)
+#define PID_UPDATE_INTERVAL_ms        50
+#define PID_UPDATE_START_ms           (PID_UPDATE_INTERVAL_ms - 10)
 
-
+#define SCREEN_REDRAW_INTERVAL_MIN_ms 100
+#define TOUCH_READ_INTERVAL_ms        50
 
 #include "records.h"
 
@@ -205,7 +206,9 @@ static int update_timestamp = 0; //not much I can do easily about these timestam
 static int analog_timestamp = 0; //could be optimised by using a timer and a progmem table of func calls
 static int egt_timestamp = 0;    //more optimal if all intervals have large common root
 static int pid_timestamp = 0;    //they probably dont need to be long ints though.
-                                 //short ints can handle an interval of 32 seconds
+static int display_timestamp = 0;//short ints can handle an interval of 32 seconds
+static int touch_timestamp = 0;
+                                 
 
 /* some alternate, possibly faster mapping functions 
  *  map : 39673   - built in function
@@ -366,18 +369,18 @@ void setup() {
   }
   
   //set default flags
-  flags.do_serial_write = true;
-  flags.do_sdcard_write = true;
+  flags_config.do_serial_write = true;
+  flags_config.do_sdcard_write = true;
 
   //reset eeprom if a different version
   reset_eeprom();
 
   //read flag configuration from eeprom
-  EEP_GET(flags,flags);
+  EEP_GET(flags_config,flags_config);
 
   //override flags in eeprom
-  flags.do_serial_write = true;
-  flags.do_sdcard_write = true;
+  flags_config.do_serial_write = true;
+  flags_config.do_sdcard_write = true;
 
 
   //attempt to initialse the logging SD card. 
@@ -388,12 +391,12 @@ void setup() {
   
   if (!SD.begin(PIN_LOG_SDCARD_CS)) {
     GET_STRING(CARD_FAILED_OR_NOT_PRESENT); Serial.println(string);
-    flags.sd_card_available = false;
+    flags_status.sd_card_available = false;
   }
   else
   {
     GET_STRING(CARD_INITIALISED); Serial.println(string);
-    flags.sd_card_available = true;
+    flags_status.sd_card_available = true;
 
     generate_file_name();
   }
@@ -563,7 +566,7 @@ bool process_update_loop()
     // swap the buffers and finalise averages
     case 0:   finalise_record();                                   break;
     // draw the current screen
-    case 1:   draw_screen();                                       break;
+    case 1:   update_step -= draw_screen();                                       break;
     // write the current data to sdcard
     case 2:   if (!write_sdcard_data_record())    {update_step--;} break;
     // write the current data to serial

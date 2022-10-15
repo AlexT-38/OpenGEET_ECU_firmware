@@ -3,7 +3,7 @@ struct eeprom
 {
     byte         eep_version;
     unsigned int servo_min_us[NO_OF_SERVOS], servo_max_us[NO_OF_SERVOS];
-    FLAGS        flags;
+    FLAGS_CONFIG        flags_config;
 };
 */
 
@@ -39,7 +39,7 @@ void reset_eeprom()
 #endif
     }
 
-    EEP_PUT(flags, flags);
+    EEP_PUT(flags_config, flags_config);
     //don't update eep version till all eep writes complete
     EEP_PUT(eep_version, EEP_VERSION);
 

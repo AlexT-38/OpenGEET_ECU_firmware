@@ -14,29 +14,40 @@ SCREEN_EN current_screen = SCREEN_1;
 /* opens comms to display chip and calls the current screen's draw function */
 static byte draw_step = 0;
 
-void draw_screen()
+byte draw_screen()
 {
-  if (draw_screen_funcs[current_screen] != NULL)
-  {
-    #ifdef DEBUG_DISPLAY_TIME
-    unsigned int timestamp_us = micros();
-    #endif
+  byte keep_going = true;
   
-    /* restart comms with the FT810 */
-    GD.resume();
-    /* draw the current screen */
-    draw_screen_funcs[current_screen]();
-    /* display the screen when done */
-    GD.swap();
-    /* stop comms to FT810, so other devices (ie MAX6675, SD CARD) can use the bus */
-    GD.__end();
-
-    #ifdef DEBUG_DISPLAY_TIME
-    timestamp_us = micros() - timestamp_us;
-    Serial.print(F("t_dsp us: "));
-    Serial.println(timestamp_us);
-    #endif
+  // check if enough time has passed since the last redraw
+  int time_now = millis();
+  if ((time_now - display_timestamp) > 0)
+  {
+    display_timestamp = time_now + SCREEN_REDRAW_INTERVAL_MIN_ms;
+    keep_going = false;
+    
+    if (draw_screen_funcs[current_screen] != NULL)
+    {
+      #ifdef DEBUG_DISPLAY_TIME
+      unsigned int timestamp_us = micros();
+      #endif
+    
+      /* restart comms with the FT810 */
+      GD.resume();
+      /* draw the current screen */
+      draw_screen_funcs[current_screen]();
+      /* display the screen when done */
+      GD.swap();
+      /* stop comms to FT810, so other devices (ie MAX6675, SD CARD) can use the bus */
+      GD.__end();
+  
+      #ifdef DEBUG_DISPLAY_TIME
+      timestamp_us = micros() - timestamp_us;
+      Serial.print(F("t_dsp us: "));
+      Serial.println(timestamp_us);
+      #endif
+    }
   }
+  return keep_going;
 }
 
 /* touch handling */

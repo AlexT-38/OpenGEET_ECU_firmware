@@ -24,7 +24,7 @@ void screen_draw_flash(const char * firwmare_string, const char * card_status_st
   GD.cmd_text(GD.w/2, GD.h-32, 27, OPT_CENTER, card_status_string);
   
   //output file name, if valid           
-  if (flags.sd_card_available && flags.do_sdcard_write)
+  if (flags_status.sd_card_available && flags_config.do_sdcard_write)
   {
     MAKE_STRING(OUTPUT_FILE_NAME_C);
     GD.cmd_text(GD.w/2, GD.h/2+64, 26, OPT_CENTERY | OPT_RIGHTX, OUTPUT_FILE_NAME_C_str);

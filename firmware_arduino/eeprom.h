@@ -15,7 +15,7 @@ struct eeprom
 {
     byte         eep_version;
     unsigned int servo_min_us[NO_OF_SERVOS], servo_max_us[NO_OF_SERVOS];
-    FLAGS        flags;
+    FLAGS_CONFIG        flags_config;
 };
 /* offsetof doesn not accept array indices, so getting the offset for an array member
  *  requires manually adding the index x the member size.
