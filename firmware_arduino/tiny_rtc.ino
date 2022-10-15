@@ -20,7 +20,7 @@ void serial_print_date_time(const DateTime t_now)
   char string[11];
   date_to_string(t_now, string);
   Serial.print(string);
-  GET_STRING(LIST_SEPARATOR);
+  GET_STRING(S_COMMA);
   Serial.print(string);
   date_to_string(t_now, string);
   Serial.println(string);
@@ -30,7 +30,7 @@ void file_print_date_time(const DateTime t_now, File file)
   char string[11];
   date_to_string(t_now, string);
   file.print(string);
-  GET_STRING(LIST_SEPARATOR);
+  GET_STRING(S_COMMA);
   file.print(string);
   time_to_string(t_now, string);
   file.println(string);
@@ -215,33 +215,33 @@ DateTime CompileDateTime()
 {
   DateTime dt;
 
-  MAKE_STRING(DATE);
+  MAKE_STRING(S_DATE);
   //                offset 0123456789A           01234567
   // sample input: date = "Dec 26 2009", time = "12:34:56"
-  dt.year = conv2d(DATE_str + 9);
-  dt.day  = conv2d(DATE_str + 4);
+  dt.year = conv2d(S_DATE_str + 9);
+  dt.day  = conv2d(S_DATE_str + 4);
   
   // Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec 
-  switch (DATE_str[0]) {
-    case 'J': dt.month = DATE_str[1] == 'a' ? ( 1 ) : ( (DATE_str[2]=='n') ? 6 : 7); break;
+  switch (S_DATE_str[0]) {
+    case 'J': dt.month = S_DATE_str[1] == 'a' ? ( 1 ) : ( (S_DATE_str[2]=='n') ? 6 : 7); break;
     case 'F': dt.month = 2; break;
-    case 'A': dt.month = DATE_str[2] == 'r' ? 4 : 8; break;
-    case 'M': dt.month = DATE_str[2] == 'r' ? 3 : 5; break;
+    case 'A': dt.month = S_DATE_str[2] == 'r' ? 4 : 8; break;
+    case 'M': dt.month = S_DATE_str[2] == 'r' ? 3 : 5; break;
     case 'S': dt.month = 9; break;
     case 'O': dt.month = 10; break;
     case 'N': dt.month = 11; break;
     case 'D': dt.month = 12; break;
     default: // "dd mm yyyy" format
-      dt.year  = conv2d(DATE_str + 8);
-      dt.day   = conv2d(DATE_str);
-      dt.month = conv2d(DATE_str + 3);
+      dt.year  = conv2d(S_DATE_str + 8);
+      dt.day   = conv2d(S_DATE_str);
+      dt.month = conv2d(S_DATE_str + 3);
       break;
   }
   
-  MAKE_STRING(TIME);
-  dt.hour = conv2d(TIME_str);
-  dt.minute = conv2d(TIME_str + 3);
-  dt.second = conv2d(TIME_str + 6);
+  MAKE_STRING(S_TIME);
+  dt.hour = conv2d(S_TIME_str);
+  dt.minute = conv2d(S_TIME_str + 3);
+  dt.second = conv2d(S_TIME_str + 6);
   return(dt);
 }
 

@@ -6,7 +6,7 @@
 typedef void(*SCREEN_DRAW_FUNC)(void);
 
 /* pointer to the func to use to draw the screen */
-SCREEN_DRAW_FUNC draw_screen_funcs[NO_OF_SCREENS] = {screen_draw_basic};
+SCREEN_DRAW_FUNC draw_screen_funcs[NO_OF_SCREENS] = {screen_draw_basic, NULL, NULL, NULL, screen_draw_config};
 
 SCREEN_EN current_screen = SCREEN_1;
 
@@ -232,7 +232,7 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   draw_box(pos_x, pos_y, GRID_SX(4)-BORDER, GRID_SY(4)-BORDER, BOX_WIDTH, opts);
 
   
-  MAKE_STRING(LIST_SEPARATOR);
+  MAKE_STRING(S_COMMA);
   MAKE_STRING(label_pgm);
 
   GD.ColorA(A_OPAQUE);
@@ -300,4 +300,10 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
 
   GD.ColorRGB(C_VALUE);
   GD.cmd_text(pos_x+dx, pos_y-8, font_size, opts, str_ptr);
+}
+
+
+void draw_screen_selector(byte width)
+{
+  
 }

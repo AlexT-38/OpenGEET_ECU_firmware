@@ -268,7 +268,7 @@ void test_map_implementations()
 {
   Serial.println(F("Testing mmap:"));
 
-  MAKE_STRING(LIST_SEPARATOR);
+  MAKE_STRING(S_COMMA);
   
   unsigned long tt = 0;
   unsigned int total = 0;
@@ -305,13 +305,13 @@ void test_map_implementations()
         om = (1<<out_max);        
         Serial.print(F("dt, o, om, im, i: "));
         Serial.print(t);
-        Serial.print(LIST_SEPARATOR_str);
+        Serial.print(S_COMMA_str);
         Serial.print(out);
-        Serial.print(LIST_SEPARATOR_str);
+        Serial.print(S_COMMA_str);
         Serial.print(om);
-        Serial.print(LIST_SEPARATOR_str);
+        Serial.print(S_COMMA_str);
         Serial.print(im);
-        Serial.print(LIST_SEPARATOR_str);
+        Serial.print(S_COMMA_str);
         Serial.print(iv);
         Serial.println();
       }
@@ -350,13 +350,13 @@ void setup() {
   
   //fetch the firmware fersion string
   
-  char firwmare_string[strlen_P(FIRMWARE_NAME) + strlen_P(FIRMWARE_VERSION) + strlen_P(LIST_SEPARATOR) + 1];
+  char firwmare_string[strlen_P(S_FIRMWARE_NAME) + strlen_P(S_FIRMWARE_VERSION) + strlen_P(S_COMMA) + 1];
   char *string_ptr = firwmare_string;
-  PUT_STRING(FIRMWARE_NAME, string_ptr);
-  string_ptr += strlen_P(FIRMWARE_NAME);
-  PUT_STRING(LIST_SEPARATOR, string_ptr);
-  string_ptr += strlen_P(LIST_SEPARATOR);
-  PUT_STRING(FIRMWARE_VERSION, string_ptr);
+  PUT_STRING(S_FIRMWARE_NAME, string_ptr);
+  string_ptr += strlen_P(S_FIRMWARE_NAME);
+  PUT_STRING(S_COMMA, string_ptr);
+  string_ptr += strlen_P(S_COMMA);
+  PUT_STRING(S_FIRMWARE_VERSION, string_ptr);
   
   //initialise the serial port:
   Serial.begin(1000000);  //for usb coms, no reason not to use fastest available baud rate - this turns out to be the biggest time usage during update/report
@@ -409,15 +409,15 @@ void setup() {
   //this will include creating a new file from the RTC date for immediate logging
 
   Serial.print(F("Initializing SD card..."));
-  STRING_BUFFER(CARD_FAILED_OR_NOT_PRESENT);
+  STRING_BUFFER(S_CARD_FAILED_OR_NOT_PRESENT);
   
   if (!SD.begin(PIN_LOG_SDCARD_CS)) {
-    GET_STRING(CARD_FAILED_OR_NOT_PRESENT); Serial.println(string);
+    GET_STRING(S_CARD_FAILED_OR_NOT_PRESENT); Serial.println(string);
     flags_status.sd_card_available = false;
   }
   else
   {
-    GET_STRING(CARD_INITIALISED); Serial.println(string);
+    GET_STRING(S_CARD_INITIALISED); Serial.println(string);
     flags_status.sd_card_available = true;
 
     generate_file_name();

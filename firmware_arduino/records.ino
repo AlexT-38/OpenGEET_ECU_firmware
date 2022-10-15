@@ -17,8 +17,8 @@ void generate_file_name()
 
   // set the file extension
   str_ptr = output_filename + 8;
-  if(flags_config.do_sdcard_write_hex) {strcpy_P(str_ptr,FILE_EXT_RAW);}
-  else                          {strcpy_P(str_ptr,FILE_EXT_TXT);}
+  if(flags_config.do_sdcard_write_hex) {strcpy_P(str_ptr,S_DOT_RAW);}
+  else                          {strcpy_P(str_ptr,S_DOT_TXT);}
 
   //set the base name from the year month and day
   DateTime t_now = DS1307_now();
@@ -43,15 +43,15 @@ void generate_file_name()
     }
   }
   //report the selected filename
-  MAKE_STRING(OUTPUT_FILE_NAME_C);
-  Serial.print(OUTPUT_FILE_NAME_C_str);
+  MAKE_STRING(S_OUTPUT_FILE_NAME_C);
+  Serial.print(S_OUTPUT_FILE_NAME_C_str);
   Serial.println(output_filename);
   
   //check that the file can be opened
   File dataFile = SD.open(output_filename, FILE_WRITE);
   if(dataFile)
   {
-    MAKE_STRING(RECORD_VER_C);    dataFile.print(RECORD_VER_C_str);    dataFile.println(DATA_RECORD_VERSION);
+    MAKE_STRING(S_RECORD_VER_C);    dataFile.print(S_RECORD_VER_C_str);    dataFile.println(DATA_RECORD_VERSION);
     file_print_date_time(t_now, dataFile);
     dataFile.println();
     dataFile.close();
@@ -89,11 +89,11 @@ void serial_print_int_array(int *array_data, unsigned int array_size, const char
 {
   MAKE_STRING(title);
   Serial.print(title_str);
-  MAKE_STRING(LIST_SEPARATOR);
+  MAKE_STRING(S_COMMA);
   for(int idx = 0; idx < array_size; idx++)
   {
     Serial.print(array_data[idx]);
-    Serial.print(LIST_SEPARATOR_str);
+    Serial.print(S_COMMA_str);
   }
   Serial.println();
 }
@@ -101,11 +101,11 @@ void serial_print_byte_array(byte *array_data, unsigned int array_size, const ch
 {
   MAKE_STRING(title);
   Serial.print(title_str);
-  MAKE_STRING(LIST_SEPARATOR);
+  MAKE_STRING(S_COMMA);
   for(int idx = 0; idx < array_size; idx++)
   {
     Serial.print(array_data[idx]);
-    Serial.print(LIST_SEPARATOR_str);
+    Serial.print(S_COMMA_str);
   }
   Serial.println();
 }
@@ -113,11 +113,11 @@ void file_print_int_array(File *file, int *array_data, unsigned int array_size, 
 {
   MAKE_STRING(title);
   file->print(title_str);
-  MAKE_STRING(LIST_SEPARATOR);
+  MAKE_STRING(S_COMMA);
   for(int idx = 0; idx < array_size; idx++)
   {
     file->print(array_data[idx]);
-    file->print(LIST_SEPARATOR_str);
+    file->print(S_COMMA_str);
   }
   file->println();
 }
@@ -125,11 +125,11 @@ void file_print_byte_array(File *file, byte *array_data, unsigned int array_size
 {
   MAKE_STRING(title);
   file->print(title_str);
-  MAKE_STRING(LIST_SEPARATOR);
+  MAKE_STRING(S_COMMA);
   for(int idx = 0; idx < array_size; idx++)
   {
     file->print(array_data[idx]);
-    file->print(LIST_SEPARATOR_str);
+    file->print(S_COMMA_str);
   }
   file->println();
 }
@@ -217,8 +217,8 @@ bool write_serial_data_record()
         case 0: 
           {
             Serial.println(F("----------"));
-            MAKE_STRING(RECORD_VER_C);        Serial.print(RECORD_VER_C_str);     Serial.println(DATA_RECORD_VERSION);
-            MAKE_STRING(TIMESTAMP_C);         Serial.print(TIMESTAMP_C_str);      Serial.println(data_record->timestamp);
+            MAKE_STRING(S_RECORD_VER_C);        Serial.print(S_RECORD_VER_C_str);     Serial.println(DATA_RECORD_VERSION);
+            MAKE_STRING(S_TIMESTAMP_C);         Serial.print(S_TIMESTAMP_C_str);      Serial.println(data_record->timestamp);
           }
           break;
         case 1: 
@@ -231,16 +231,16 @@ bool write_serial_data_record()
           }
           break;
         case 2:
-            serial_print_int_array(data_record->A0, data_record->ANA_no_of_samples, MAP_C);
+            serial_print_int_array(data_record->A0, data_record->ANA_no_of_samples, S_MAP_C);
             break;
         case 3:
-            serial_print_int_array(data_record->A1, data_record->ANA_no_of_samples, A1_C);
+            serial_print_int_array(data_record->A1, data_record->ANA_no_of_samples, S_A1_C);
             break;
         case 4:
-            serial_print_int_array(data_record->A2, data_record->ANA_no_of_samples, A2_C);
+            serial_print_int_array(data_record->A2, data_record->ANA_no_of_samples, S_A2_C);
             break;
         case 5:
-            serial_print_int_array(data_record->A3, data_record->ANA_no_of_samples, A3_C);
+            serial_print_int_array(data_record->A3, data_record->ANA_no_of_samples, S_A3_C);
             break;
         case 6:
           {
@@ -249,17 +249,17 @@ bool write_serial_data_record()
             break;
           }
         case 7:
-            serial_print_int_array(data_record->EGT, data_record->EGT_no_of_samples, EGT1_C);
+            serial_print_int_array(data_record->EGT, data_record->EGT_no_of_samples, S_EGT1_C);
             break;
         case 8:
           {
-            MAKE_STRING(RPM_AVG);             Serial.print(RPM_AVG_str);          Serial.println(data_record->RPM_avg);
-            MAKE_STRING(RPM_NO_OF_TICKS);     Serial.print(RPM_NO_OF_TICKS_str);  Serial.println(data_record->RPM_no_of_ticks);
+            MAKE_STRING(S_RPM_AVG);             Serial.print(S_RPM_AVG_str);          Serial.println(data_record->RPM_avg);
+            MAKE_STRING(S_RPM_NO_OF_TICKS);     Serial.print(S_RPM_NO_OF_TICKS_str);  Serial.println(data_record->RPM_no_of_ticks);
             break;
           }
         case 9:
           {
-            serial_print_byte_array(data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, RPM_TICK_TIMES);
+            serial_print_byte_array(data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES);
             Serial.println(F("----------"));
           }
         default:
@@ -325,7 +325,7 @@ bool write_sdcard_data_record()
         case 1:
           {
             log_data_file.println(F("----------"));
-            MAKE_STRING(TIMESTAMP_C);                 log_data_file.print(TIMESTAMP_C_str);      log_data_file.println(data_record->timestamp);
+            MAKE_STRING(S_TIMESTAMP_C);                 log_data_file.print(S_TIMESTAMP_C_str);      log_data_file.println(data_record->timestamp);
           } break;
         case 2:
           {
@@ -343,19 +343,19 @@ bool write_sdcard_data_record()
           } break;
         case 5:
           {
-            file_print_int_array(&log_data_file, data_record->A0, data_record->ANA_no_of_samples, MAP_C);
+            file_print_int_array(&log_data_file, data_record->A0, data_record->ANA_no_of_samples, S_MAP_C);
           } break;
         case 6:
           {
-            file_print_int_array(&log_data_file, data_record->A1, data_record->ANA_no_of_samples, A1_C);
+            file_print_int_array(&log_data_file, data_record->A1, data_record->ANA_no_of_samples, S_A1_C);
           } break;
         case 7:
           {
-            file_print_int_array(&log_data_file, data_record->A2, data_record->ANA_no_of_samples, A2_C);
+            file_print_int_array(&log_data_file, data_record->A2, data_record->ANA_no_of_samples, S_A2_C);
           } break;
         case 8:
           {
-            file_print_int_array(&log_data_file, data_record->A3, data_record->ANA_no_of_samples, A3_C);
+            file_print_int_array(&log_data_file, data_record->A3, data_record->ANA_no_of_samples, S_A3_C);
           } break;
         case 9:
           {
@@ -364,16 +364,16 @@ bool write_sdcard_data_record()
           } break;
         case 10:
           {
-            file_print_int_array(&log_data_file, data_record->EGT, data_record->EGT_no_of_samples, EGT1_C);
+            file_print_int_array(&log_data_file, data_record->EGT, data_record->EGT_no_of_samples, S_EGT1_C);
           } break;
         case 11:
           {
-            MAKE_STRING(RPM_AVG);                     log_data_file.print(RPM_AVG_str);          log_data_file.println(data_record->RPM_avg);
-            MAKE_STRING(RPM_NO_OF_TICKS);             log_data_file.print(RPM_NO_OF_TICKS_str);  log_data_file.println(data_record->RPM_no_of_ticks);
+            MAKE_STRING(S_RPM_AVG);                     log_data_file.print(S_RPM_AVG_str);          log_data_file.println(data_record->RPM_avg);
+            MAKE_STRING(S_RPM_NO_OF_TICKS);             log_data_file.print(S_RPM_NO_OF_TICKS_str);  log_data_file.println(data_record->RPM_no_of_ticks);
           } break;
         case 12:
           {
-            file_print_byte_array(&log_data_file, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, RPM_TICK_TIMES);
+            file_print_byte_array(&log_data_file, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES);
           } break;
         case 13:
           {

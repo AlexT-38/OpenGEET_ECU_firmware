@@ -19,42 +19,44 @@
 #define GET_STRING(STRING_NAME) strcpy_P(string, STRING_NAME);
 
 // define them as consts here and delete the original 
-const char DATE[] PROGMEM = __DATE__;
-const char TIME[] PROGMEM = __TIME__;
-const char FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller";
-const char FIRMWARE_VERSION[]  PROGMEM = "v0.2";
-const char LIST_SEPARATOR[] PROGMEM = ", ";
-const char CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or not present.";
-const char CARD_INITIALISED[] PROGMEM = "SD Card initialised.";
-const char RECORD_VER_C[] PROGMEM = "Record Ver.: ";
-const char TIMESTAMP_C[] PROGMEM = "Timestamp: ";
-const char MAP_C[] PROGMEM = "MAP: ";
-const char A1_C[] PROGMEM = "A1: ";
-const char A2_C[] PROGMEM = "A2: ";
-const char A3_C[] PROGMEM = "A3: ";
-const char EGT1_C[] PROGMEM = "EGT1: ";
-const char RPM_AVG[] PROGMEM = "RPM avg: ";
-const char RPM_NO_OF_TICKS[] PROGMEM = "RPM no of ticks: ";
-const char RPM_TICK_TIMES[] PROGMEM = "RPM tick times (ms): ";
-const char OUTPUT_FILE_NAME_C[] PROGMEM = "Output File Name: ";
-const char DEFAULT_FILENAME[] PROGMEM = "datalog";
-const char FILE_EXT_TXT[] PROGMEM = ".txt";
-const char FILE_EXT_RAW[] PROGMEM = ".raw";
+const char S_DATE[] PROGMEM = __DATE__;
+const char S_TIME[] PROGMEM = __TIME__;
+const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller";
+const char S_FIRMWARE_VERSION[]  PROGMEM = "v0.2";
+const char S_COMMA[] PROGMEM = ", ";
+const char S_CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or not present.";
+const char S_CARD_INITIALISED[] PROGMEM = "SD Card initialised.";
+const char S_RECORD_VER_C[] PROGMEM = "Record Ver.: ";
+const char S_TIMESTAMP_C[] PROGMEM = "Timestamp: ";
+const char S_MAP_C[] PROGMEM = "MAP: ";
+const char S_A1_C[] PROGMEM = "A1: ";
+const char S_A2_C[] PROGMEM = "A2: ";
+const char S_A3_C[] PROGMEM = "A3: ";
+const char S_EGT1_C[] PROGMEM = "EGT1: ";
+const char S_RPM_AVG[] PROGMEM = "RPM avg: ";
+const char S_RPM_NO_OF_TICKS[] PROGMEM = "RPM no of ticks: ";
+const char S_RPM_TICK_TIMES[] PROGMEM = "RPM tick times (ms): ";
+const char S_OUTPUT_FILE_NAME_C[] PROGMEM = "Output File Name: ";
 
-const char EGT1_DEGC[] PROGMEM = "EGT1 degC";
-const char RPM[] PROGMEM = "RPM";
-const char MAP_MBAR[] PROGMEM = "MAP mbar";
-const char INPUT_1[] PROGMEM = "Input 1";
-const char INPUT_2[] PROGMEM = "Input 2";
-const char INPUT_3[] PROGMEM = "Input 3";
-const char TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
+const char S_DOT_TXT[] PROGMEM = ".txt";
+const char S_DOT_RAW[] PROGMEM = ".raw";
+
+const char S_EGT1_DEGC[] PROGMEM = "EGT1 degC";
+const char S_RPM[] PROGMEM = "RPM";
+const char S_MAP_MBAR[] PROGMEM = "MAP mbar";
+const char S_INPUT_1[] PROGMEM = "Input 1";
+const char S_INPUT_2[] PROGMEM = "Input 2";
+const char S_INPUT_3[] PROGMEM = "Input 3";
+const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
+
+
+
+const char S_BASIC[] PROGMEM = "Basic";
+const char S_PID_1[] PROGMEM = "PID 1";
+const char S_PID_2[] PROGMEM = "PID_2";
+const char S_CONFIG[] PROGMEM = "Config";
+
 /*
-
-
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
 const char NAME[] PROGMEM = "";
 const char NAME[] PROGMEM = "";
 */
