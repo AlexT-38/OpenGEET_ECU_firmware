@@ -11,7 +11,7 @@
 #define YN 4
 void screen_draw_basic()
 {
-  byte gx, gy=0;
+  byte gx, gy;
 
   /* data record to read */
   DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];

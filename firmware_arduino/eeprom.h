@@ -10,12 +10,14 @@
  * the function is __builtin_offsetof also defined as offsetof (type, member | .member | [expr])
  */
  
-#define EEP_VERSION 2
+#define EEP_VERSION 3
 struct eeprom
 {
+    GD_TRANSFORM gd_transform;  //GD library uses the start of eeprom to store touch calibration.
     byte         eep_version;
     unsigned int servo_min_us[NO_OF_SERVOS], servo_max_us[NO_OF_SERVOS];
     FLAGS_CONFIG        flags_config;
+    
 };
 /* offsetof doesn not accept array indices, so getting the offset for an array member
  *  requires manually adding the index x the member size.

@@ -65,11 +65,11 @@
 //#define DEBUG_RPM_COUNTER
 //#define DEBUG_MAP_CAL
 //#define DEBUG_SCREEN_RES    //print screen resolution during startup (should be WQVGA: 480 x 272)
+#define DEBUG_TOUCH_INPUT
 #endif
 
 
-#define PID_ENABLED           //control servos using PID
-#define PID_MODE_RPM_ONLY     //rpm control single servo output
+
 
 
 #include "strings.h"
@@ -476,7 +476,9 @@ void setup() {
   Serial.println();
 #endif
 
-  
+  #ifdef DEBUG_TOUCH_CAL
+  GD.cmd_calibrate();
+  #endif
   // wait for MAX chip to stabilize, and to see the splash screen
   delay(4000);
   //while(1);

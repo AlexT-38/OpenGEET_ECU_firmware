@@ -12,6 +12,8 @@ const char * const screen_labels[NO_OF_SCREENS] PROGMEM = {S_BASIC, S_NONE,S_NON
 
 SCREEN_EN current_screen = SCREEN_1;
 
+/* touch input statics */
+static byte touch_tag = TAG_NONE;
 
 /* opens comms to display chip and calls the current screen's draw function */
 static byte draw_step = 0;
@@ -40,6 +42,20 @@ byte draw_screen()
       draw_screen_selector();
       /* draw the current screen */
       draw_screen_funcs[current_screen]();
+
+      #ifdef DEBUG_TOUCH_INPUT
+      if(GD.inputs.touching)
+      {
+        GD.TagMask(0);
+        GD.ColorRGB(C_MARKER);
+        GD.Begin(POINTS);
+        GD.PointSize(128);
+        GD.Vertex2ii(GD.inputs.x,GD.inputs.y,0,0);
+
+        GD.TagMask(1);
+      }
+      #endif
+      
       /* display the screen when done */
       GD.swap();
       /* stop comms to FT810, so other devices (ie MAX6675, SD CARD) can use the bus */
@@ -57,7 +73,7 @@ byte draw_screen()
 }
 
 /* touch handling - avoid heavy lifting in this funtion */
-static byte touch_tag = TAG_NONE;
+
 
 void read_touch()
 {
@@ -66,21 +82,46 @@ void read_touch()
   #ifdef DEBUG_TOUCH_TIME
   unsigned int timestamp_us = micros();
   #endif
+
+
+  GD.get_inputs();
+//  touch_tag = GD.inputs.tag;
+
   
   // fetch the current tag
-  byte tag = GD.rd(REG_TOUCH_TAG);
+//  byte tag = GD.rd(REG_TOUCH_TAG);
+  #ifdef DEBUG_TOUCH_INPUT
+//  xy coord_readout;
+//  long int *coord = (long int*)&coord_readout;
+//  *coord = GD.rd32(REG_TOUCH_TAG_XY);
+//  
+//  touch_coord.x = coord_readout.y;
+//  touch_coord.y = coord_readout.x;
+  
+
+//  touch_coord.x = GD.rd16(REG_TAG_X);
+//  touch_coord.y = GD.rd16(REG_TAG_Y);
+  Serial.print(F("Tag: "));
+  Serial.print(GD.inputs.tag);
+  Serial.print(F("; XY: "));
+  Serial.print(GD.inputs.x);
+  MAKE_STRING(S_COMMA);
+  Serial.print(S_COMMA_str);
+  Serial.print(GD.inputs.y);
+  Serial.println();
+  #endif
 
   //check for change in tag
-  if (tag != touch_tag)
+  if (GD.inputs.tag != touch_tag)
   {
     //detirmine the event type - for simplicities' sake, we have only on and off events, maybe cancel also
     if(touch_tag == 0) touch_event = TOUCH_ON;
-    else if(tag == 0) touch_event = TOUCH_OFF;
-    touch_tag = tag;
+    else if(GD.inputs.tag == 0) touch_event = TOUCH_OFF;
+    touch_tag = GD.inputs.tag;
 
     bool redraw = true;
     
-    switch(tag)
+    switch(GD.inputs.tag)
     {
       case TAG_SCREEN_1:
         if(touch_event == TOUCH_OFF)  current_screen = SCREEN_1;

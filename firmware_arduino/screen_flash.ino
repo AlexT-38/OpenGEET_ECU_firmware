@@ -4,7 +4,7 @@ void screen_draw_flash(const char * firwmare_string, const char * card_status_st
 {
     
   //initialise the display
-  GD.begin(0);
+  GD.begin(~GD_STORAGE);
 
   // draw splash screen...
   GD.Clear();

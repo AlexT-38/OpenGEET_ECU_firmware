@@ -33,9 +33,14 @@
 
 #define C_BUTTON_FG      RGB(0x00,0x10,0xD0)
 
+#define C_MARKER          RGB(0xFF, 0x50, 0x00)
+
 #define A_OPAQUE         255
 #define A_CLEAR          0
 #define A_BKG_WINDOW     64
+
+
+
 
 
 //touch and tracker registers
@@ -47,6 +52,14 @@
 #define TOUCH_OFF       0
 #define TOUCH_ON        1
 #define TOUCH_NONE      255
+
+
+
+// touch cal registers
+
+typedef struct gd_transform{
+  long int a,b,c,d,e,f;
+}GD_TRANSFORM;
 
 //tough tag assignments
 
