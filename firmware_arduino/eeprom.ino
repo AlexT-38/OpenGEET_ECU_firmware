@@ -10,6 +10,42 @@ struct eeprom
 
 void reset_eeprom()
 {
+  #ifdef DEBUG_TOUCH_INPUT
+  //print the calibration values
+  Serial.println(F("Touch Calibration:"));
+
+  //read the values out from eeprom
+  long int transform;
+  for(byte n=0; n< 6; n++)
+  {
+    EEPROM.get(n*sizeof( transform ), transform);
+    Serial.print((char)('A'+n));
+    Serial.print(F(": "));
+    Serial.println(transform,HEX);
+/*
+ * sign + 15.16 fixed point
+ * x' = x*A + y*B + C
+ * y' = x*D + y*E + F
+ * 
+ * A 0x FF7E 527C
+ * B 0x 0003 DEFF
+ * C 0x E50C B600
+ * 
+ * D 0x FFFF E901
+ * E 0x 004B 3AFF
+ * F 0x F195 FE00
+ * 
+ */
+    
+  }
+  /* transform F was 1024 higher than it was supposed to be.
+   *  corrected here, but this has had no effect on #issue 1 (tag always zero)
+   */
+  //EEPROM.put(5*sizeof( transform ), 0xED95FE00);
+    
+   delay(1000);
+  #endif
+  
   int debug = 0;
   byte eep_version_r;
   EEP_GET(eep_version,eep_version_r);

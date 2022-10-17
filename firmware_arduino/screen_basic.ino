@@ -15,7 +15,7 @@ void screen_draw_basic()
 
   /* data record to read */
   DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
-  
+  GD.Tag(TAG_INVALID);
   // Right hand column
   gx = XN-1;
   draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->RPM_avg, S_RPM);
@@ -31,3 +31,24 @@ void screen_draw_basic()
   draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->A3_avg, S_INPUT_3);
   
 }
+
+/* work around for tag always zero issue*/
+#ifdef TAG_BYPASS
+const static byte tag_table[XN][YN] = {{TAG_INVALID, TAG_INVALID, TAG_INVALID, TAG_INVALID},
+                                       {TAG_INVALID, TAG_INVALID, TAG_INVALID, TAG_INVALID},
+                                       {TAG_INVALID, TAG_INVALID, TAG_INVALID, TAG_INVALID},
+                                       {TAG_INVALID, TAG_INVALID, TAG_INVALID, TAG_INVALID},
+                                       {TAG_INVALID, TAG_INVALID, TAG_INVALID, TAG_INVALID}};
+byte screen_basic_tags()
+{
+  byte x = GD.inputs.xytouch.x / GRID_SX(XN);
+  byte y = GD.inputs.xytouch.y / GRID_SY(YN);
+  #ifdef DEBUG_TOUCH_INPUT
+  Serial.print(x);
+  Serial.print(F(", "));
+  Serial.print(y);
+  Serial.println();
+  #endif
+  return tag_table[x][y];
+}
+#endif

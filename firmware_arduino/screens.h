@@ -1,6 +1,9 @@
 #ifndef __SCREENS_H__
 #define __SCREENS_H__
 
+//#define TRACKERS_ENABLED
+#define TAG_BYPASS        //set true if tags wont read
+
 #define SCREEN_W          480
 #define SCREEN_H          272
 
@@ -62,8 +65,7 @@ typedef struct gd_transform{
 }GD_TRANSFORM;
 
 //tough tag assignments
-
-
+#define TAG_INVALID 255
 typedef enum tags
 {
   TAG_NONE     =   0,
@@ -93,9 +95,12 @@ typedef enum tags
   TAG_ENGINE_START,
   TAG_ENGINE_STOP,
 
-  TAG_INVALID   =  255,
+  NO_OF_TAGS,
   
 }TAGS_EN;
+#if NO_OF_TAGS > TAG_INVALID
+#error "Too many tags"
+#endif
 
 typedef enum screen
 {

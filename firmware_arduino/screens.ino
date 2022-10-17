@@ -5,6 +5,7 @@
 
 typedef void(*SCREEN_DRAW_FUNC)(void);
 
+
 /* pointer to the func to use to draw the screen */
 const SCREEN_DRAW_FUNC draw_screen_funcs[NO_OF_SCREENS] = {screen_draw_basic, NULL, NULL, NULL, screen_draw_config};
 const char * const screen_labels[NO_OF_SCREENS] PROGMEM = {S_BASIC, S_NONE,S_NONE,S_NONE, S_CONFIG};
@@ -12,11 +13,49 @@ const char * const screen_labels[NO_OF_SCREENS] PROGMEM = {S_BASIC, S_NONE,S_NON
 
 SCREEN_EN current_screen = SCREEN_1;
 
+
+#define SCREEN_BUTTON_FONT 26
+#define SCREEN_BUTTON_XN  6
+
 /* touch input statics */
-static byte touch_tag = TAG_NONE;
+
+//static byte touch_tag;
+#ifdef DEBUG_TOUCH_INPUT
+//static xy touch_coord;
+#endif
+
+#ifdef TAG_BYPASS
+/* for some reason I cant get tags to read out correctly. 
+ * since I'm using a grid based approach
+ * it should be relatively easy to convert xy coords into grid coords 
+ * and have a look up table for tags vs coords
+ * or some nested logic
+ */
+typedef byte(*SCREEN_TAG_FUNC)(void);
+const SCREEN_TAG_FUNC screen_tag_funcs[NO_OF_SCREENS] = {screen_basic_tags, NULL, NULL, NULL, screen_config_tags};
+
+byte fetch_tag()
+{
+  // fist off, check if the touch is in the screen selector area 
+  if (GD.inputs.xytouch.x < GRID_SX(SCREEN_BUTTON_XN))
+  {
+    // find the index by dividing the y position by the vertical grid size
+    // and adding to the base screen tag 
+    return TAG_SCREEN_1 + (GD.inputs.xytouch.y / GRID_SY(NO_OF_SCREENS));
+  }
+  else
+  {
+    // let screens figure things out for them selves
+    return screen_tag_funcs[current_screen]();
+    
+  }
+}
+
+#endif
+
+
 
 /* opens comms to display chip and calls the current screen's draw function */
-static byte draw_step = 0;
 
 byte draw_screen()
 {
@@ -50,7 +89,7 @@ byte draw_screen()
         GD.ColorRGB(C_MARKER);
         GD.Begin(POINTS);
         GD.PointSize(512);
-        GD.Vertex2ii(GD.inputs.x,GD.inputs.y,0,0);
+        GD.Vertex2ii(GD.inputs.xytouch.x,GD.inputs.xytouch.y,0,0);
 
         GD.TagMask(1);
       }
@@ -84,34 +123,74 @@ void read_touch()
   #endif
 
 
-  GD.get_inputs();
+  // copy old tag
+  byte touch_tag_old = GD.inputs.tag;
 
+  //fetch coords
+#if defined(DEBUG_TOUCH_INPUT) || defined(TAG_BYPASS)
+  
+  
+  
+  long int val = GD.rd32(REG_TOUCH_SCREEN_XY);
+  xy *coord = (xy*) &val;
+  GD.inputs.xytouch.x = coord->y;
+  GD.inputs.xytouch.y = coord->x - 0x400;
+  
+#else
+//  xy touch_coord;
+  GD.inputs.xytouch.x = GD.rd16(REG_TOUCH_SCREEN_XY);
+#endif
 
+  //check if a touch is registered
+  if(GD.inputs.xytouch.x != 0x8000)
+  {
+    GD.inputs.touching = true;
 
+    #ifdef TAG_BYPASS
+    //use our own function for fetching the tag
+    GD.inputs.tag = fetch_tag();
+    #else
+    // get the tag, and optionally get the tracker tag and value
+    GD.inputs.tag = GD.rd(REG_TAG);
+    #endif
+    
+#ifdef TRACKERS_ENABLED
+#endif
+  }
+  else
+  {
+    // clear the track tag and touch
+    GD.inputs.touching = false;
+    GD.inputs.tag = TAG_NONE;
+    
+#ifdef TRACKERS_ENABLED
+#endif    
+  }
+  
+  
   //check for change in tag
-  if (GD.inputs.tag != touch_tag &&false)
+  if (touch_tag_old != GD.inputs.tag)
   {
     flags_status.redraw_pending = true;
     
     //detirmine the event type - for simplicities' sake, we have only on and off events, maybe cancel also
-    if(touch_tag == 0) touch_event = TOUCH_ON;
-    else if(GD.inputs.tag == 0) touch_event = TOUCH_OFF;
-    touch_tag = GD.inputs.tag;
+    if(touch_tag_old == 0)  {touch_event = TOUCH_ON; touch_tag_old = GD.inputs.tag;}
+    else if(GD.inputs.tag == 0) {touch_event = TOUCH_OFF;}
 
-    switch(GD.inputs.tag)
+    switch(touch_tag_old)
     {
       case TAG_SCREEN_1:
         if(touch_event == TOUCH_OFF)  current_screen = SCREEN_1;
         break;
-      case TAG_SCREEN_2:
-        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_2;
-        break;
-      case TAG_SCREEN_3:
-        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_3;
-        break;
-      case TAG_SCREEN_4:
-        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_4;
-        break;
+//      case TAG_SCREEN_2:
+//        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_2;
+//        break;
+//      case TAG_SCREEN_3:
+//        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_3;
+//        break;
+//      case TAG_SCREEN_4:
+//        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_4;
+//        break;
       case TAG_SCREEN_5:
         if(touch_event == TOUCH_OFF)  current_screen = SCREEN_5;
         break;
@@ -152,10 +231,10 @@ void read_touch()
   Serial.print(F("Tag: "));
   Serial.print(GD.inputs.tag);
   Serial.print(F("; XY: "));
-  Serial.print(GD.inputs.x);
+  Serial.print(GD.inputs.xytouch.x);
   MAKE_STRING(S_COMMA);
   Serial.print(S_COMMA_str);
-  Serial.print(GD.inputs.y);
+  Serial.print(GD.inputs.xytouch.y);
   Serial.println();
   if(GD.inputs.touching) flags_status.redraw_pending = true;
   #endif
@@ -339,8 +418,7 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   GD.cmd_text(pos_x+dx, pos_y-8, font_size, opts, str_ptr);
 }
 
-#define SCREEN_BUTTON_FONT 26
-#define SCREEN_BUTTON_XN  6
+
 void draw_screen_selector()
 {
   int colour_bg = C_BKG_NORMAL; 
@@ -352,9 +430,9 @@ void draw_screen_selector()
   for(char n = 0; n<NO_OF_SCREENS; n++)
   {
     GD.Tag(TAG_SCREEN_1 + n);                                                                         //set the touch tag
-    opt = ( (current_screen == (SCREEN_1 + n)) || (touch_tag == (TAG_SCREEN_1 + n)) ) * OPT_FLAT;     //draw flat if currently selected, or button is touched
+    opt = ( (current_screen == (SCREEN_1 + n)) || (GD.inputs.tag == (TAG_SCREEN_1 + n)) ) * OPT_FLAT;     //draw flat if currently selected, or button is touched
     READ_STRING_FROM(screen_labels, n, label);
-    GD.cmd_button(GRID_XL(0,6), GRID_YT(n,NO_OF_SCREENS), GRID_SX(6), GRID_SY(NO_OF_SCREENS), SCREEN_BUTTON_FONT, opt, label);
+    GD.cmd_button(GRID_XL(0,SCREEN_BUTTON_XN), GRID_YT(n,NO_OF_SCREENS), GRID_SX(SCREEN_BUTTON_XN), GRID_SY(NO_OF_SCREENS), SCREEN_BUTTON_FONT, opt, label);
   }
   GD.Tag(TAG_INVALID);
 }

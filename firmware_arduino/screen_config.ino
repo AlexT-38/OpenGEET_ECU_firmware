@@ -16,3 +16,11 @@
 
   
 }
+
+/* work around for tag always zero issue*/
+#ifdef TAG_BYPASS
+byte screen_config_tags()
+{
+  return TAG_INVALID;
+}
+#endif
