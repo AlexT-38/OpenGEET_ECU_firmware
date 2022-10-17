@@ -588,16 +588,17 @@ bool process_update_loop()
   #endif
   switch(update_step++)
   {
+    //reset the old record
+    case 0:   reset_record();                                      break;
     // swap the buffers and finalise averages
-    case 0:   finalise_record();                                   break;
+    case 1:   finalise_record();                                   break;
     // draw the current screen
-    case 1:   update_step -= draw_screen();                                       break;
+    case 2:   update_step -= draw_screen();                        break;
     // write the current data to sdcard
-    case 2:   if (!write_sdcard_data_record())    {update_step--;} break;
+    case 3:   if (!write_sdcard_data_record())    {update_step--;} break;
     // write the current data to serial
-    case 3:   if (!write_serial_data_record())    {update_step--;} break;
-    //reset the record ready for next time
-    case 4:   reset_record();              
+    case 4:   if (!write_serial_data_record())    {update_step--;} break;
+    
     default:  update_step = 0;
   }
   

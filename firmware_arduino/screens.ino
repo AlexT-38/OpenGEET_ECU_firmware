@@ -49,7 +49,7 @@ byte draw_screen()
         GD.TagMask(0);
         GD.ColorRGB(C_MARKER);
         GD.Begin(POINTS);
-        GD.PointSize(128);
+        GD.PointSize(512);
         GD.Vertex2ii(GD.inputs.x,GD.inputs.y,0,0);
 
         GD.TagMask(1);
@@ -85,42 +85,19 @@ void read_touch()
 
 
   GD.get_inputs();
-//  touch_tag = GD.inputs.tag;
 
-  
-  // fetch the current tag
-//  byte tag = GD.rd(REG_TOUCH_TAG);
-  #ifdef DEBUG_TOUCH_INPUT
-//  xy coord_readout;
-//  long int *coord = (long int*)&coord_readout;
-//  *coord = GD.rd32(REG_TOUCH_TAG_XY);
-//  
-//  touch_coord.x = coord_readout.y;
-//  touch_coord.y = coord_readout.x;
-  
 
-//  touch_coord.x = GD.rd16(REG_TAG_X);
-//  touch_coord.y = GD.rd16(REG_TAG_Y);
-  Serial.print(F("Tag: "));
-  Serial.print(GD.inputs.tag);
-  Serial.print(F("; XY: "));
-  Serial.print(GD.inputs.x);
-  MAKE_STRING(S_COMMA);
-  Serial.print(S_COMMA_str);
-  Serial.print(GD.inputs.y);
-  Serial.println();
-  #endif
 
   //check for change in tag
-  if (GD.inputs.tag != touch_tag)
+  if (GD.inputs.tag != touch_tag &&false)
   {
+    flags_status.redraw_pending = true;
+    
     //detirmine the event type - for simplicities' sake, we have only on and off events, maybe cancel also
     if(touch_tag == 0) touch_event = TOUCH_ON;
     else if(GD.inputs.tag == 0) touch_event = TOUCH_OFF;
     touch_tag = GD.inputs.tag;
 
-    bool redraw = true;
-    
     switch(GD.inputs.tag)
     {
       case TAG_SCREEN_1:
@@ -160,14 +137,27 @@ void read_touch()
       case TAG_ENGINE_STOP:
         break;
       default:
-        redraw = false;
+//        flags_status.redraw_pending = true;
+        break;
     }
   }
 
   #ifdef DEBUG_TOUCH_TIME
   timestamp_us = micros() - timestamp_us;
-  Serial.print(F("t_dsp us: "));
+  Serial.print(F("t_touch us: "));
   Serial.println(timestamp_us);
+  #endif
+
+  #ifdef DEBUG_TOUCH_INPUT
+  Serial.print(F("Tag: "));
+  Serial.print(GD.inputs.tag);
+  Serial.print(F("; XY: "));
+  Serial.print(GD.inputs.x);
+  MAKE_STRING(S_COMMA);
+  Serial.print(S_COMMA_str);
+  Serial.print(GD.inputs.y);
+  Serial.println();
+  if(GD.inputs.touching) flags_status.redraw_pending = true;
   #endif
 }
 
