@@ -14,8 +14,8 @@
 #define GRID_SY(N)            (int)(SCREEN_H/N)
 #define GRID_XL(n,N)         (int)(n*GRID_SX(N))
 #define GRID_YT(n,N)         (int)(n*GRID_SY(N))
-#define GRID_XC(n,N)         (int)(((n<<1)+1)*GRID_SX(N<<1))
-#define GRID_YC(n,N)         (int)(((n<<1)+1)*GRID_SY(N<<1))
+#define GRID_XC(n,N)         (int)(GRID_XL(n,N)+(GRID_SX(N)>>1))
+#define GRID_YC(n,N)         (int)(GRID_YT(n,N)+(GRID_SY(N)>>1))
 #define GRID_XR(n,N)         (int)((n+1)*GRID_SX(N))
 #define GRID_YB(n,N)         (int)((n+1)*GRID_SY(N))
 

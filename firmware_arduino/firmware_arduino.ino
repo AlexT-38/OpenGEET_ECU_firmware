@@ -51,21 +51,21 @@
 //keep debug strings short to limit time spent sending them
 
 #ifdef DEBUG                  //enable debugging readouts
-//#define DEBUG_LOOP          //mprint out loop markers and update time                 typ       max
+//#define DEBUG_LOOP          //mprint out loop markers and update time                 typ(us)       max(us)
 //#define DEBUG_UPDATE_TIME   //measure how long an update takes                    t:
 //#define DEBUG_DISPLAY_TIME  //measure how long draw screen takes                  t:
 //#define DEBUG_SDCARD_TIME   //measure how long SD card log write takes            t:
 //#define DEBUG_SERIAL_TIME   //measure how long serial log write takes             t:
 //#define DEBUG_PID_TIME      //measure how long the pid loop takes                 t:
 //#define DEBUG_ANALOG_TIME   //measure how long analog read and processing takes   t:
-//#define DEBUG_DIGITAL_TIME  //measure how long reading from digital sensors takes t:
-#define DEBUG_TOUCH_TIME    //measure how long reading and processing touch input t:
+//#define DEBUG_DIGITAL_TIME  //measure how long reading from digital sensors takes t:  
+//#define DEBUG_TOUCH_TIME    //measure how long reading and processing touch input t:  125           300
 //#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
 //#define DEBUG_RPM_COUNTER
 //#define DEBUG_MAP_CAL
 //#define DEBUG_SCREEN_RES    //print screen resolution during startup (should be WQVGA: 480 x 272)
-#define DEBUG_TOUCH_INPUT
+//#define DEBUG_TOUCH_INPUT
 #endif
 
 
