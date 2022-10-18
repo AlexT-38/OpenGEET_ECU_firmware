@@ -413,12 +413,12 @@ void setup() {
   
   if (!SD.begin(PIN_LOG_SDCARD_CS)) {
     GET_STRING(S_CARD_FAILED_OR_NOT_PRESENT); Serial.println(string);
-    flags_status.sd_card_available = false;
+    flags_status.sdcard_available = false;
   }
   else
   {
     GET_STRING(S_CARD_INITIALISED); Serial.println(string);
-    flags_status.sd_card_available = true;
+    flags_status.sdcard_available = true;
 
     generate_file_name();
   }

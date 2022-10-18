@@ -194,13 +194,13 @@ void read_touch()
       case TAG_SCREEN_5:
         if(touch_event == TOUCH_OFF)  current_screen = SCREEN_5;
         break;
-      case TAG_LOG_START:
-        //if not previously logging and an sd card is available, generate the filename for logging
-        if(!flags_status.logging_active && flags_status.sd_card_available) generate_file_name();
-        flags_status.logging_active = true;
-        break;
-      case TAG_LOG_STOP:
-        flags_status.logging_active = false;
+      case TAG_LOG_TOGGLE:
+        if(touch_event == TOUCH_OFF)
+        {
+          //if not previously logging and an sd card is available, generate the filename for logging
+          flags_status.logging_active = ~flags_status.logging_active;
+          if(flags_status.sdcard_available && flags_config.do_sdcard_write && flags_status.logging_active) generate_file_name();
+        }
         break;
 //      case TAG_CAL_SV0:
 //        //calibrate_servo(0);
@@ -274,8 +274,8 @@ void draw_box(int px, int py, int sx, int sy, char w, int opt)
   }
   GD.LineWidth(PTSP(w));
   GD.Begin(RECTS);
-  GD.Vertex2ii(px,py,0,0);
-  GD.Vertex2ii(sx,sy,0,0);
+  GD.Vertex2ii(px+BORDER,py+BORDER,0,0);
+  GD.Vertex2ii(sx-BORDER,sy-BORDER,0,0);
 }
 
 /* screen selection */
@@ -287,7 +287,7 @@ void draw_datetime(int pos_x, int pos_y, unsigned int optx)
   
   GD.ColorA(A_BKG_WINDOW);
   GD.ColorRGB(C_BKG_NORMAL);
-  draw_box(pos_x, pos_y, GRID_SX(4)-BORDER, GRID_SY(4)-BORDER, BOX_WIDTH, opts);
+  draw_box(pos_x, pos_y, GRID_SX(4), GRID_SY(4), BOX_WIDTH, opts);
   
   DateTime t_now = DS1307_now();
   char datetime_string[11];
@@ -313,7 +313,7 @@ void draw_readout_int(const int pos_x, const int pos_y, int opts, const int valu
   {    dy = 0;  }
   GD.ColorA(A_BKG_WINDOW);
   GD.ColorRGB(C_BKG_NORMAL);
-  draw_box(pos_x, pos_y, GRID_SX(4)-BORDER, GRID_SY(4)-BORDER, BOX_WIDTH, opts);
+  draw_box(pos_x, pos_y, GRID_SX(4), GRID_SY(4), BOX_WIDTH, opts);
   
   MAKE_STRING(label_pgm);
   GD.ColorA(A_OPAQUE);
@@ -345,7 +345,7 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   
   GD.ColorA(A_BKG_WINDOW);
   GD.ColorRGB(C_BKG_NORMAL);
-  draw_box(pos_x, pos_y, GRID_SX(4)-BORDER, GRID_SY(4)-BORDER, BOX_WIDTH, opts);
+  draw_box(pos_x, pos_y, GRID_SX(4), GRID_SY(4), BOX_WIDTH, opts);
 
   
   MAKE_STRING(S_COMMA);
@@ -418,7 +418,70 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   GD.cmd_text(pos_x+dx, pos_y-8, font_size, opts, str_ptr);
 }
 
+byte is_touching_inside(int x, int y, byte sx, byte sy)
+{
+  return (GD.inputs.xytouch.x > x && GD.inputs.xytouch.x < (x+sx) && GD.inputs.xytouch.y > y && GD.inputs.xytouch.y < (y+sy));
+}
 
+void draw_log_toggle_button(int x, int y, byte sx, byte sy)
+{
+  GD.Tag(TAG_LOG_TOGGLE);
+
+  int opt = (GD.inputs.tag == TAG_LOG_TOGGLE) * OPT_FLAT;
+
+  if(flags_status.logging_active)
+  {
+    GD.cmd_fgcolor(C_BTN_LOGGING);
+  }
+  else
+  {
+    GD.cmd_fgcolor(C_BUTTON_FG);
+  }
+  MAKE_STRING(S_REC);
+  GD.cmd_button(x+BORDER,y+BORDER,sx-(BORDER<<1),sy-(BORDER<<1), 26, opt, S_REC_str);
+
+  x+=sx>>1;
+  y+=sy>>1;
+  sy>>=2;
+  
+  char string[14] = {0};
+  if(flags_config.do_serial_write)
+  {
+    byte i = strlen_P(S_SERIAL);
+    GET_STRING(S_SERIAL);
+    string[i++]=' ';
+    if(flags_config.do_serial_write_hex)
+    {
+      READ_STRING(S_0X,&string[i]);
+    }
+    else
+    {
+      READ_STRING(S_TXT,&string[i]);
+    }
+    
+    GD.cmd_text(x, y-sy,20,OPT_CENTER,string);
+  }
+
+  if(flags_config.do_sdcard_write)
+  {
+    if(!flags_status.sdcard_available)
+    {
+      GET_STRING(S_NO_SD_CARD);
+      GD.cmd_text(x, y+sy,20,OPT_CENTER,string);
+    }
+    else if(flags_status.file_openable)
+    {
+      GD.cmd_text(x, y+sy,20,OPT_CENTER,output_filename);
+    }
+    else
+    {
+      GET_STRING(S_NO_FILE_OPEN);
+      GD.cmd_text(x, y+sy,20,OPT_CENTER,string);
+    }
+  }
+  GD.Tag(TAG_INVALID);
+  
+}
 void draw_screen_selector()
 {
   int colour_bg = C_BKG_NORMAL; 
@@ -426,13 +489,13 @@ void draw_screen_selector()
 
   char label[10];
   int opt;
-
+  GD.cmd_fgcolor(C_BUTTON_FG);
   for(char n = 0; n<NO_OF_SCREENS; n++)
   {
     GD.Tag(TAG_SCREEN_1 + n);                                                                         //set the touch tag
     opt = ( (current_screen == (SCREEN_1 + n)) || (GD.inputs.tag == (TAG_SCREEN_1 + n)) ) * OPT_FLAT;     //draw flat if currently selected, or button is touched
     READ_STRING_FROM(screen_labels, n, label);
-    GD.cmd_button(GRID_XL(0,SCREEN_BUTTON_XN), GRID_YT(n,NO_OF_SCREENS), GRID_SX(SCREEN_BUTTON_XN), GRID_SY(NO_OF_SCREENS), SCREEN_BUTTON_FONT, opt, label);
+    GD.cmd_button(GRID_XL(0,SCREEN_BUTTON_XN)+BORDER, GRID_YT(n,NO_OF_SCREENS)+BORDER, GRID_SX(SCREEN_BUTTON_XN)-(BORDER<<1), GRID_SY(NO_OF_SCREENS)-(BORDER<<1), SCREEN_BUTTON_FONT, opt, label);
   }
   GD.Tag(TAG_INVALID);
 }

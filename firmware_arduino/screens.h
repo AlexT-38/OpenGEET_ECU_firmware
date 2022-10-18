@@ -10,10 +10,10 @@
 #define BORDER            4
 #define BOX_WIDTH         2
 
-#define GRID_SX(N)            (int)(SCREEN_W/N)
-#define GRID_SY(N)            (int)(SCREEN_H/N)
-#define GRID_XL(n,N)         (int)(n*GRID_SX(N))
-#define GRID_YT(n,N)         (int)(n*GRID_SY(N))
+#define GRID_SX(N)            (int)(SCREEN_W/(N))
+#define GRID_SY(N)            (int)(SCREEN_H/(N))
+#define GRID_XL(n,N)         (int)((n)*GRID_SX(N))
+#define GRID_YT(n,N)         (int)((n)*GRID_SY(N))
 #define GRID_XC(n,N)         (int)(GRID_XL(n,N)+(GRID_SX(N)>>1))
 #define GRID_YC(n,N)         (int)(GRID_YT(n,N)+(GRID_SY(N)>>1))
 #define GRID_XR(n,N)         (int)((n+1)*GRID_SX(N))
@@ -38,9 +38,13 @@
 
 #define C_MARKER          RGB(0xFF, 0x50, 0x00)
 
+#define C_BTN_LOGGING   RGB(0x80, 0,0)
+
 #define A_OPAQUE         255
 #define A_CLEAR          0
 #define A_BKG_WINDOW     64
+
+
 
 
 
@@ -77,8 +81,7 @@ typedef enum tags
   TAG_SCREEN_4,
   TAG_SCREEN_5,
 
-  TAG_LOG_START, //could be one tag: start/stop
-  TAG_LOG_STOP,
+  TAG_LOG_TOGGLE, //could be one tag: start/stop
   TAG_LOG_TOGGLE_SDCARD,
   TAG_LOG_TOGGLE_SERIAL,
   TAG_LOG_TOGGLE_SDCARD_HEX,

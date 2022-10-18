@@ -51,7 +51,12 @@ const char S_INPUT_2[] PROGMEM = "Input 2";
 const char S_INPUT_3[] PROGMEM = "Input 3";
 const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
 
-
+const char S_REC[] PROGMEM = "REC";
+const char S_SERIAL[] PROGMEM = "Serial";
+const char S_0X[] PROGMEM = "0x";
+const char S_TXT[] PROGMEM = "TXT";
+const char S_NO_FILE_OPEN[] PROGMEM = "No File Open";
+const char S_NO_SD_CARD[] PROGMEM = "No SD Card";
 
 const char S_BASIC[] PROGMEM = "Basic";
 const char S_PID_1[] PROGMEM = "PID 1";

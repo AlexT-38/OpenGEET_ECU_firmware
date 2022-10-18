@@ -30,24 +30,17 @@ void screen_draw_basic()
   draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->A1_avg, S_INPUT_1);
   draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->A2_avg, S_INPUT_2);
   draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->A3_avg, S_INPUT_3);
+  draw_log_toggle_button(GRID_XL(XN-2,XN),GRID_YT(YN-1,YN),GRID_SX(XN),GRID_SY(YN));
+
 }
 
 /* work around for tag always zero issue*/
 #ifdef TAG_BYPASS
-const static byte tag_table[XN][YN] = {{TAG_INVALID, TAG_INVALID, TAG_INVALID, TAG_INVALID},
-                                       {TAG_INVALID, TAG_INVALID, TAG_INVALID, TAG_INVALID},
-                                       {TAG_INVALID, TAG_INVALID, TAG_INVALID, TAG_INVALID},
-                                       {TAG_INVALID, TAG_INVALID, TAG_INVALID, TAG_INVALID}};
+
 byte screen_basic_tags()
 {
-  byte x = GD.inputs.xytouch.x / GRID_SX(XN);
-  byte y = GD.inputs.xytouch.y / GRID_SY(YN);
-  #ifdef DEBUG_TOUCH_INPUT
-  Serial.print(x);
-  Serial.print(F(", "));
-  Serial.print(y);
-  Serial.println();
-  #endif
-  return tag_table[x][y];
+  byte tag = TAG_INVALID;
+  if(is_touching_inside(GRID_XL(XN-2,XN),GRID_YT(YN-1,YN),GRID_SX(XN),GRID_SY(YN))) { tag = TAG_LOG_TOGGLE;}
+  return tag;
 }
 #endif

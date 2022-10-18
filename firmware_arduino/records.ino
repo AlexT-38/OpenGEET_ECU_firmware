@@ -10,10 +10,11 @@ static DATA_STORAGE data_store;
 
 void generate_file_name()
 {
+  static byte file_index = 0;
   char *str_ptr;
   
   int value;
-  byte nn = 0;
+  byte nn = file_index;
 
   // set the file extension
   str_ptr = output_filename + 8;
@@ -34,10 +35,10 @@ void generate_file_name()
   {
     //set the iterator number
     str_ptr = output_filename + 7;
-    value = nn++;  *str_ptr-- = HEX_CHAR(value);  value >>=4;  *str_ptr-- = HEX_CHAR(value);
+    value = file_index++;  *str_ptr-- = HEX_CHAR(value);  value >>=4;  *str_ptr-- = HEX_CHAR(value);
 
     //break the loop if the target file doenst exist, or we have run out of indices
-    if (!SD.exists(output_filename) || nn==0 )
+    if (!SD.exists(output_filename) || nn==file_index )
     {
       do_loop = false;
     }
@@ -57,7 +58,7 @@ void generate_file_name()
     dataFile.close();
     
     Serial.println(F("Opened OK"));
-    flags_config.do_sdcard_write = true;
+    flags_status.file_openable = true;
 
     if(nn == 0)
     {
@@ -67,7 +68,7 @@ void generate_file_name()
   else
   {
     Serial.println(F("Open FAILED"));
-    flags_config.do_sdcard_write = false;
+    flags_status.file_openable = false;
   }
 
 }
@@ -280,7 +281,7 @@ bool write_sdcard_data_record()
 {
   
   /* send the data to the SD card, if available */
-  if(flags_status.logging_active && flags_config.do_sdcard_write && flags_status.sd_card_available)
+  if(flags_status.logging_active && flags_config.do_sdcard_write && flags_status.sdcard_available && flags_status.file_openable)
   {
     #ifdef DEBUG_SDCARD_TIME    
     unsigned int timestamp_us = micros();
@@ -305,6 +306,12 @@ bool write_sdcard_data_record()
         log_data_file.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
         log_data_file.close();
       }
+      else
+      {
+        flags_status.file_openable = false;
+        Serial.print(F("Open failed writing hex file: "));
+        Serial.println(output_filename);
+      }
       
     }
     else
@@ -319,6 +326,9 @@ bool write_sdcard_data_record()
               if (!log_data_file)
               { 
                 write_data_step = 0; //reset to 0 if unable to open
+                flags_status.file_openable = false;
+                Serial.print(F("Open failed writing txt file: "));
+                Serial.println(output_filename);
               }
             }
           } break;
@@ -392,5 +402,6 @@ bool write_sdcard_data_record()
     Serial.println(timestamp_us);
     #endif
   }
+
   return write_data_step == 0;
 }
