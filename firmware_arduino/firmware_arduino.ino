@@ -62,10 +62,12 @@
 //#define DEBUG_TOUCH_TIME    //measure how long reading and processing touch input t:  125           300
 //#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
+//#define DEBUG_EEP_CONTENT
 //#define DEBUG_RPM_COUNTER
 //#define DEBUG_MAP_CAL
 //#define DEBUG_SCREEN_RES    //print screen resolution during startup (should be WQVGA: 480 x 272)
 //#define DEBUG_TOUCH_INPUT
+//#define DEBUG_TOUCH_CAL
 #endif
 
 
@@ -230,6 +232,7 @@ static int egt_timestamp = 0;    //more optimal if all intervals have large comm
 static int pid_timestamp = 0;    //they probably dont need to be long ints though.
 static int display_timestamp = 0;//short ints can handle an interval of 32 seconds
 static int touch_timestamp = 0;
+
                                  
 
 /* some alternate, possibly faster mapping functions 
@@ -342,11 +345,8 @@ void setup() {
   configiure_rpm_counter();
   
   //initialise servos
-  byte servo_pins[] = {PIN_SERVO_0,PIN_SERVO_1,PIN_SERVO_2};
-  for(byte n=0; n<NO_OF_SERVOS; n++)
-  {
-    servo[n].attach(servo_pins[n]);
-  }
+  initialise_servos();
+  
   
   //fetch the firmware fersion string
   
@@ -394,16 +394,8 @@ void setup() {
   flags_config.do_serial_write = true;
   flags_config.do_sdcard_write = true;
 
-  //reset eeprom if a different version
-  reset_eeprom();
-
-  //read flag configuration from eeprom
-  EEP_GET(flags_config,flags_config);
-
-  //override flags in eeprom
-  flags_config.do_serial_write = true;
-  flags_config.do_sdcard_write = true;
-
+  //load eeprom, write defualts if a different version
+  initialise_eeprom();
 
   //attempt to initialse the logging SD card. 
   //this will include creating a new file from the RTC date for immediate logging
@@ -433,14 +425,8 @@ void setup() {
   analogRead(A3);
 
 
-  //set initial servo conditions
-  for(byte n=0;n<NO_OF_SERVOS;n++)
-  {
-    int smin, smax;
-    EEP_GET_N(servo_min_us,n, smin);
-    EEP_GET_N(servo_max_us,n, smax);
-    servo[n].writeMicroseconds((smin + smax) >>1);
-  }
+  //move all servos to minimum
+  reset_servos();
 
 
   // test the map functions
@@ -476,9 +462,7 @@ void setup() {
   Serial.println();
 #endif
 
-  #ifdef DEBUG_TOUCH_CAL
-  GD.cmd_calibrate();
-  #endif
+
   // wait for MAX chip to stabilize, and to see the splash screen
   delay(4000);
   //while(1);
@@ -735,4 +719,7 @@ void loop() {
   {
     draw_screen();
   }
+
+
+  check_eeprom_update();
 }

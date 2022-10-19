@@ -76,29 +76,10 @@ void process_pid_loop()
   #endif
 #endif
   
-  unsigned int servo_min_us, servo_max_us;
   // go through each servo, and map inputs to outputs
   for (byte n=0; n<NO_OF_SERVOS; n++)
   {
-    // fetch the servo times from eeprom
-    EEP_GET_N(servo_min_us,n, servo_min_us);
-    EEP_GET_N(servo_max_us,n, servo_max_us);
-    //map input to output range - MAP servo takes 72us, amap takes 76 (due to rounding) barely any difference so use amap
-    unsigned int servo_pos_us = amap(sv_targets[n], servo_min_us, servo_max_us);
-    //write output
-    servo[n].writeMicroseconds(servo_pos_us);
-    #ifdef DEBUG_SERVO
-    Serial.print(F("sv["));Serial.write('0'+n);Serial.print(F("]: ")); 
-    Serial.print(sv_targets[n]);
-    Serial.print(F(" (")); 
-    Serial.print(servo_min_us);
-    Serial.print(F("-")); 
-    Serial.print(servo_max_us);
-    Serial.print(F(") -> ")); 
-    Serial.print(servo_pos_us);
-  
-    Serial.println();
-    #endif
+    set_servo_position(n, sv_targets[n]);
   }
   
 

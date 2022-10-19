@@ -34,6 +34,7 @@ typedef struct {
 
 //these flags indicate the state of the system
 typedef struct {
+    byte update_eeprom:1;
     byte sdcard_available:1;
     byte file_openable:1;
     byte logging_active:1;
