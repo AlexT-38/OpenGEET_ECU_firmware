@@ -42,16 +42,17 @@ Hardware will initially be an Arduino Uno with a datalogger sheild. Upgrade to a
 **Objectives:**
 
 - Control mode: PID control of reactor vacuum via bubbler valve servo
-- PID parameter control via ui
-- View PID state
+- Reactor PID parameter control via ui
+- View reactor PID state
+- Reactor state monitoring (starting, in spec, out of spec)
 
 ### v0.4
 
 **Objectives:**
 
 - Control mode: PID control of RPM via throttle servo
-- PID parameter control via ui
-- View PID state
+- RPM PID parameter control via ui
+- View RPM PID state
 - Engine state monitoring (stopped, running)
 
 ### v0.3
