@@ -20,6 +20,7 @@ Hardware will initially be an Arduino Uno with a datalogger sheild. Upgrade to a
 - Screen selection via buttons on left side
 - Control modes: direct servo mapping, target rpm -> throttle pid
 - Logging start/stop, hex/text and serial/SDcard UI control
+- Servo calibration
 
 ### v0.2
 
