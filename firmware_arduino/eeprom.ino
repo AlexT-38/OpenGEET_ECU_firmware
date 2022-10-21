@@ -9,7 +9,7 @@ struct eeprom
 #define EEPROM_WRITE_INTERVAL_ms  1000
 #define EEPROM_TIMER_MAX_ELAPSED  0x4000
 
-#define DEBUG_EEPROM_SYSTEM
+//#define DEBUG_EEPROM_SYSTEM
 
 int eeprom_timestamp_ms;
 

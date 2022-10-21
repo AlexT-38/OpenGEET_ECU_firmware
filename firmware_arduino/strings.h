@@ -53,7 +53,8 @@ const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
 
 const char S_REC[] PROGMEM = "REC";
 const char S_SERIAL[] PROGMEM = "Serial";
-const char S_0X[] PROGMEM = "0x";
+const char S_SDCARD[] PROGMEM = "SDCard";
+const char S_HEX[] PROGMEM = "HEX";
 const char S_TXT[] PROGMEM = "TXT";
 const char S_NO_FILE_OPEN[] PROGMEM = "No File Open";
 const char S_NO_SD_CARD[] PROGMEM = "No SD Card";

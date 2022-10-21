@@ -17,7 +17,10 @@ void screen_draw_basic()
 
   /* data record to read */
   DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
+
+  //clear tag
   GD.Tag(TAG_INVALID);
+  
   // Right hand column
   gx = XN-1;
   gy = 0;

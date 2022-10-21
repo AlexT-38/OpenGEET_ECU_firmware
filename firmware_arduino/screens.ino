@@ -257,6 +257,18 @@ void read_touch()
           load_eeprom();
         }
         break;
+      case TAG_LOG_TOGGLE_SDCARD:
+        if(touch_event == TOUCH_ON) { flags_config.do_sdcard_write ^=1; }
+        break;
+      case TAG_LOG_TOGGLE_SDCARD_HEX:
+        if(touch_event == TOUCH_ON) { flags_config.do_sdcard_write_hex ^=1; }
+        break;
+      case TAG_LOG_TOGGLE_SERIAL:
+        if(touch_event == TOUCH_ON) { flags_config.do_serial_write ^=1; }
+        break;
+      case TAG_LOG_TOGGLE_SERIAL_HEX:
+        if(touch_event == TOUCH_ON) { flags_config.do_serial_write_hex ^=1; }
+        break;
       case TAG_ENGINE_START:
         break;
       case TAG_ENGINE_STOP:
@@ -544,20 +556,22 @@ int get_slider_value()
 void draw_button(int x, int y, byte sx, byte sy, byte tag, const char * string)
 {
   GD.Tag(tag);
-
   int opt = (GD.inputs.tag == tag)? OPT_FLAT : 0;
-
-  MAKE_STRING(S_SAVE);
   GD.cmd_button(x+BORDER,y+BORDER,sx-(BORDER<<1),sy-(BORDER<<1), 26, opt, string);
-
-  GD.Tag(TAG_INVALID);
-  
 }
+
+void draw_toggle_button(int x, int y, byte sx, byte sy, byte tag, byte state, const char * string)
+{
+  GD.Tag(tag);
+  int opt = state ? OPT_FLAT : 0;
+  GD.cmd_button(x+BORDER,y+BORDER,sx-(BORDER<<1),sy-(BORDER<<1), 26, opt, string);
+}
+
 void draw_log_toggle_button(int x, int y, byte sx, byte sy)
 {
   GD.Tag(TAG_LOG_TOGGLE);
 
-  int opt = (GD.inputs.tag == TAG_LOG_TOGGLE) * OPT_FLAT;
+  int opt = (GD.inputs.tag == TAG_LOG_TOGGLE) ? OPT_FLAT : 0;
 
   if(flags_status.logging_active)
   {
@@ -582,7 +596,7 @@ void draw_log_toggle_button(int x, int y, byte sx, byte sy)
     string[i++]=' ';
     if(flags_config.do_serial_write_hex)
     {
-      READ_STRING(S_0X,&string[i]);
+      READ_STRING(S_HEX,&string[i]);
     }
     else
     {
@@ -609,9 +623,9 @@ void draw_log_toggle_button(int x, int y, byte sx, byte sy)
       GD.cmd_text(x, y+sy,20,OPT_CENTER,string);
     }
   }
-  GD.Tag(TAG_INVALID);
   
 }
+
 void draw_screen_selector()
 {
   int colour_bg = C_BKG_NORMAL; 
@@ -627,7 +641,6 @@ void draw_screen_selector()
     READ_STRING_FROM(screen_labels, n, label);
     GD.cmd_button(GRID_XL(0,SCREEN_BUTTON_XN)+BORDER, GRID_YT(n,NO_OF_SCREENS)+BORDER, GRID_SX(SCREEN_BUTTON_XN)-(BORDER<<1), GRID_SY(NO_OF_SCREENS)-(BORDER<<1), SCREEN_BUTTON_FONT, opt, label);
   }
-  GD.Tag(TAG_INVALID);
 }
 
 void draw_screen_background()

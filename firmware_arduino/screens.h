@@ -84,8 +84,8 @@ typedef enum tags
 
   TAG_LOG_TOGGLE, //could be one tag: start/stop
   TAG_LOG_TOGGLE_SDCARD,
-  TAG_LOG_TOGGLE_SERIAL,
   TAG_LOG_TOGGLE_SDCARD_HEX,
+  TAG_LOG_TOGGLE_SERIAL,
   TAG_LOG_TOGGLE_SERIAL_HEX,
 
   TAG_CAL_SV0_MIN,  //in order of drawing for simplified tag calculation

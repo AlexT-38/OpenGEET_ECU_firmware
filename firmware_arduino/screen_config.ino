@@ -15,7 +15,7 @@
 
 //#define DEBUG_SCREEN_CONFIG_DRAW_SLIDERS
 //#define DEBUG_SCREEN_CONFIG_TOUCH_SLIDERS
-#define DEBUG_EEP_UI
+//#define DEBUG_EEP_UI
 
 void screen_draw_config()
 {
@@ -23,6 +23,15 @@ void screen_draw_config()
   draw_button(GRID_XL(4,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_EEPROM_SAVE,S_SAVE_str);
   MAKE_STRING(S_LOAD);
   draw_button(GRID_XL(4,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_EEPROM_LOAD,S_LOAD_str);
+
+  MAKE_STRING(S_SERIAL);
+  draw_toggle_button(GRID_XL(1,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_serial_write,S_SERIAL_str);
+  MAKE_STRING(S_HEX);
+  draw_toggle_button(GRID_XL(1,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_serial_write_hex,S_HEX_str);
+  MAKE_STRING(S_SDCARD);
+  draw_toggle_button(GRID_XL(2,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_sdcard_write,S_SDCARD_str);
+  MAKE_STRING(S_DOT_RAW);
+  draw_toggle_button(GRID_XL(2,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_sdcard_write_hex,S_DOT_RAW_str);
   
   char strings[6][10];
   READ_STRING(S_SV0_MIN, strings[0]);
@@ -38,7 +47,7 @@ void screen_draw_config()
   for (byte n = 0; n< 6; n++)
   {
     byte sv = n>>1;
-    val = ((n&1)?(servo_cal[sv].upper):(servo_cal[sv].lower)) - SERVO_MIN;
+    val = ((n&1)?(servo_cal[sv].lower):(servo_cal[sv].upper)) - SERVO_MIN;
 #ifdef DEBUG_SCREEN_CONFIG_DRAW_SLIDERS
     Serial.print(strings[n]);
     Serial.print(GRID_XL(1,XN));
@@ -82,26 +91,41 @@ byte screen_config_tags()
     Serial.println();
 #endif
   }
-  else if(is_touching_inside(GRID_XL(4,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB)*2))
+  else
   {
-    if(GD.inputs.xytouch.y > GRID_YT(4,YNB))
+    
+    byte row = GD.inputs.xytouch.y > GRID_YT(4,YNB);
+    /* check eep store buttons */
+    if(is_touching_inside(GRID_XL(4,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB)*2))
     {
-      tag = TAG_EEPROM_LOAD;
-      #ifdef DEBUG_EEP_UI
-      MAKE_STRING(S_LOAD);
-      Serial.println(S_LOAD_str);
-      #endif
+      if(row)
+      {
+        tag = TAG_EEPROM_LOAD;
+        #ifdef DEBUG_EEP_UI
+        MAKE_STRING(S_LOAD);
+        Serial.println(S_LOAD_str);
+        #endif
+      }
+      else
+      {
+        tag = TAG_EEPROM_SAVE;
+        #ifdef DEBUG_EEP_UI
+        MAKE_STRING(S_SAVE);
+        Serial.println(S_SAVE_str);
+        #endif
+      }
     }
-    else
+    /* check serial options */
+    else if(is_touching_inside(GRID_XL(1,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB)*2))
     {
-      tag = TAG_EEPROM_SAVE;
-      #ifdef DEBUG_EEP_UI
-      MAKE_STRING(S_SAVE);
-      Serial.println(S_SAVE_str);
-      #endif
+      tag = TAG_LOG_TOGGLE_SERIAL + row;
+    }
+    /* check sd card options */
+    else if(is_touching_inside(GRID_XL(2,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB)*2))
+    {
+      tag = TAG_LOG_TOGGLE_SDCARD + row;
     }
   }
-  
   return tag;
 }
 #endif
