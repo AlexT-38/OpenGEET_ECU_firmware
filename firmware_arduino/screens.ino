@@ -3,6 +3,7 @@
  */
 
 
+
 typedef void(*SCREEN_DRAW_FUNC)(void);
 
 
@@ -122,22 +123,16 @@ void read_touch()
   unsigned int timestamp_us = micros();
   #endif
 
-
   // copy old tag
   byte touch_tag_old = GD.inputs.tag;
 
   //fetch coords
 #if defined(DEBUG_TOUCH_INPUT) || defined(TAG_BYPASS)
-  
-  
-  
   long int val = GD.rd32(REG_TOUCH_SCREEN_XY);
   xy *coord = (xy*) &val;
   GD.inputs.xytouch.x = coord->y;
   GD.inputs.xytouch.y = coord->x - 0x400;
-  
 #else
-//  xy touch_coord;
   GD.inputs.xytouch.x = GD.rd16(REG_TOUCH_SCREEN_XY);
 #endif
 
@@ -168,15 +163,21 @@ void read_touch()
   }
   
   
-  //check for change in tag
+  //check for event (change in tag)
   if (touch_tag_old != GD.inputs.tag)
   {
+    //redraw on event
     flags_status.redraw_pending = true;
     
-    //detirmine the event type - for simplicities' sake, we have only on and off events, maybe cancel also
-    if(touch_tag_old == 0)  {touch_event = TOUCH_ON; touch_tag_old = GD.inputs.tag;}
-    else if(GD.inputs.tag == 0) {touch_event = TOUCH_OFF;}
+    //detirmine the event type - for simplicities' sake, we have only on and off events,
+    if(touch_tag_old == TAG_NONE)  {touch_event = TOUCH_ON; touch_tag_old = GD.inputs.tag;}
+    else if(GD.inputs.tag == TAG_NONE) {touch_event = TOUCH_OFF;}
+    else {touch_event = TOUCH_CANCEL; GD.inputs.tag = TAG_INVALID;} //if this is a cancel, set the tag to invalid
+  }
 
+  //process tags when touching or event
+  if(GD.inputs.touching || touch_event != TOUCH_NONE)
+  {
     switch(touch_tag_old)
     {
       case TAG_SCREEN_1:
@@ -202,15 +203,60 @@ void read_touch()
           if(flags_status.sdcard_available && flags_config.do_sdcard_write && flags_status.logging_active) generate_file_name();
         }
         break;
-//      case TAG_CAL_SV0:
-//        //calibrate_servo(0);
-//        break;
-//      case TAG_CAL_SV1:
-//        //calibrate_servo(1);
-//        break;
-//      case TAG_CAL_SV2:
-//        //calibrate_servo(2);
-//        break;
+      case TAG_CAL_SV0_MIN:
+        if(touch_event == TOUCH_ON || touch_event == TOUCH_NONE)
+        {
+          set_servo_min(0);
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_CAL_SV1_MIN:
+        if(touch_event == TOUCH_ON || touch_event == TOUCH_NONE)
+        {
+          set_servo_min(1);
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_CAL_SV2_MIN:
+        if(touch_event != TOUCH_OFF)
+        {
+          set_servo_min(2);
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_CAL_SV0_MAX:
+        if(touch_event != TOUCH_OFF)
+        {
+          set_servo_max(0);
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_CAL_SV1_MAX:
+        if(touch_event != TOUCH_OFF)
+        {
+          set_servo_max(1);
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_CAL_SV2_MAX:
+        if(touch_event != TOUCH_OFF)
+        {
+          set_servo_max(2);
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_EEPROM_SAVE:
+        if(touch_event == TOUCH_OFF)
+        {
+          save_eeprom();
+        }
+        break;
+      case TAG_EEPROM_LOAD:
+        if(touch_event == TOUCH_OFF)
+        {
+          load_eeprom();
+        }
+        break;
       case TAG_ENGINE_START:
         break;
       case TAG_ENGINE_STOP:
@@ -418,11 +464,95 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   GD.cmd_text(pos_x+dx, pos_y-8, font_size, opts, str_ptr);
 }
 
-byte is_touching_inside(int x, int y, byte sx, byte sy)
+//#define DEBUG_SCREENS_DRAW_SLIDER
+#define SLIDER_HEIGHT 8
+//todo: make slider gemotery fixed. only the y pos, label and value/max should be passed
+void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *label_str, byte tag, int value, int val_max)
 {
-  return (GD.inputs.xytouch.x > x && GD.inputs.xytouch.x < (x+sx) && GD.inputs.xytouch.y > y && GD.inputs.xytouch.y < (y+sy));
+  int x2 = x + (BORDER<<1);
+  int sx2 = sx - (label_size + (BORDER<<1) + SLIDER_HEIGHT);
+  int y2 = y + (sy>>1);
+  int opt = (tag==GD.inputs.tag)? OPT_FLAT:0;
+  
+  GD.Tag(tag);
+  GD.ColorA(A_BKG_WINDOW);
+  GD.ColorRGB(C_BKG_NORMAL);
+  draw_box(x,y,sx,sy,BOX_WIDTH, 0);
+#ifdef DEBUG_SCREENS_DRAW_SLIDER
+  MAKE_STRING(S_COMMA);
+  Serial.print(F("draw slider box: "));
+//  Serial.print(x);
+//  Serial.print(S_COMMA_str);
+  Serial.print(y);
+  Serial.print(S_COMMA_str);
+  Serial.print(sx);
+  Serial.print(S_COMMA_str);
+  Serial.print(sy);
+  Serial.println();
+#endif
+  GD.ColorA(A_OPAQUE);
+  GD.ColorRGB(C_LABEL);
+  GD.cmd_text(x2, y2, 26, OPT_CENTERY, label_str);
+#ifdef DEBUG_SCREENS_DRAW_SLIDER
+  Serial.print(F("draw slider text: "));
+//  Serial.print(x2);
+//  Serial.print(S_COMMA_str);
+  Serial.print(y2);
+  Serial.print(S_COMMA_str);
+  Serial.println();
+#endif
+  x2 = x + label_size;
+  y2 -= SLIDER_HEIGHT>>1;
+#ifdef DEBUG_SCREENS_DRAW_SLIDER
+  Serial.print(F("draw slider widget: "));
+  Serial.print(x2);
+  Serial.print(S_COMMA_str);
+  Serial.print(y2);
+  Serial.print(S_COMMA_str);
+  Serial.print(sx2);
+  Serial.print(S_COMMA_str);
+  Serial.println(label_size);
+  Serial.println();
+#endif
+  
+  GD.cmd_slider(x2,y2,sx2,SLIDER_HEIGHT,opt,value,val_max);
+  GD.Tag(TAG_INVALID);
 }
 
+#define DEBUG_SLIDER_VALUE
+#define PX 2
+//set servo min and max based on x coordinate, assuming slider is from 3/5->5/5
+int get_slider_value()
+{
+  //clamp the x coordinate to the active range
+  int x_coord = constrain(GD.inputs.xytouch.x,GRID_XL(PX,XN),(SCREEN_W-(BORDER<<1)-SLIDER_HEIGHT));
+  //map the active range to servo range
+  int x_val = map(GD.inputs.xytouch.x, GRID_XL(PX,XN), SCREEN_W-(BORDER<<1)-SLIDER_HEIGHT, SERVO_MIN, SERVO_MAX);
+  #ifdef DEBUG_SLIDER_VALUE
+  Serial.print(F("slider: "));
+  Serial.print(GD.inputs.xytouch.x);
+  Serial.print(F(" ("));
+  Serial.print(GRID_XL(PX,XN));
+  Serial.print(F(", "));
+  Serial.print(SCREEN_W);
+  Serial.print(F(") -> "));
+  Serial.println(x_val);
+  #endif
+  return x_val;
+}
+
+void draw_button(int x, int y, byte sx, byte sy, byte tag, const char * string)
+{
+  GD.Tag(tag);
+
+  int opt = (GD.inputs.tag == tag)? OPT_FLAT : 0;
+
+  MAKE_STRING(S_SAVE);
+  GD.cmd_button(x+BORDER,y+BORDER,sx-(BORDER<<1),sy-(BORDER<<1), 26, opt, string);
+
+  GD.Tag(TAG_INVALID);
+  
+}
 void draw_log_toggle_button(int x, int y, byte sx, byte sy)
 {
   GD.Tag(TAG_LOG_TOGGLE);
@@ -517,4 +647,11 @@ void draw_screen_background()
 
   GD.ClearColorRGB(colour_bg);
   GD.Clear();
+}
+
+
+
+byte is_touching_inside(int x, int y, byte sx, byte sy)
+{
+  return (GD.inputs.xytouch.x > x && GD.inputs.xytouch.x < (x+sx) && GD.inputs.xytouch.y > y && GD.inputs.xytouch.y < (y+sy));
 }

@@ -2,6 +2,21 @@
 
 SV_CAL servo_cal[NO_OF_SERVOS];
 
+//this could be handled better
+#ifdef XN
+#undef XN
+#endif
+#define XN 5
+
+
+void set_servo_min(byte sv)
+{
+  servo_cal[sv].lower = get_slider_value();
+}
+void set_servo_max(byte sv)
+{
+  servo_cal[sv].upper = get_slider_value();
+}
 void initialise_servos()
 {
   const byte servo_pins[] = {PIN_SERVO_0,PIN_SERVO_1,PIN_SERVO_2};

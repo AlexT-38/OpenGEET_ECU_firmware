@@ -9,6 +9,8 @@ struct eeprom
 #define EEPROM_WRITE_INTERVAL_ms  1000
 #define EEPROM_TIMER_MAX_ELAPSED  0x4000
 
+#define DEBUG_EEPROM_SYSTEM
+
 int eeprom_timestamp_ms;
 
 /* Load config from eeprom, check the crc and if a match, store in ram 
@@ -16,6 +18,9 @@ int eeprom_timestamp_ms;
  */
 char load_eeprom()
 {
+  #ifdef DEBUG_EEPROM_SYSTEM
+  Serial.println(F("load_eep"));
+  #endif
   SV_CAL servo_cal_t[NO_OF_SERVOS];
   FLAGS_CONFIG flags_config_t;
   EEP_GET(servo_cal,servo_cal_t);
@@ -42,6 +47,9 @@ char load_eeprom()
 /* immediately calculate config register crc and write to eeprom  */
 void save_eeprom()
 {
+  #ifdef DEBUG_EEPROM_SYSTEM
+  Serial.println(F("save_eep"));
+  #endif
   byte eep_crc = 0xFF; 
   //eep_crc = get_crc(eep_crc,servo_cal,sizeof(servo_cal));
   //eep_crc = get_crc(eep_crc,flags_config,sizeof(flags_config));
@@ -54,6 +62,7 @@ void save_eeprom()
 /* check for the update flag to be set, write eeprom only once 1 second has passed since the last write */
 void check_eeprom_update()
 {
+  
   static int time_now = millis();
   int elapsed_time = time_now - eeprom_timestamp_ms;
 
@@ -61,11 +70,20 @@ void check_eeprom_update()
   if (elapsed_time > EEPROM_TIMER_MAX_ELAPSED || elapsed_time < 0) eeprom_timestamp_ms = time_now - EEPROM_WRITE_INTERVAL_ms;
 
   // check for the update flag and update when ready
-  if(flags_status.update_eeprom && elapsed_time >  EEPROM_WRITE_INTERVAL_ms)
+  if(flags_status.update_eeprom)
   {
-    eeprom_timestamp_ms = time_now;
-    flags_status.update_eeprom = false;
-    save_eeprom();
+    #ifdef DEBUG_EEPROM_SYSTEM
+    Serial.println(F("check_eep"));
+    #endif
+    if( elapsed_time >  EEPROM_WRITE_INTERVAL_ms)
+    {
+      eeprom_timestamp_ms = time_now;
+      flags_status.update_eeprom = false;
+      save_eeprom();
+    }
+  #ifdef DEBUG_EEPROM_SYSTEM
+  else  {  Serial.println(F("waiting")); }
+  #endif
   }
   
 }
@@ -73,6 +91,9 @@ void check_eeprom_update()
 /* request to save the config registers to eeprom */
 void update_eeprom()
 {
+  #ifdef DEBUG_EEPROM_SYSTEM
+  Serial.println(F("update_eep"));
+  #endif
   flags_status.update_eeprom = true;
 }
 

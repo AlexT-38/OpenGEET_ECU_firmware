@@ -24,7 +24,7 @@
 const char S_DATE[] PROGMEM = __DATE__;
 const char S_TIME[] PROGMEM = __TIME__;
 const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller";
-const char S_FIRMWARE_VERSION[]  PROGMEM = "v0.2";
+const char S_FIRMWARE_VERSION[]  PROGMEM = "v0.3";
 const char S_COMMA[] PROGMEM = ", ";
 const char S_CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or not present.";
 const char S_CARD_INITIALISED[] PROGMEM = "SD Card initialised.";
@@ -58,16 +58,24 @@ const char S_TXT[] PROGMEM = "TXT";
 const char S_NO_FILE_OPEN[] PROGMEM = "No File Open";
 const char S_NO_SD_CARD[] PROGMEM = "No SD Card";
 
+const char S_SAVE[] PROGMEM = "SAVE";
+const char S_LOAD[] PROGMEM = "LOAD";
+
 const char S_BASIC[] PROGMEM = "Basic";
 const char S_PID_1[] PROGMEM = "PID 1";
 const char S_PID_2[] PROGMEM = "PID 2";
 const char S_CONFIG[] PROGMEM = "Config";
 const char S_NONE[] PROGMEM = "None";
 
-/*
-const char NAME[] PROGMEM = "";
-const char NAME[] PROGMEM = "";
-*/
+const char S_SV0_MIN[] PROGMEM = "SV0 Min";
+const char S_SV1_MIN[] PROGMEM = "SV1 Min";
+const char S_SV2_MIN[] PROGMEM = "SV2 Min";
+
+const char S_SV0_MAX[] PROGMEM = "SV0 Max";
+const char S_SV1_MAX[] PROGMEM = "SV1 Max";
+const char S_SV2_MAX[] PROGMEM = "SV2 Max";
+
+
 
 // int to char conversion for hex and decimal
 const char PROGMEM hex_char[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};

@@ -12,7 +12,7 @@ Servo servo[NO_OF_SERVOS];
 
 #define SERVO_MIN               750     //default minimum servo value
 #define SERVO_MAX               2300    //default maximum servo value
-
+#define SERVO_RANGE             (SERVO_MAX-SERVO_MIN)
 typedef struct servo_cal
 {
   unsigned int upper, lower;

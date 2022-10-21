@@ -58,6 +58,7 @@
 //touch event types
 #define TOUCH_OFF       0
 #define TOUCH_ON        1
+#define TOUCH_CANCEL    2
 #define TOUCH_NONE      255
 
 
@@ -86,14 +87,18 @@ typedef enum tags
   TAG_LOG_TOGGLE_SERIAL,
   TAG_LOG_TOGGLE_SDCARD_HEX,
   TAG_LOG_TOGGLE_SERIAL_HEX,
-  
-  TAG_CAL_SV0_TOP,
-  TAG_CAL_SV1_TOP,
-  TAG_CAL_SV2_TOP,
 
-  TAG_CAL_SV0_BOT,
-  TAG_CAL_SV1_BOT,
-  TAG_CAL_SV2_BOT,
+  TAG_CAL_SV0_MIN,  //in order of drawing for simplified tag calculation
+  TAG_CAL_SV0_MAX,
+  TAG_CAL_SV1_MIN,
+  TAG_CAL_SV1_MAX,
+  TAG_CAL_SV2_MIN,
+  TAG_CAL_SV2_MAX,
+
+  TAG_EEPROM_SAVE,
+  TAG_EEPROM_LOAD,
+
+  
 
   TAG_ENGINE_START,
   TAG_ENGINE_STOP,

@@ -9,6 +9,8 @@
 #undef YN
 #endif
 #define YN 4
+
+
 void screen_draw_basic()
 {
   byte gx, gy;
