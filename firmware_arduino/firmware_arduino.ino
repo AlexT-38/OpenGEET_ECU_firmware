@@ -57,16 +57,16 @@
 
 //keep debug strings short to limit time spent sending them
 
-#ifdef DEBUG                  //enable debugging readouts
-//#define DEBUG_LOOP          //mprint out loop markers and update time                 typ(us)       max(us)
-//#define DEBUG_UPDATE_TIME   //measure how long an update takes                    t:
-//#define DEBUG_DISPLAY_TIME  //measure how long draw screen takes                  t:
-//#define DEBUG_SDCARD_TIME   //measure how long SD card log write takes            t:
-//#define DEBUG_SERIAL_TIME   //measure how long serial log write takes             t:
-//#define DEBUG_PID_TIME      //measure how long the pid loop takes                 t:
-//#define DEBUG_ANALOG_TIME   //measure how long analog read and processing takes   t:
-//#define DEBUG_DIGITAL_TIME  //measure how long reading from digital sensors takes t:  
-//#define DEBUG_TOUCH_TIME    //measure how long reading and processing touch input t:  125           300
+#ifdef DEBUG                      //enable debugging readouts
+//#define DEBUG_LOOP              //mprint out loop markers and update time                 typ(us)       max(us)
+//#define DEBUG_UPDATE_TIME       //measure how long an update takes                    t:  40000
+//#define DEBUG_DISPLAY_TIME      //measure how long draw screen takes                  t:  10000
+//#define DEBUG_SDCARD_TIME       //measure how long SD card log write takes            t:  30000
+//#define DEBUG_SERIAL_TIME       //measure how long serial log write takes             t:
+//#define DEBUG_PID_TIME          //measure how long the pid loop takes                 t:
+//#define DEBUG_ANALOG_TIME       //measure how long analog read and processing takes   t:
+//#define DEBUG_DIGITAL_TIME      //measure how long reading from digital sensors takes t:  
+//#define DEBUG_TOUCH_TIME        //measure how long reading and processing touch input t:  125           300
 //#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
 //#define DEBUG_EEP_CONTENT
@@ -75,6 +75,8 @@
 //#define DEBUG_SCREEN_RES    //print screen resolution during startup (should be WQVGA: 480 x 272)
 //#define DEBUG_TOUCH_INPUT
 //#define DEBUG_TOUCH_CAL
+
+//#define DEBUG_DISABLE_DIGITAL
 #endif
 
 
@@ -87,9 +89,6 @@
 #include "servos.h"
 #include "flags.h"
 #include "eeprom.h"
-
-
-// sketching out some constants for IO, with future upgradability in mind
 
 //datalogger SD card CS pin
 #define PIN_LOG_SDCARD_CS         10
@@ -171,18 +170,18 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
 // update rates
 
 // screen/log file update
-#define UPDATE_INTERVAL_ms            1000
+#define UPDATE_INTERVAL_ms            500
 #define UPDATE_START_ms               (UPDATE_INTERVAL_ms + 0)      //setting update loops to start slightly offset so they aren't tying to execute at the same time
 
 // digital themocouple update rate
 #define EGT_SAMPLE_INTERVAL_ms        250 //max update rate
 #define EGT_SAMPLES_PER_UPDATE        (UPDATE_INTERVAL_ms/EGT_SAMPLE_INTERVAL_ms)
-#define EGT_UPDATE_START_ms           (EGT_SAMPLE_INTERVAL_ms - 30) //220ms
+#define EGT_UPDATE_START_ms           110
 
 //analog input read rate
 #define ANALOG_SAMPLE_INTERVAL_ms     100   //record analog values this often
 #define ANALOG_SAMPLES_PER_UPDATE     (UPDATE_INTERVAL_ms/ANALOG_SAMPLE_INTERVAL_ms)
-#define ANALOG_UPDATE_START_ms        (ANALOG_SAMPLE_INTERVAL_ms - 20)  //80ms
+#define ANALOG_UPDATE_START_ms        70
 
 //rpm counter params
 #define RPM_TO_MS(rpm)                (60000/(rpm))
@@ -201,29 +200,30 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
 #define RPM_MAX_SET_ms                RPM_TO_MS(RPM_MAX_SET)
 
 #define PID_UPDATE_INTERVAL_ms        50
-#define PID_UPDATE_START_ms           (PID_UPDATE_INTERVAL_ms - 10) //40ms
+#define PID_UPDATE_START_ms           40  
 #define PID_LOOPS_PER_UPDATE          (UPDATE_INTERVAL_ms/PID_UPDATE_INTERVAL_ms)
 
 #define SCREEN_REDRAW_INTERVAL_MIN_ms 100
-#define TOUCH_READ_INTERVAL_ms        50
-#define TOUCH_READ_START_ms           (TOUCH_READ_INTERVAL_ms + 10) //60ms
+#define TOUCH_READ_INTERVAL_ms        100
+#define TOUCH_READ_START_ms           80  
 
 
 /*          event         duration  
- *                      typ.      max.    log sdcard    log serial
- *      U - update
- *      P - pid
- *      T - touch
- *      A - analog
- *      E - egt
+ *                      typ.      max.    log sdcard    log serial                                                      min gap to next, max if different
+ *      U - update                                                      000                                     500     40    80ms till next spi use
+ *      T - touch                                                           080     180     280     380     480         10
+ *      P - pid                                                         040 090 140 190 240 290 340 390 440 490 540     10, 30
+ *      E - egt                                                             110                 360                     10, 30
+ *      A - analog                                                      070     170     270     370     470     570     10
+ 
  *      
- *      10ms per char
- *      
- *      000   020   040   060   080   100   120   140   160   180   200   220   240   260   280   300   320   340   360   380   400   420   440   460   480
- *      U  T        P     T     A  P     T        P     T     A  P     T  E     P     T     A  P     T        P     T     A  P     T        P     T  E  A  P
+ *      1/3ms per char
+ *         010   030   050   070   090   110   130   150   170   190   210   230   250   270   290   310   330   350   370   390   410   430   450   470   490
+ *      000   020   040   060   080   100   120   140   160   180   200   220   240   260   280   300   320   340   360   380   400   420   440   460   480   500
+ *      U           P        A  T  P     E        P        A  T  P              P        A  T  P              P     E  A  T P               P        A  T  P  U
  *                                    
- *      500   520   540   560   580   600   620   640   660   680   700   720   740   760   780   800   820   840   860   880   900   920   940   960   980
- *         T        P     T     A  P     T        P     T     A  P     T  E     P     T     A  P     T        P     T     A  P     T        P     T  E  A  P
+ *      500   520   540   560   580   600   620   640   660   680   700   720   740   760   780   800   820   840   860   880   900   920   940   960   980  1000
+ *      U           P        A  T  P     E        P        A  T  P              P        A  T  P              P     E  A  T  P              P        A  T  P  U
  * 
  */
 
@@ -425,7 +425,6 @@ void setup() {
     GET_STRING(S_CARD_INITIALISED); Serial.println(string);
     flags_status.sdcard_available = true;
 
-    generate_file_name();
   }
 
   screen_draw_flash(firwmare_string, string);
@@ -559,6 +558,9 @@ void process_analog_inputs()
 
 void process_digital_inputs()
 {
+  #ifdef DEBUG_DISABLE_DIGITAL
+  return;
+  #endif
   #ifdef DEBUG_DIGITAL_TIME
   unsigned int timestamp_us = micros();
   #endif
@@ -593,20 +595,27 @@ bool process_update_loop()
   Serial.print(F("upd_stp: "));
   Serial.println(update_step);
   #endif
-  switch(update_step++)
+  switch(update_step)
   {
-    //reset the old record
-    case 0:   reset_record();                                      break;
-    // swap the buffers and finalise averages
-    case 1:   finalise_record();                                   break;
-    // draw the current screen
-    case 2:   update_step -= draw_screen();                        break;
-    // write the current data to sdcard
-    case 3:   if (!write_sdcard_data_record())    {update_step--;} break;
-    // write the current data to serial
-    case 4:   if (!write_serial_data_record())    {update_step--;} break;
     
-    default:  update_step = 0;
+    case 0:   
+      reset_record();
+      finalise_record();
+      update_step -= draw_screen();       //  10032us (basic) 9548us (config) 9528 (pid rpm, in current state)
+      update_step++;
+      break;
+    
+    case 1:   // 160us (disabled) approx 30ms when active. see function for breakdown
+      while(!write_sdcard_data_record()); //sd card write must be completed before giving up the spi bus
+      update_step++;
+      break;
+    
+    case 2:   // 160us (disabled) see function for breakdown when active
+      if (write_serial_data_record()) //serial writes can be split up safely
+      { update_step = 0;  }
+      break; 
+    
+    default:  update_step = 0; break;
   }
   
   #ifdef DEBUG_UPDATE_TIME

@@ -45,7 +45,9 @@ DATA_RECORD Data_Record[2];
 byte Data_Record_write_idx = 0;
 
 #define CURRENT_RECORD    Data_Record[Data_Record_write_idx]
-char output_filename[13] = ""; //8+3 format
+extern char output_filename[13]; //8+3 format
+
+extern File log_data_file; 
 
 
 #endif //__RECORDS_H__

@@ -24,7 +24,7 @@
 const char S_DATE[] PROGMEM = __DATE__;
 const char S_TIME[] PROGMEM = __TIME__;
 const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller";
-const char S_FIRMWARE_VERSION[]  PROGMEM = "v0.3";
+const char S_FIRMWARE_VERSION[]  PROGMEM = "v0.4a";
 const char S_COMMA[] PROGMEM = ", ";
 const char S_COLON[] PROGMEM = ": ";
 const char S_CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or not present.";

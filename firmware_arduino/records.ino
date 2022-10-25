@@ -13,8 +13,8 @@ void generate_file_name()
   static byte file_index = 0;
   char *str_ptr;
   
-  int value;
-  byte nn = file_index;
+  int value;    //date value to be converted to string
+  int count = 0;//count of tries to find non existant filename
 
   // set the file extension
   str_ptr = output_filename + 8;
@@ -37,10 +37,16 @@ void generate_file_name()
     str_ptr = output_filename + 7;
     value = file_index++;  *str_ptr-- = HEX_CHAR(value);  value >>=4;  *str_ptr-- = HEX_CHAR(value);
 
+    count++; // count how many indices we've tried
     //break the loop if the target file doenst exist, or we have run out of indices
-    if (!SD.exists(output_filename) || nn==file_index )
+    if (!SD.exists(output_filename) || count >= 256 )
     {
       do_loop = false;
+    }
+    else
+    {
+      Serial.print(F("File exists: "));
+      Serial.println(output_filename);
     }
   }
   //report the selected filename
@@ -50,23 +56,20 @@ void generate_file_name()
   
   //check that the file can be opened
   File dataFile = SD.open(output_filename, FILE_WRITE);
+  flags_status.file_openable = true;
   if(dataFile)
   {
+    //print the header
     MAKE_STRING(S_RECORD_VER_C);    dataFile.print(S_RECORD_VER_C_str);     dataFile.println(DATA_RECORD_VERSION);
     file_print_date_time(t_now, dataFile);
     dataFile.println();
     dataFile.close();
     
     Serial.println(F("Opened OK"));
-    flags_status.file_openable = true;
-
-    if(nn == 0)
-    {
-      Serial.println(F("Overwriting older file"));
-    }
   }
   else
   {
+    //open failed on first attempt, do not attempt to save to this file
     Serial.println(F("Open FAILED"));
     flags_status.file_openable = false;
   }
@@ -176,17 +179,17 @@ static byte write_data_step = 0;
 
 bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte write_data_step)
 {
-  bool action = true;
+  bool keep_going = true;
   switch(write_data_step)
   {
-    case 0: 
+    case 0: //ser: 712/1128
       {
         MAKE_STRING(S_RECORD_MARKER);       dst.println(S_RECORD_MARKER_str);
         MAKE_STRING(S_RECORD_VER_C);        dst.print(S_RECORD_VER_C_str);      dst.println(DATA_RECORD_VERSION);
         MAKE_STRING(S_TIMESTAMP_C);         dst.print(S_TIMESTAMP_C_str);     dst.println(data_record->timestamp);
       }
       break;
-    case 1: 
+    case 1: //ser: 1440/1916 
       {
         MAKE_STRING(S_MAP_AVG_C);     dst.print(S_MAP_AVG_C_str);     dst.println(data_record->A0_avg);
         MAKE_STRING(S_A1_AVG_C);      dst.print(S_A1_AVG_C_str);      dst.println(data_record->A1_avg);
@@ -195,45 +198,45 @@ bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte wri
         MAKE_STRING(S_ANA_SAMPLES_C); dst.print(S_ANA_SAMPLES_C_str); dst.println(data_record->ANA_no_of_samples);
       }
       break;
-    case 2:
+    case 2: //ser: 1068/1540
         stream_print_int_array(&dst, data_record->A0, data_record->ANA_no_of_samples, S_MAP_C);
         break;
-    case 3:
+    case 3: //ser: 1060/1534
         stream_print_int_array(&dst, data_record->A1, data_record->ANA_no_of_samples, S_A1_C);
         break;
-    case 4:
+    case 4: //ser: 1332/1804
         stream_print_int_array(&dst, data_record->A2, data_record->ANA_no_of_samples, S_A2_C);
         break;
-    case 5:
+    case 5: //ser: 1088/1576
         stream_print_int_array(&dst, data_record->A3, data_record->ANA_no_of_samples, S_A3_C);
         break;
-    case 6:
+    case 6: //ser: 508/936
       {
         MAKE_STRING(S_EGT_AVG_C); dst.print(S_EGT_AVG_C_str);       dst.println(data_record->EGT_avg);
-        MAKE_STRING(S_EGT_SAMPLES_C); dst.print(S_EGT_SAMPLES_C); dst.println(data_record->EGT_no_of_samples);
+        MAKE_STRING(S_EGT_SAMPLES_C); dst.print(S_EGT_SAMPLES_C_str); dst.println(data_record->EGT_no_of_samples);
         break;
       }
-    case 7:
+    case 7: //ser: 588/1008
         stream_print_int_array(&dst, data_record->EGT, data_record->EGT_no_of_samples, S_EGT1_C);
         break;
-    case 8:
+    case 8: //ser: 588/1008
       {
         MAKE_STRING(S_RPM_AVG);             dst.print(S_RPM_AVG_str);          dst.println(data_record->RPM_avg);
         MAKE_STRING(S_RPM_NO_OF_TICKS);     dst.print(S_RPM_NO_OF_TICKS_str);  dst.println(data_record->RPM_no_of_ticks);
         break;
       }
-    case 9:
+    case 9: //ser: 540/964
       {
         stream_print_byte_array(&dst, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES);
         MAKE_STRING(S_RECORD_MARKER);       dst.println(S_RECORD_MARKER_str);
       }
-      break;
     default:
-      action = false;
+      keep_going = false;
+      break;
       
   }
   
-  return action;
+  return keep_going;
 }
 bool write_serial_data_record()
 {
@@ -271,21 +274,28 @@ bool write_serial_data_record()
   return write_data_step == 0;
 }
 
+char output_filename[13] = ""; //8+3 format
+
+/* writes a record to an sd card file 
+ * returns true when complete
+ * if it fails to write it will skip this record, but try again next time
+ * we might be able to optimise here by checking for elapsed time,
+ * and if time has exceeded some threshold, the file will close
+ */
 bool write_sdcard_data_record()
 {
+  File log_data_file;
   
   /* send the data to the SD card, if available */
   if(flags_status.logging_active && flags_config.do_sdcard_write && flags_status.sdcard_available && flags_status.file_openable)
   {
     #ifdef DEBUG_SDCARD_TIME    
     unsigned int timestamp_us = micros();
-    Serial.print(F("sdc_stp: ")); Serial.println(write_data_step);
     #endif
 
     /* data record to read */
     DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;
 
-    static File log_data_file; //costs 35 bytes
     
     /* replace all these serial calls with SD card file calls */
     if(flags_config.do_sdcard_write_hex)
@@ -302,120 +312,29 @@ bool write_sdcard_data_record()
       }
       else
       {
-        flags_status.file_openable = false;
-        Serial.print(F("Open failed writing hex file: "));
+//        flags_status.file_openable = false;
+        Serial.print(F("failed to open: "));
         Serial.println(output_filename);
       }
-      
     }
     else
     {
-      switch(write_data_step)
+      write_data_step = 0;
+      if (!log_data_file) 
       {
-        case 0:
-          if (!log_data_file) 
-          {
-            log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);
-            if (!log_data_file)
-            { 
-              write_data_step = 0; //reset to 0 if unable to open
-              flags_status.file_openable = false;
-              Serial.print(F("Open failed writing txt file: "));
-              Serial.println(output_filename);
-            }
-          }
-        break;
-        case 13:
-          log_data_file.close();
-          write_data_step = 0;
-          break;
-        break;
-        default:
-          if(!write_data_record_to_stream(data_record, log_data_file, write_data_step))
-          {
-            write_data_step = 12;
-          }
+        log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);
       }
-      write_data_step++;
-      /*
-      switch(write_data_step++)
+      if (!log_data_file)
+      { 
+        Serial.print(F("failed to open: "));
+        Serial.println(output_filename);
+      }
+      else
       {
-        case 0:
-          {
-            if (!log_data_file) 
-            {
-              log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);
-              if (!log_data_file)
-              { 
-                write_data_step = 0; //reset to 0 if unable to open
-                flags_status.file_openable = false;
-                Serial.print(F("Open failed writing txt file: "));
-                Serial.println(output_filename);
-              }
-            }
-          } break;
-        case 1:
-          {
-            log_data_file.println(F("----------"));
-            MAKE_STRING(S_TIMESTAMP_C);                 log_data_file.print(S_TIMESTAMP_C_str);      log_data_file.println(data_record->timestamp);
-          } break;
-        case 2:
-          {
-            log_data_file.print(F("MAP_avg: "));       log_data_file.println(data_record->A0_avg);
-            log_data_file.print(F("A1_avg: "));       log_data_file.println(data_record->A1_avg);
-          } break;
-        case 3:
-          {
-            log_data_file.print(F("A2_avg: "));       log_data_file.println(data_record->A2_avg);
-            log_data_file.print(F("A3_avg: "));       log_data_file.println(data_record->A3_avg);
-          } break;
-        case 4:
-          {
-            log_data_file.print(F("ANA samples: "));  log_data_file.println(data_record->ANA_no_of_samples);
-          } break;
-        case 5:
-          {
-            file_print_int_array(&log_data_file, data_record->A0, data_record->ANA_no_of_samples, S_MAP_C);
-          } break;
-        case 6:
-          {
-            file_print_int_array(&log_data_file, data_record->A1, data_record->ANA_no_of_samples, S_A1_C);
-          } break;
-        case 7:
-          {
-            file_print_int_array(&log_data_file, data_record->A2, data_record->ANA_no_of_samples, S_A2_C);
-          } break;
-        case 8:
-          {
-            file_print_int_array(&log_data_file, data_record->A3, data_record->ANA_no_of_samples, S_A3_C);
-          } break;
-        case 9:
-          {
-            log_data_file.print(F("EGT_avg: "));        log_data_file.println(data_record->EGT_avg);
-            log_data_file.print(F("EGT samples: "));  log_data_file.println(data_record->EGT_no_of_samples);
-          } break;
-        case 10:
-          {
-            file_print_int_array(&log_data_file, data_record->EGT, data_record->EGT_no_of_samples, S_EGT1_C);
-          } break;
-        case 11:
-          {
-            MAKE_STRING(S_RPM_AVG);                     log_data_file.print(S_RPM_AVG_str);          log_data_file.println(data_record->RPM_avg);
-            MAKE_STRING(S_RPM_NO_OF_TICKS);             log_data_file.print(S_RPM_NO_OF_TICKS_str);  log_data_file.println(data_record->RPM_no_of_ticks);
-          } break;
-        case 12:
-          {
-            file_print_byte_array(&log_data_file, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES);
-          } break;
-        case 13:
-          {
-            log_data_file.close();
-          }
-        default:
-          write_data_step = 0;
-          break;
-      }*/
-      
+        while (write_data_record_to_stream(data_record, log_data_file, write_data_step++));
+        write_data_step = 0;
+        log_data_file.close();
+      }
     }
 
     #ifdef DEBUG_SDCARD_TIME
@@ -424,6 +343,21 @@ bool write_sdcard_data_record()
     Serial.println(timestamp_us);
     #endif
   }
+  else if(log_data_file)
+  {
+    // close the file if its open, but we're not logging
+    log_data_file.close();
+  }
 
   return write_data_step == 0;
+}
+
+void stop_logging()
+{
+  
+}
+
+void start_logging()
+{
+  
 }

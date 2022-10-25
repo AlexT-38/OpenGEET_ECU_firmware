@@ -20,7 +20,7 @@
 #define GRID_YB(n,N)         (int)((n+1)*GRID_SY(N))
 
 #define SUBPIXEL_BITS    4
-#define SCREEN_BUILD_ID  4
+#define SCREEN_BUILD_ID  5
 
 #define PTSP(px)         (px<<SUBPIXEL_BITS)
 
