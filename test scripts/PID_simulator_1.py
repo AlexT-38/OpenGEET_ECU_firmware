@@ -8,7 +8,7 @@ Created on Mon Oct 24 16:40:03 2022
  
  as in the ECU firmware
 
-@author: Washu
+@author: AT38
 """
 frac_bits = 6
 frac_div = 1<<frac_bits
