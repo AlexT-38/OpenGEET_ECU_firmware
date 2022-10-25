@@ -12,19 +12,61 @@ Control input can then be tied to output power draw.
 
 Hardware will initially be an Arduino Uno with a datalogger sheild. Upgrade to an STM10x or 40x device can be made later if required.
 
+#### Development roadmap:
 
-### v0.3
+### v0.8
 
 **Objectives:**
 
+- Adjust RPM to match generator load
+- Limit power to keep EGT in range
+
+### v0.7
+
+**Objectives:**
+
+- Regenerative braking
+- Regulate based on battery voltage or output current
+
+
+### v0.6
+
+**Objectives:**
+
+- Motorised engine start
+- Start engine UI button
+- Engine states: starting
+
+### v0.5
+
+**Objectives:**
+
+- Control mode: PID control of reactor vacuum via bubbler valve servo
+- Reactor PID parameter control via ui
+- View reactor PID state
+- Reactor state monitoring (starting, in spec, out of spec)
+
+### v0.4
+
+**Objectives:**
+
+- Control mode: PID control of RPM via throttle servo
+- RPM PID parameter control via ui
+- View RPM PID state
+- Engine state monitoring (stopped, running)
+
+### v0.3
+
+**Features:**
+
 - Screen selection via buttons on left side
-- Control modes: direct servo mapping, target rpm -> throttle pid
+- Control mode: direct servo mapping
 - Logging start/stop, hex/text and serial/SDcard UI control
 - Servo calibration
 
 ### v0.2
 
-**New Features:**
+**Features:**
 
 - RPM calculated from sum of tick intervals
 - MAP calibration hard coded from factory specs
