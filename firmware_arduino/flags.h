@@ -51,13 +51,12 @@ typedef struct {
 
 //these are the various modes of operation we might want to use
 typedef enum sys_mode {
-  DIRECT,            //each servo is control by a single analog input
-  PID_RPM_CARB,      //regulate rpm by controlling a single throttle servo, set rpm from a single analog input, regen braking set from A3
-  PID_RPM_GEET_1,    //as above plus control vacuum with second servo
-  PID_RPM_GEET_2,    //as above plus control ratio by exhaust temperature
-  PID_POW_CARB,      //regulate power output through regen braking and rpm control using some scheme to be determined, power demand set by a single analog input
-  PID_POW_GEET,      //as above, but with GEET PID instead of CARB PID
-  SERVO_CAL,         //allows setting the high and low values for each servo
+  MODE_DIRECT,            //each servo is control by a single analog input
+  MODE_PID_RPM_CARB,      //regulate rpm by controlling a single throttle servo, set rpm from a single analog input, regen braking set from A3
+  MODE_PID_RPM_GEET_1,    //as above plus control vacuum with second servo
+  MODE_PID_RPM_GEET_2,    //as above plus control ratio by exhaust temperature
+  MODE_PID_POW_CARB,      //regulate power output through regen braking and rpm control using some scheme to be determined, power demand set by a single analog input
+  MODE_PID_POW_GEET,      //as above, but with GEET PID instead of CARB PID
   NO_OF_SYS_MODES
 }SYS_MODE;
 

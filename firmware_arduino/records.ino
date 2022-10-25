@@ -52,7 +52,7 @@ void generate_file_name()
   File dataFile = SD.open(output_filename, FILE_WRITE);
   if(dataFile)
   {
-    MAKE_STRING(S_RECORD_VER_C);    dataFile.print(S_RECORD_VER_C_str);    dataFile.println(DATA_RECORD_VERSION);
+    MAKE_STRING(S_RECORD_VER_C);    dataFile.print(S_RECORD_VER_C_str);     dataFile.println(DATA_RECORD_VERSION);
     file_print_date_time(t_now, dataFile);
     dataFile.println();
     dataFile.close();
@@ -86,34 +86,10 @@ void hash_data(DATA_STORAGE *data)
   data->hash = hash;
 }
 
-void serial_print_int_array(int *array_data, unsigned int array_size, const char *title)
+void stream_print_int_array(Stream *file, int *array_data, unsigned int array_size, const char *title_pgm)
 {
-  MAKE_STRING(title);
-  Serial.print(title_str);
-  MAKE_STRING(S_COMMA);
-  for(int idx = 0; idx < array_size; idx++)
-  {
-    Serial.print(array_data[idx]);
-    Serial.print(S_COMMA_str);
-  }
-  Serial.println();
-}
-void serial_print_byte_array(byte *array_data, unsigned int array_size, const char *title)
-{
-  MAKE_STRING(title);
-  Serial.print(title_str);
-  MAKE_STRING(S_COMMA);
-  for(int idx = 0; idx < array_size; idx++)
-  {
-    Serial.print(array_data[idx]);
-    Serial.print(S_COMMA_str);
-  }
-  Serial.println();
-}
-void file_print_int_array(File *file, int *array_data, unsigned int array_size, const char *title)
-{
-  MAKE_STRING(title);
-  file->print(title_str);
+  MAKE_STRING(title_pgm);
+  file->print(title_pgm_str);
   MAKE_STRING(S_COMMA);
   for(int idx = 0; idx < array_size; idx++)
   {
@@ -122,10 +98,10 @@ void file_print_int_array(File *file, int *array_data, unsigned int array_size, 
   }
   file->println();
 }
-void file_print_byte_array(File *file, byte *array_data, unsigned int array_size, const char *title)
+void stream_print_byte_array(Stream *file, byte *array_data, unsigned int array_size, const char *title_pgm)
 {
-  MAKE_STRING(title);
-  file->print(title_str);
+  MAKE_STRING(title_pgm);
+  file->print(title_pgm_str);
   MAKE_STRING(S_COMMA);
   for(int idx = 0; idx < array_size; idx++)
   {
@@ -178,6 +154,14 @@ void finalise_record()
   // get the average rpm for this record 
   data_record->RPM_avg = get_rpm(data_record);
 
+  // calculate the average servo demand from the pid
+  if(data_record->PID_no_of_samples > 0)
+  {
+    int rounding = data_record->PID_no_of_samples/2;
+    data_record->PID_SV0_avg + rounding;
+    data_record->PID_SV0_avg /= data_record->PID_no_of_samples;
+  }
+
 
   /* hash the data for hex storage*/
   
@@ -190,7 +174,67 @@ void finalise_record()
 /* writes the current data record to serial port and SD card as required */
 static byte write_data_step = 0;
 
-
+bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte write_data_step)
+{
+  bool action = true;
+  switch(write_data_step)
+  {
+    case 0: 
+      {
+        MAKE_STRING(S_RECORD_MARKER);       dst.println(S_RECORD_MARKER_str);
+        MAKE_STRING(S_RECORD_VER_C);        dst.print(S_RECORD_VER_C_str);      dst.println(DATA_RECORD_VERSION);
+        MAKE_STRING(S_TIMESTAMP_C);         dst.print(S_TIMESTAMP_C_str);     dst.println(data_record->timestamp);
+      }
+      break;
+    case 1: 
+      {
+        MAKE_STRING(S_MAP_AVG_C);     dst.print(S_MAP_AVG_C_str);     dst.println(data_record->A0_avg);
+        MAKE_STRING(S_A1_AVG_C);      dst.print(S_A1_AVG_C_str);      dst.println(data_record->A1_avg);
+        MAKE_STRING(S_A2_AVG_C);      dst.print(S_A2_AVG_C_str);      dst.println(data_record->A2_avg);
+        MAKE_STRING(S_A3_AVG_C);      dst.print(S_A3_AVG_C_str);      dst.println(data_record->A3_avg);
+        MAKE_STRING(S_ANA_SAMPLES_C); dst.print(S_ANA_SAMPLES_C_str); dst.println(data_record->ANA_no_of_samples);
+      }
+      break;
+    case 2:
+        stream_print_int_array(&dst, data_record->A0, data_record->ANA_no_of_samples, S_MAP_C);
+        break;
+    case 3:
+        stream_print_int_array(&dst, data_record->A1, data_record->ANA_no_of_samples, S_A1_C);
+        break;
+    case 4:
+        stream_print_int_array(&dst, data_record->A2, data_record->ANA_no_of_samples, S_A2_C);
+        break;
+    case 5:
+        stream_print_int_array(&dst, data_record->A3, data_record->ANA_no_of_samples, S_A3_C);
+        break;
+    case 6:
+      {
+        MAKE_STRING(S_EGT_AVG_C); dst.print(S_EGT_AVG_C_str);       dst.println(data_record->EGT_avg);
+        MAKE_STRING(S_EGT_SAMPLES_C); dst.print(S_EGT_SAMPLES_C); dst.println(data_record->EGT_no_of_samples);
+        break;
+      }
+    case 7:
+        stream_print_int_array(&dst, data_record->EGT, data_record->EGT_no_of_samples, S_EGT1_C);
+        break;
+    case 8:
+      {
+        MAKE_STRING(S_RPM_AVG);             dst.print(S_RPM_AVG_str);          dst.println(data_record->RPM_avg);
+        MAKE_STRING(S_RPM_NO_OF_TICKS);     dst.print(S_RPM_NO_OF_TICKS_str);  dst.println(data_record->RPM_no_of_ticks);
+        break;
+      }
+    case 9:
+      {
+        stream_print_byte_array(&dst, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES);
+        MAKE_STRING(S_RECORD_MARKER);       dst.println(S_RECORD_MARKER_str);
+      }
+      break;
+    default:
+      action = false;
+      
+  }
+  
+  return action;
+}
 bool write_serial_data_record()
 {
   /* send the data to the serial port */
@@ -213,59 +257,9 @@ bool write_serial_data_record()
     }
     else
     {
-      switch(write_data_step++)
+      if (!write_data_record_to_stream(data_record, Serial, write_data_step++))
       {
-        case 0: 
-          {
-            Serial.println(F("----------"));
-            MAKE_STRING(S_RECORD_VER_C);        Serial.print(S_RECORD_VER_C_str);     Serial.println(DATA_RECORD_VERSION);
-            MAKE_STRING(S_TIMESTAMP_C);         Serial.print(S_TIMESTAMP_C_str);      Serial.println(data_record->timestamp);
-          }
-          break;
-        case 1: 
-          {
-            Serial.print(F("MAP_avg: "));      Serial.println(data_record->A0_avg);
-            Serial.print(F("A1_avg: "));      Serial.println(data_record->A1_avg);
-            Serial.print(F("A2_avg: "));      Serial.println(data_record->A2_avg);
-            Serial.print(F("A3_avg: "));      Serial.println(data_record->A3_avg);
-            Serial.print(F("ANA samples: ")); Serial.println(data_record->ANA_no_of_samples);
-          }
-          break;
-        case 2:
-            serial_print_int_array(data_record->A0, data_record->ANA_no_of_samples, S_MAP_C);
-            break;
-        case 3:
-            serial_print_int_array(data_record->A1, data_record->ANA_no_of_samples, S_A1_C);
-            break;
-        case 4:
-            serial_print_int_array(data_record->A2, data_record->ANA_no_of_samples, S_A2_C);
-            break;
-        case 5:
-            serial_print_int_array(data_record->A3, data_record->ANA_no_of_samples, S_A3_C);
-            break;
-        case 6:
-          {
-            Serial.print(F("EGT_avg:"));       Serial.println(data_record->EGT_avg);
-            Serial.print(F("EGT samples: ")); Serial.println(data_record->EGT_no_of_samples);
-            break;
-          }
-        case 7:
-            serial_print_int_array(data_record->EGT, data_record->EGT_no_of_samples, S_EGT1_C);
-            break;
-        case 8:
-          {
-            MAKE_STRING(S_RPM_AVG);             Serial.print(S_RPM_AVG_str);          Serial.println(data_record->RPM_avg);
-            MAKE_STRING(S_RPM_NO_OF_TICKS);     Serial.print(S_RPM_NO_OF_TICKS_str);  Serial.println(data_record->RPM_no_of_ticks);
-            break;
-          }
-        case 9:
-          {
-            serial_print_byte_array(data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES);
-            Serial.println(F("----------"));
-          }
-        default:
-          write_data_step = 0;
-          break;
+        write_data_step = 0;
       }
     }
     #ifdef DEBUG_SERIAL_TIME
@@ -316,6 +310,34 @@ bool write_sdcard_data_record()
     }
     else
     {
+      switch(write_data_step)
+      {
+        case 0:
+          if (!log_data_file) 
+          {
+            log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);
+            if (!log_data_file)
+            { 
+              write_data_step = 0; //reset to 0 if unable to open
+              flags_status.file_openable = false;
+              Serial.print(F("Open failed writing txt file: "));
+              Serial.println(output_filename);
+            }
+          }
+        break;
+        case 13:
+          log_data_file.close();
+          write_data_step = 0;
+          break;
+        break;
+        default:
+          if(!write_data_record_to_stream(data_record, log_data_file, write_data_step))
+          {
+            write_data_step = 12;
+          }
+      }
+      write_data_step++;
+      /*
       switch(write_data_step++)
       {
         case 0:
@@ -392,7 +414,7 @@ bool write_sdcard_data_record()
         default:
           write_data_step = 0;
           break;
-      }
+      }*/
       
     }
 

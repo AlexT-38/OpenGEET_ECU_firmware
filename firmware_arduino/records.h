@@ -3,7 +3,7 @@
 
 
 /* struct for storing sensor samples over the update period */
-#define DATA_RECORD_VERSION     1
+#define DATA_RECORD_VERSION     2
 
 typedef struct data_record
 {
@@ -22,7 +22,10 @@ typedef struct data_record
   byte EGT_no_of_samples;
   unsigned int RPM_avg;                          //average rpm over this time period, can be caluclated from number of ticks and update rate
   byte RPM_no_of_ticks;                 //so we can use bytes for storage here and have 235RPM as the slowest measurable rpm by tick time.
-  byte RPM_tick_times_ms[MAX_RPM_TICKS_PER_UPDATE];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
+  byte RPM_tick_times_ms[RPM_MAX_TICKS_PER_UPDATE];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
+  unsigned int PID_SV0[PID_LOOPS_PER_UPDATE];
+  unsigned int PID_SV0_avg;
+  byte PID_no_of_samples;
 } DATA_RECORD; //... bytes per record with current settings
 
 /* struct for wrapping around any data */ //this is unneccesarily general

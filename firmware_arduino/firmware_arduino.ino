@@ -17,6 +17,13 @@
  * Upgrade to an STM10x or 40x device can be made later if required.
  */
 
+  /* latest on ram usage:
+   *  adding a PID struct and it's output to the record struct
+   *  has brought free ram down to 443 bytes.
+   *  it may be necessary to increase the update rate to 2 per second
+   *  we might be able to scrape a few bytes using bitfields for the numbers of samples
+   *  
+   */
  /* ram usage has rapidly become an issue
   *  for the SD, SPI, GD2, MAX6675 and Servo libraries, 830 bytes are used
   *  instanciating MAX6675 and GD2 objects uses an additional 101 bytes,
@@ -178,15 +185,24 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
 #define ANALOG_UPDATE_START_ms        (ANALOG_SAMPLE_INTERVAL_ms - 20)  //80ms
 
 //rpm counter params
-#define MAX_RPM                       4500
-#define MIN_RPM_TICK_INTERVAL_ms      (60000/MAX_RPM)
-#define MAX_RPM_TICKS_PER_UPDATE      (UPDATE_INTERVAL_ms/MIN_RPM_TICK_INTERVAL_ms)
-#define MIN_RPM                       1
-#define MAX_RPM_TICK_INTERVAL_ms      (60000/MIN_RPM)
+#define RPM_TO_MS(rpm)                (60000/(rpm))
+#define MS_TO_RPM(ms)                 RPM_TO_MS(ms)   //same formula, included for clarity
 
+#define RPM_MAX                       4500
+#define RPM_MIN_TICK_INTERVAL_ms      RPM_TO_MS(RPM_MAX)
+#define RPM_MAX_TICKS_PER_UPDATE      (UPDATE_INTERVAL_ms/RPM_MIN_TICK_INTERVAL_ms)
+#define RPM_MIN                       1
+#define RPM_MAX_TICK_INTERVAL_ms      RPM_TO_MS(RPM_MIN)
+
+
+#define RPM_MIN_SET                   1500
+#define RPM_MAX_SET                   3600
+#define RPM_MIN_SET_ms                RPM_TO_MS(RPM_MIN_SET)
+#define RPM_MAX_SET_ms                RPM_TO_MS(RPM_MAX_SET)
 
 #define PID_UPDATE_INTERVAL_ms        50
 #define PID_UPDATE_START_ms           (PID_UPDATE_INTERVAL_ms - 10) //40ms
+#define PID_LOOPS_PER_UPDATE          (UPDATE_INTERVAL_ms/PID_UPDATE_INTERVAL_ms)
 
 #define SCREEN_REDRAW_INTERVAL_MIN_ms 100
 #define TOUCH_READ_INTERVAL_ms        50
@@ -219,10 +235,7 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
  *  as ram has been cleaned up, these are now high resolution 
  */
 unsigned int MAP_pressure_abs;
-unsigned int KNOB_value_0;
-unsigned int KNOB_value_1;
-unsigned int KNOB_value_2;
-#define KNOB_RANGE_BITS 10
+unsigned int KNOB_values[3];
 
 
 
@@ -509,9 +522,19 @@ void process_analog_inputs()
   Serial.println();
   #endif
 
-  KNOB_value_0 = a1;
-  KNOB_value_1 = a2;
-  KNOB_value_2 = a3;
+  KNOB_values[0] = a1;
+  KNOB_values[1] = a2;
+  KNOB_values[2] = a3;
+
+  // change what is logged depending on operating mode
+  switch(sys_mode)
+  {
+    default:
+      break;
+    case MODE_PID_RPM_CARB:
+      a1 = amap(a1, RPM_MIN_SET_ms, RPM_MAX_SET_ms); //converting to rpm is costly, so we convert during record update, and only the average
+      break;
+  }
   
   //log the analog values, if there's space in the current record
   if (CURRENT_RECORD.ANA_no_of_samples < ANALOG_SAMPLES_PER_UPDATE)

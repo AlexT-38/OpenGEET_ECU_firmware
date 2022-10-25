@@ -8,8 +8,8 @@ typedef void(*SCREEN_DRAW_FUNC)(void);
 
 
 /* pointer to the func to use to draw the screen */
-const SCREEN_DRAW_FUNC draw_screen_funcs[NO_OF_SCREENS] = {screen_draw_basic, NULL, NULL, NULL, screen_draw_config};
-const char * const screen_labels[NO_OF_SCREENS] PROGMEM = {S_BASIC, S_NONE,S_NONE,S_NONE, S_CONFIG};
+const SCREEN_DRAW_FUNC draw_screen_funcs[NO_OF_SCREENS] = {screen_draw_basic, screen_draw_pid_rpm, NULL, NULL, screen_draw_config};
+const char * const screen_labels[NO_OF_SCREENS] PROGMEM = {S_BASIC, S_PID_RPM, S_NONE,S_NONE, S_CONFIG};
 
 
 SCREEN_EN current_screen = SCREEN_1;
@@ -33,7 +33,7 @@ SCREEN_EN current_screen = SCREEN_1;
  * or some nested logic
  */
 typedef byte(*SCREEN_TAG_FUNC)(void);
-const SCREEN_TAG_FUNC screen_tag_funcs[NO_OF_SCREENS] = {screen_basic_tags, NULL, NULL, NULL, screen_config_tags};
+const SCREEN_TAG_FUNC screen_tag_funcs[NO_OF_SCREENS] = {screen_basic_tags, screen_pid_rpm_tags, NULL, NULL, screen_config_tags};
 
 byte fetch_tag()
 {
@@ -183,9 +183,9 @@ void read_touch()
       case TAG_SCREEN_1:
         if(touch_event == TOUCH_OFF)  current_screen = SCREEN_1;
         break;
-//      case TAG_SCREEN_2:
-//        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_2;
-//        break;
+      case TAG_SCREEN_2:
+        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_2;
+        break;
 //      case TAG_SCREEN_3:
 //        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_3;
 //        break;
@@ -268,6 +268,18 @@ void read_touch()
         break;
       case TAG_LOG_TOGGLE_SERIAL_HEX:
         if(touch_event == TOUCH_ON) { flags_config.do_serial_write_hex ^=1; }
+        break;
+      case TAG_MODE_SET_PID_RPM:
+        if(touch_event == TOUCH_ON) {
+          if (sys_mode == MODE_PID_RPM_CARB)
+          {
+            sys_mode = MODE_DIRECT;
+          }
+          else
+          {
+            sys_mode = MODE_PID_RPM_CARB; //we need some sort of 'change mode' function to take care of intialisation
+          }
+        }
         break;
       case TAG_ENGINE_START:
         break;

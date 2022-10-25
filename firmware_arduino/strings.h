@@ -26,6 +26,7 @@ const char S_TIME[] PROGMEM = __TIME__;
 const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller";
 const char S_FIRMWARE_VERSION[]  PROGMEM = "v0.3";
 const char S_COMMA[] PROGMEM = ", ";
+const char S_COLON[] PROGMEM = ": ";
 const char S_CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or not present.";
 const char S_CARD_INITIALISED[] PROGMEM = "SD Card initialised.";
 const char S_RECORD_VER_C[] PROGMEM = "Record Ver.: ";
@@ -40,6 +41,15 @@ const char S_RPM_NO_OF_TICKS[] PROGMEM = "RPM no of ticks: ";
 const char S_RPM_TICK_TIMES[] PROGMEM = "RPM tick times (ms): ";
 const char S_OUTPUT_FILE_NAME_C[] PROGMEM = "Output File Name: ";
 
+const char S_MAP_AVG_C[] PROGMEM = "MAP avg: ";
+const char S_A1_AVG_C[] PROGMEM = "A1 avg: ";
+const char S_A2_AVG_C[] PROGMEM = "A2 avg: ";
+const char S_A3_AVG_C[] PROGMEM = "A3 avg: ";
+const char S_ANA_SAMPLES_C[] PROGMEM = "ANA samples: ";
+
+const char S_EGT_AVG_C[] PROGMEM = "EGT avg: ";
+const char S_EGT_SAMPLES_C[] PROGMEM = "EGT samples: ";
+
 const char S_DOT_TXT[] PROGMEM = ".txt";
 const char S_DOT_RAW[] PROGMEM = ".raw";
 
@@ -50,6 +60,17 @@ const char S_INPUT_1[] PROGMEM = "Input 1";
 const char S_INPUT_2[] PROGMEM = "Input 2";
 const char S_INPUT_3[] PROGMEM = "Input 3";
 const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
+
+const char S_PID_SV0[] PROGMEM = "PID SV0";
+const char S_PID_SV0_C[] PROGMEM = "PID SV0: ";
+const char S_PID_SV0_AVG_C[] PROGMEM = "PID SV0 avg: ";
+const char S_PID_SAMPLES_C[] PROGMEM = "PID samples: ";
+
+const char S_ACTIVE[] PROGMEM = "ACTIVE";
+
+
+const char S_RECORD_MARKER[] PROGMEM = "----------";
+
 
 const char S_REC[] PROGMEM = "REC";
 const char S_SERIAL[] PROGMEM = "Serial";
@@ -63,7 +84,7 @@ const char S_SAVE[] PROGMEM = "SAVE";
 const char S_LOAD[] PROGMEM = "LOAD";
 
 const char S_BASIC[] PROGMEM = "Basic";
-const char S_PID_1[] PROGMEM = "PID 1";
+const char S_PID_RPM[] PROGMEM = "PID RPM";
 const char S_PID_2[] PROGMEM = "PID 2";
 const char S_CONFIG[] PROGMEM = "Config";
 const char S_NONE[] PROGMEM = "None";

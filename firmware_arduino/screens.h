@@ -98,7 +98,7 @@ typedef enum tags
   TAG_EEPROM_SAVE,
   TAG_EEPROM_LOAD,
 
-  
+  TAG_MODE_SET_PID_RPM,
 
   TAG_ENGINE_START,
   TAG_ENGINE_STOP,

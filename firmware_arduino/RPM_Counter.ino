@@ -77,7 +77,7 @@ void rpm_clip_time()
 {
     unsigned int timenow_ms = millis();
     unsigned int elapsed_time = timenow_ms - rpm_last_tick_time_ms;
-    if(elapsed_time > MAX_RPM_TICK_INTERVAL_ms) elapsed_time = timenow_ms - (elapsed_time>>1);
+    if(elapsed_time > RPM_MAX_TICK_INTERVAL_ms) elapsed_time = timenow_ms - (elapsed_time>>1);
 }
 
 /* gives a time in ms for the given rpm */
@@ -94,7 +94,7 @@ unsigned long get_rpm_time_us(unsigned int rpm)
 /* ISR for rpm counter input */
 void rpm_count(void)
 {
-  if (CURRENT_RECORD.RPM_no_of_ticks < MAX_RPM_TICKS_PER_UPDATE)
+  if (CURRENT_RECORD.RPM_no_of_ticks < RPM_MAX_TICKS_PER_UPDATE)
   {
     /* get time now and time elapsed since last tick */
     unsigned int timenow_ms = millis();
@@ -103,9 +103,9 @@ void rpm_count(void)
     rpm_last_tick_time_ms = timenow_ms;
 
     /* only count ticks if last tick time was not zero or elapsed time is reasonable */
-    if (/*rpm_last_tick_time_ms != 0 || */(elapsed_time > MIN_RPM_TICK_INTERVAL_ms))
+    if (/*rpm_last_tick_time_ms != 0 || */(elapsed_time > RPM_MIN_TICK_INTERVAL_ms))
     {
-      if(elapsed_time > MAX_RPM_TICK_INTERVAL_ms) elapsed_time = MAX_RPM_TICK_INTERVAL_ms;
+      if(elapsed_time > RPM_MAX_TICK_INTERVAL_ms) elapsed_time = RPM_MAX_TICK_INTERVAL_ms;
       
       /* increment total time for final average */
       CURRENT_RECORD.RPM_avg += elapsed_time;
