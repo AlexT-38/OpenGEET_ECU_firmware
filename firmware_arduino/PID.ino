@@ -25,7 +25,7 @@ typedef struct pid
   int p, i, d;
 }PID;
                   // pid will track tick time instead of rpm, to avoid costly division ops
-PID RPM_control;  // quantisation from the low resolution may cause problems with the loop, 
+PID RPM_control = {0,PID_FL_TO_FP(10),PID_FL_TO_FP(0.5), 0};  // quantisation from the low resolution may cause problems with the loop, 
 PID VAC_control;  // in which case we'd have to keep a 2x or 4x averaged version, or use units of 100us instead of ms
                   // the greatest problem is at the high end of rpm range where 1ms represents a larger change in RPM
                   // at these speeds, there are at least 2 ticks per pid update, so averaging the last two would not
@@ -34,6 +34,8 @@ PID VAC_control;  // in which case we'd have to keep a 2x or 4x averaged version
 void configure_PID()
 {
   RPM_control.target = rpm_last_tick_time_ms;
+  RPM_control.p = 0;
+  RPM_control.i = 0;
 }
 
 unsigned int update_PID(struct pid *pid, int feedback)
@@ -68,19 +70,25 @@ unsigned int update_PID(struct pid *pid, int feedback)
   #ifdef DEBUG_PID
   MAKE_STRING(S_COMMA);
   
-  Serial.print(F("PID c,t,e,p,i,d,o: "));
-  Serial.print(feedback);
-  Serial.print(S_COMMA);
+  Serial.print(F("PID kp, ki, kd:   "));
+  Serial.print(pid->kp);
+  Serial.print(S_COMMA_str);
+  Serial.print(pid->ki);
+  Serial.print(S_COMMA_str);
+  Serial.print(pid->kd);
+  Serial.println();
+
+  Serial.print(F("PID t, e, p, i, d, o: "));
   Serial.print(pid->target);
-  Serial.print(S_COMMA);
+  Serial.print(S_COMMA_str);
   Serial.print(err);
-  Serial.print(S_COMMA);
+  Serial.print(S_COMMA_str);
   Serial.print(p);
-  Serial.print(S_COMMA);
+  Serial.print(S_COMMA_str);
   Serial.print(i);
-  Serial.print(S_COMMA);
+  Serial.print(S_COMMA_str);
   Serial.print(d);
-  Serial.print(S_COMMA);
+  Serial.print(S_COMMA_str);
   Serial.print(result);
   Serial.println();
   #endif
@@ -149,8 +157,11 @@ void process_pid_loop()
 // odd, I've futher optimised map but performance is still 52us?
 // after debugging, is now 72-76us
   #ifdef DEBUG_PID_TIME
-  timestamp_us = micros() - timestamp_us;
-  Serial.print(F("t_pid us: "));
-  Serial.println(timestamp_us);
+//  if(sys_mode != MODE_DIRECT)
+//  {
+    timestamp_us = micros() - timestamp_us;
+    Serial.print(F("t_pid us: "));
+    Serial.println(timestamp_us);
+//  }
   #endif
 }

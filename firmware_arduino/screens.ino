@@ -277,6 +277,10 @@ void read_touch()
           }
           else
           {
+            if(sys_mode == MODE_DIRECT)
+            {
+              configure_PID();
+            }
             sys_mode = MODE_PID_RPM_CARB; //we need some sort of 'change mode' function to take care of intialisation
           }
         }

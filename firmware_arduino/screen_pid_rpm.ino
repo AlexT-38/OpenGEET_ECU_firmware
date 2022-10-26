@@ -32,8 +32,15 @@ void screen_draw_pid_rpm()
   // Mid right column
   gy = 0;
   gx--;
-  
-  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->A1_avg, S_TARGET);
+
+  if(sys_mode!=MODE_DIRECT)
+  {
+    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, MS_TO_RPM(data_record->A1_avg), S_TARGET);
+  }
+  else
+  {
+    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->A1_avg, S_INPUT_1);
+  }  
   draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->PID_SV0_avg, S_OUTPUT);
   
   MAKE_STRING(S_ACTIVE);
