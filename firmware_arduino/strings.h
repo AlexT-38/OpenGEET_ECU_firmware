@@ -61,6 +61,9 @@ const char S_INPUT_2[] PROGMEM = "Input 2";
 const char S_INPUT_3[] PROGMEM = "Input 3";
 const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
 
+const char S_TARGET[] PROGMEM = "Target";
+const char S_OUTPUT[] PROGMEM = "Output";
+
 const char S_PID_SV0[] PROGMEM = "PID SV0";
 const char S_PID_SV0_C[] PROGMEM = "PID SV0: ";
 const char S_PID_SV0_AVG_C[] PROGMEM = "PID SV0 avg: ";
