@@ -1,6 +1,8 @@
 #ifndef __SCREENS_H__
 #define __SCREENS_H__
 
+#define SCREEN_BUILD_ID  6
+
 //#define TRACKERS_ENABLED
 #define TAG_BYPASS        //set true if tags wont read
 
@@ -20,7 +22,7 @@
 #define GRID_YB(n,N)         (int)((n+1)*GRID_SY(N))
 
 #define SUBPIXEL_BITS    4
-#define SCREEN_BUILD_ID  5
+
 
 #define PTSP(px)         (px<<SUBPIXEL_BITS)
 
@@ -30,6 +32,8 @@
 #define C_BKG_FAULT      RGB(0x40,0x20,0x00)
 
 #define C_BKG_NORMAL     RGB(0x00,0x00,0x00)
+
+#define C_SLIDER_VERT     RGB(0x00,0x00,0x00)
 
 #define C_LABEL          RGB(0xC0,0xD0,0xD0)
 #define C_VALUE          RGB(0xFF,0xFF,0xD0)
@@ -99,6 +103,10 @@ typedef enum tags
   TAG_EEPROM_LOAD,
 
   TAG_MODE_SET_PID_RPM,
+
+  TAG_CAL_PID_RPM_P,
+  TAG_CAL_PID_RPM_I,
+  TAG_CAL_PID_RPM_D,
 
   TAG_ENGINE_START,
   TAG_ENGINE_STOP,

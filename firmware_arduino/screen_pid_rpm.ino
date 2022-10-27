@@ -10,6 +10,21 @@
 #endif
 #define YN 4
 
+#define PID_SLIDER_Y0           0
+#define PID_SLIDER_X0           GRID_XL(1,6)
+#define PID_SLIDER_SX           (GRID_SX(9))
+#define PID_SLIDER_LABEL_SY     GRID_SY(6)
+#define PID_SLIDER_RANGE_SY     (GRID_SY(6)*4)
+#define PID_SLIDER_SY           (PID_SLIDER_RANGE_SY + PID_SLIDER_LABEL_SY)
+
+
+void pid_set_parameter(int *param)
+{
+  int out_max = pid_convert_k_to_px(PID_FP_MAX);
+  int in_y = get_slider_value_vert(PID_SLIDER_LABEL_SY, PID_SLIDER_SY , out_max, 0);
+  *param = pid_convert_px_to_k(in_y);
+}
+
 
 void screen_draw_pid_rpm()
 {
@@ -24,7 +39,18 @@ void screen_draw_pid_rpm()
   // Right hand column
   gx = XN-1;
   gy = 0;
-  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->RPM_avg, S_RPM);
+  #ifdef  DEBUG_PID_FEEDBACK
+  if(sys_mode!=MODE_DIRECT)
+  {
+    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, MS_TO_RPM(DEBUG_PID_FEEDBACK_VALUE), S_RPM);
+  }
+  else
+  #endif
+  {
+    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->RPM_avg, S_RPM);
+  }
+  
+  
   draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->A0_avg, S_MAP_MBAR);
   draw_readout_fixed(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->EGT_avg, 2,0, S_EGT1_DEGC);
   draw_datetime(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX );
@@ -48,10 +74,27 @@ void screen_draw_pid_rpm()
   
   draw_log_toggle_button(GRID_XL(XN-2,XN),GRID_YT(YN-1,YN),GRID_SX(XN),GRID_SY(YN));
 
+
+  char string[] = {'P',0};
+
+  
+
+  int slider_max = pid_convert_k_to_px(PID_FP_MAX);
+  int slider_val = slider_max - pid_convert_k_to_px(RPM_control.kp);
+  draw_slider_vert(PID_SLIDER_X0,                   PID_SLIDER_Y0, PID_SLIDER_SX, PID_SLIDER_SY, PID_SLIDER_LABEL_SY, string, TAG_CAL_PID_RPM_P, slider_val, slider_max);
+
+  string[0] = 'I';
+  slider_val = slider_max - pid_convert_k_to_px(RPM_control.ki);
+  draw_slider_vert(PID_SLIDER_X0+PID_SLIDER_SX,     PID_SLIDER_Y0, PID_SLIDER_SX, PID_SLIDER_SY, PID_SLIDER_LABEL_SY, string, TAG_CAL_PID_RPM_I, slider_val, slider_max);
+
+  string[0] = 'D';
+  slider_val = slider_max - pid_convert_k_to_px(RPM_control.kd);
+  draw_slider_vert(PID_SLIDER_X0+(PID_SLIDER_SX*2), PID_SLIDER_Y0, PID_SLIDER_SX, PID_SLIDER_SY, PID_SLIDER_LABEL_SY, string, TAG_CAL_PID_RPM_D, slider_val, slider_max);
 }
 
 /* work around for tag always zero issue*/
 #ifdef TAG_BYPASS
+
 
 byte screen_pid_rpm_tags()
 {
@@ -64,6 +107,21 @@ byte screen_pid_rpm_tags()
   else
   {
     //pid tuning controls
+    if(is_touching_inside(PID_SLIDER_X0, PID_SLIDER_Y0, PID_SLIDER_SX*3, PID_SLIDER_SY))
+    {
+      if(GD.inputs.xytouch.x > (PID_SLIDER_X0+(PID_SLIDER_SX*2)))
+      {
+        tag = TAG_CAL_PID_RPM_D;
+      }
+      else if(GD.inputs.xytouch.x > (PID_SLIDER_X0+PID_SLIDER_SX))
+      {
+        tag = TAG_CAL_PID_RPM_I;
+      }
+      else
+      {
+        tag = TAG_CAL_PID_RPM_P;
+      }
+    }
   }
   
   return tag;

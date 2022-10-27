@@ -6,26 +6,15 @@
  *
  *
  */
-//#define DEBUG_PID
+#define DEBUG_PID
+#define DEBUG_PID_FEEDBACK
+#define DEBUG_PID_FEEDBACK_VALUE  RPM_TO_MS((RPM_MIN_SET + RPM_MAX_SET)>>1)
 
-#define PID_FP_FRAC_BITS        6     //use 10.6 fixed point integers for pid calculations
-#define PID_FP_WHOLE_BITS       10
-#define PID_FP_ONE              (1<<PID_FP_FRAC_BITS)
-#define PID_FP_WHOLE_MAX        ((1<<PID_FP_WHOLE_BITS)-1)
-#define PID_FP_FRAC_MAX         (PID_FP_ONE-1)
 
-#define PID_OUTPUT_MAX          PID_FP_WHOLE_MAX
-
-#define PID_FL_TO_FP(f_val)      ((int)(f_val*PID_FP_ONE))
-
-typedef struct pid
-{
-  int target;
-  int kp, ki, kd;
-  int p, i, d;
-}PID;
+                 //target,  kp,                ki,                kd,  p,  i, d, invert                                                  
+PID RPM_control = {0,       PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0,  0,  0, 0, 1};  
                   // pid will track tick time instead of rpm, to avoid costly division ops
-PID RPM_control = {0,PID_FL_TO_FP(10),PID_FL_TO_FP(0.5), 0};  // quantisation from the low resolution may cause problems with the loop, 
+                  // quantisation from the low resolution may cause problems with the loop, 
 PID VAC_control;  // in which case we'd have to keep a 2x or 4x averaged version, or use units of 100us instead of ms
                   // the greatest problem is at the high end of rpm range where 1ms represents a larger change in RPM
                   // at these speeds, there are at least 2 ticks per pid update, so averaging the last two would not
@@ -40,13 +29,27 @@ void configure_PID()
 
 unsigned int update_PID(struct pid *pid, int feedback)
 {
+#ifdef  DEBUG_PID_FEEDBACK
+  feedback = DEBUG_PID_FEEDBACK_VALUE;
+#endif
   
   int result = 0;
   int err = pid->target - feedback;
+  byte do_integrate = ((err > 0) && (pid->i < (PID_FP_MAX-err))) || ((err < 0) && (pid->i > -(PID_FP_MAX+err)));
 
   pid->d = err - pid->p;
   pid->p = err;
-  pid->i += err;
+  //prevent pid->i from overflowing
+  if( do_integrate ) 
+  {
+    pid->i += err;
+  }
+  #ifdef DEBUG_PID
+  else 
+  {
+    Serial.println(F("integral overflow"));
+  }
+  #endif
 
   //calculate demand
   long p = (long)pid->p * pid->kp;
@@ -55,17 +58,26 @@ unsigned int update_PID(struct pid *pid, int feedback)
   long calc =  p+i+d;
   
   //convert fp to int
-  result = (int) (calc>>PID_FP_FRAC_BITS);
+  int raw_out = (int) (calc>>PID_FP_FRAC_BITS);
+  if(pid->invert) raw_out = -raw_out;
+  result = PID_OUTPUT_CENTRE + raw_out;
+  
   // clamp to range and prevent integral from running away
-  if (result < 0)
+  if (result < PID_OUTPUT_MIN)
   {
     result = 0;
-    pid->i -= err; //revert integral to previos value to prevent runaway
+    if((err < 0) != (pid->invert!=0) ) 
+    {
+      pid->i -= err; //revert integral to previous value to prevent runaway, if ki*err is contributing to overflow
+    }
   }
   else if (result > PID_OUTPUT_MAX)
   {
     result = PID_OUTPUT_MAX;
-    pid->i -= err;
+    if((err > 0) != (pid->invert!=0) ) 
+    {
+      pid->i -= err;
+    }
   }
   #ifdef DEBUG_PID
   MAKE_STRING(S_COMMA);
@@ -78,8 +90,10 @@ unsigned int update_PID(struct pid *pid, int feedback)
   Serial.print(pid->kd);
   Serial.println();
 
-  Serial.print(F("PID t, e, p, i, d, o: "));
+  Serial.print(F("PID t, e, p, i, d, raw, out: "));
   Serial.print(pid->target);
+  Serial.print(S_COMMA_str);
+  Serial.print(feedback);
   Serial.print(S_COMMA_str);
   Serial.print(err);
   Serial.print(S_COMMA_str);
@@ -89,12 +103,35 @@ unsigned int update_PID(struct pid *pid, int feedback)
   Serial.print(S_COMMA_str);
   Serial.print(d);
   Serial.print(S_COMMA_str);
+  Serial.print(raw_out);
+  Serial.print(S_COMMA_str);
   Serial.print(result);
   Serial.println();
   #endif
   
   return result;
 }
+
+/* make editing pid values with sliders easier by converting to/from log space
+ *  use k to px to convert pid parameters to screen slider space
+ *  use px to k to convert screen slider values to pid parameter space
+ */
+ /* to do, if needed */
+int pid_convert_k_to_px(int val_lin)
+{
+  int val_log = val_lin;
+
+  return val_log;
+}
+
+int pid_convert_px_to_k(int val_log)
+{
+  int val_lin = val_log;
+
+  return val_lin;
+}
+
+
 
 void process_pid_loop()
 {

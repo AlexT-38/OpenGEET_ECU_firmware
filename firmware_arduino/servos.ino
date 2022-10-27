@@ -7,15 +7,15 @@ SV_CAL servo_cal[NO_OF_SERVOS];
 #undef XN
 #endif
 #define XN 5
-
+#define PX 2
 
 void set_servo_min(byte sv)
 {
-  servo_cal[sv].lower = get_slider_value();
+  servo_cal[sv].lower = get_slider_value_horz(GRID_XL(PX,XN), SCREEN_W, SERVO_MIN, SERVO_MAX);
 }
 void set_servo_max(byte sv)
 {
-  servo_cal[sv].upper = get_slider_value();
+  servo_cal[sv].upper = get_slider_value_horz(GRID_XL(PX,XN), SCREEN_W, SERVO_MIN, SERVO_MAX);
 }
 void initialise_servos()
 {

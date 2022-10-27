@@ -1,8 +1,14 @@
 /* screen resolution is WXVGA, 480,272 
  *   so we can use Vertex2II exclusively 
  */
+ 
+//#define DEBUG_SCREENS_DRAW_SLIDER_HORZ
+//#define DEBUG_SLIDER_VALUE_HORZ
+#define SLIDER_HEIGHT 8
 
-
+//#define DEBUG_SCREENS_DRAW_SLIDER_VERT
+//#define DEBUG_SLIDER_VALUE_VERT
+#define SLIDER_WIDTH 8
 
 typedef void(*SCREEN_DRAW_FUNC)(void);
 
@@ -285,6 +291,27 @@ void read_touch()
           }
         }
         break;
+      case TAG_CAL_PID_RPM_P:
+        if(touch_event != TOUCH_OFF)
+        {
+          pid_set_parameter(&RPM_control.kp);
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_CAL_PID_RPM_I:
+        if(touch_event != TOUCH_OFF)
+        {
+          pid_set_parameter(&RPM_control.ki);
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_CAL_PID_RPM_D:
+        if(touch_event != TOUCH_OFF)
+        {
+          pid_set_parameter(&RPM_control.kd);
+          flags_status.redraw_pending = true;
+        }
+        break;
       case TAG_ENGINE_START:
         break;
       case TAG_ENGINE_STOP:
@@ -492,9 +519,7 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   GD.cmd_text(pos_x+dx, pos_y-8, font_size, opts, str_ptr);
 }
 
-//#define DEBUG_SCREENS_DRAW_SLIDER
-#define SLIDER_HEIGHT 8
-//todo: make slider gemotery fixed. only the y pos, label and value/max should be passed
+
 void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *label_str, byte tag, int value, int val_max)
 {
   int x2 = x + (BORDER<<1);
@@ -506,7 +531,7 @@ void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *
   GD.ColorA(A_BKG_WINDOW);
   GD.ColorRGB(C_BKG_NORMAL);
   draw_box(x,y,sx,sy,BOX_WIDTH, 0);
-#ifdef DEBUG_SCREENS_DRAW_SLIDER
+#ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
   MAKE_STRING(S_COMMA);
   Serial.print(F("draw slider box: "));
 //  Serial.print(x);
@@ -521,7 +546,7 @@ void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *
   GD.ColorA(A_OPAQUE);
   GD.ColorRGB(C_LABEL);
   GD.cmd_text(x2, y2, 26, OPT_CENTERY, label_str);
-#ifdef DEBUG_SCREENS_DRAW_SLIDER
+#ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
   Serial.print(F("draw slider text: "));
 //  Serial.print(x2);
 //  Serial.print(S_COMMA_str);
@@ -531,7 +556,7 @@ void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *
 #endif
   x2 = x + label_size;
   y2 -= SLIDER_HEIGHT>>1;
-#ifdef DEBUG_SCREENS_DRAW_SLIDER
+#ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
   Serial.print(F("draw slider widget: "));
   Serial.print(x2);
   Serial.print(S_COMMA_str);
@@ -547,26 +572,113 @@ void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *
   GD.Tag(TAG_INVALID);
 }
 
-#define DEBUG_SLIDER_VALUE
-#define PX 2
-//set servo min and max based on x coordinate, assuming slider is from 3/5->5/5
-int get_slider_value()
+
+
+/* map touch coord to value over a given range */
+int get_slider_value_horz(int x_min, int x_max, int out_min, int out_max)
 {
+
+  x_min += SLIDER_HEIGHT+BORDER;
+  x_max -= SLIDER_HEIGHT+BORDER;
   //clamp the x coordinate to the active range
-  int x_coord = constrain(GD.inputs.xytouch.x,GRID_XL(PX,XN),(SCREEN_W-(BORDER<<1)-SLIDER_HEIGHT));
+  int x_coord = constrain(GD.inputs.xytouch.x,x_min,x_max);
   //map the active range to servo range
-  int x_val = map(GD.inputs.xytouch.x, GRID_XL(PX,XN), SCREEN_W-(BORDER<<1)-SLIDER_HEIGHT, SERVO_MIN, SERVO_MAX);
-  #ifdef DEBUG_SLIDER_VALUE
-  Serial.print(F("slider: "));
-  Serial.print(GD.inputs.xytouch.x);
+  int x_val = map(x_coord, x_min, x_max, out_min, out_max);
+  #ifdef DEBUG_SLIDER_VALUE_HORZ
+  Serial.print(F("slider horz: "));
+  Serial.print(x_coord);
   Serial.print(F(" ("));
-  Serial.print(GRID_XL(PX,XN));
+  Serial.print(x_min);
   Serial.print(F(", "));
-  Serial.print(SCREEN_W);
+  Serial.print(x_max);
   Serial.print(F(") -> "));
   Serial.println(x_val);
   #endif
   return x_val;
+}
+
+void draw_slider_vert(int x, int y, int sx, int sy, int label_size, const char *label_str, byte tag, int value, int val_max)
+{
+  int y2 = y + label_size/2;
+  int sy2 = sy - (label_size + (BORDER<<1) + SLIDER_WIDTH);
+  int x2 = x + (sx>>1);
+  int opt = (tag==GD.inputs.tag)? OPT_FLAT:0;
+  
+  GD.Tag(tag);
+  GD.ColorA(A_BKG_WINDOW);
+  GD.ColorRGB(C_BKG_NORMAL);
+  draw_box(x,y,sx,sy,BOX_WIDTH, 0);
+#ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
+  MAKE_STRING(S_COMMA);
+  Serial.print(F("draw slider box: "));
+  Serial.print(x);
+  Serial.print(S_COMMA_str);
+  Serial.print(y);
+  Serial.print(S_COMMA_str);
+  Serial.print(sx);
+  Serial.print(S_COMMA_str);
+  Serial.print(sy);
+  Serial.println();
+#endif
+  GD.ColorA(A_OPAQUE);
+  GD.ColorRGB(C_LABEL);
+  GD.cmd_text(x2, y2, 26, OPT_CENTER, label_str);
+#ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
+  Serial.print(F("draw slider text: "));
+  Serial.print(x2);
+  Serial.print(S_COMMA_str);
+  Serial.print(y2);
+  Serial.print(S_COMMA_str);
+  Serial.println();
+#endif
+  y2 = y + label_size;
+  x2 -= SLIDER_WIDTH>>1;
+#ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
+  Serial.print(F("draw slider widget: "));
+  Serial.print(x2);
+  Serial.print(S_COMMA_str);
+  Serial.print(y2);
+  Serial.print(S_COMMA_str);
+  Serial.print(sy2);
+  Serial.print(S_COMMA_str);
+  Serial.println(label_size);
+  Serial.println();
+#endif
+  GD.ColorRGB(C_SLIDER_VERT);
+  GD.cmd_slider(x2,y2,SLIDER_WIDTH,sy2,opt,value,val_max);
+  GD.Tag(TAG_INVALID);
+}
+
+
+
+//set servo min and max based on x coordinate, assuming slider is from 3/5->5/5
+int get_slider_value_vert(int y_min, int y_max, int out_min, int out_max)
+{
+
+  y_min += SLIDER_WIDTH+BORDER;
+  y_max -= SLIDER_WIDTH+BORDER;
+  //clamp the x coordinate to the active range
+  int y_coord = constrain(GD.inputs.xytouch.y, y_min, y_max);
+  //map the active range to servo range
+  int y_val = map(y_coord, y_min, y_max, out_min, out_max);
+  #ifdef DEBUG_SLIDER_VALUE_VERT
+  MAKE_STRING(S_COMMA);
+  Serial.print(F("slider: "));
+  Serial.print(GD.inputs.xytouch.y);
+  Serial.print(S_COMMA_str);
+  Serial.print(y_coord);
+  Serial.print(F(" ("));
+  Serial.print(y_min);
+  Serial.print(S_COMMA_str);
+  Serial.print(y_max);
+  Serial.print(F(") -> ("));
+  Serial.print(out_min);
+  Serial.print(S_COMMA_str);
+  Serial.print(out_max);
+  Serial.print(F(") "));
+  Serial.println(y_val);
+  #endif
+  return y_val;
 }
 
 void draw_button(int x, int y, byte sx, byte sy, byte tag, const char * string)
