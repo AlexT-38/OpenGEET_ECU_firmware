@@ -40,7 +40,6 @@ void screen_draw_config()
   READ_STRING(S_SV1_MAX, strings[3]);
   READ_STRING(S_SV2_MIN, strings[4]);
   READ_STRING(S_SV2_MAX, strings[5]);
-  MAKE_STRING(S_COMMA);
   int val;
 
   
@@ -51,13 +50,13 @@ void screen_draw_config()
 #ifdef DEBUG_SCREEN_CONFIG_DRAW_SLIDERS
     Serial.print(strings[n]);
     Serial.print(GRID_XL(1,XN));
-    Serial.print(S_COMMA_str);
+    Serial.print(FS(S_COMMA));
     Serial.print(GRID_YT(n,YN));
-    Serial.print(S_COMMA_str);
+    Serial.print(FS(S_COMMA));
     Serial.print(GRID_SX(XN)<<2);
-    Serial.print(S_COMMA_str);
+    Serial.print(FS(S_COMMA));
     Serial.print(GRID_SY(YN));
-    Serial.print(S_COMMA_str);
+    Serial.print(FS(S_COMMA));
     Serial.print(GRID_SX(XN));
     Serial.println();
 #endif
@@ -83,10 +82,9 @@ byte screen_config_tags()
 #ifdef DEBUG_SCREEN_CONFIG_TOUCH_SLIDERS
     Serial.print(F("slider y, idx: "));
     Serial.print(GD.inputs.xytouch.y);
-    MAKE_STRING(S_COMMA);
-    Serial.print(S_COMMA_str);
+    Serial.print(FS(S_COMMA));
     Serial.print(GRID_YB(5,YN));
-    Serial.print(S_COMMA_str);
+    Serial.print(FS(S_COMMA));
     Serial.print((GD.inputs.xytouch.y * YN) / SCREEN_H);
     Serial.println();
 #endif
@@ -102,16 +100,14 @@ byte screen_config_tags()
       {
         tag = TAG_EEPROM_LOAD;
         #ifdef DEBUG_EEP_UI
-        MAKE_STRING(S_LOAD);
-        Serial.println(S_LOAD_str);
+        Serial.println(FS(S_LOAD));
         #endif
       }
       else
       {
         tag = TAG_EEPROM_SAVE;
         #ifdef DEBUG_EEP_UI
-        MAKE_STRING(S_SAVE);
-        Serial.println(S_SAVE_str);
+        Serial.println(FS(S_SAVE));
         #endif
       }
     }

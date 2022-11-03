@@ -6,7 +6,7 @@
  *
  *
  */
-#define DEBUG_PID
+//#define DEBUG_PID
 #define DEBUG_PID_FEEDBACK
 #define DEBUG_PID_FEEDBACK_VALUE  RPM_TO_MS((RPM_MIN_SET + RPM_MAX_SET)>>1)
 
@@ -80,31 +80,30 @@ unsigned int update_PID(struct pid *pid, int feedback)
     }
   }
   #ifdef DEBUG_PID
-  MAKE_STRING(S_COMMA);
   
   Serial.print(F("PID kp, ki, kd:   "));
   Serial.print(pid->kp);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(pid->ki);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(pid->kd);
   Serial.println();
 
   Serial.print(F("PID t, e, p, i, d, raw, out: "));
   Serial.print(pid->target);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(feedback);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(err);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(p);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(i);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(d);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(raw_out);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(result);
   Serial.println();
   #endif

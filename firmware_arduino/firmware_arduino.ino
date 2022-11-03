@@ -284,8 +284,6 @@ void test_map_implementations()
 {
   Serial.println(F("Testing mmap:"));
 
-  MAKE_STRING(S_COMMA);
-  
   unsigned long tt = 0;
   unsigned int total = 0;
   for (byte in_max =4; in_max < 15; in_max += 2)
@@ -321,13 +319,13 @@ void test_map_implementations()
         om = (1<<out_max);        
         Serial.print(F("dt, o, om, im, i: "));
         Serial.print(t);
-        Serial.print(S_COMMA_str);
+        Serial.print(FS(S_COMMA));
         Serial.print(out);
-        Serial.print(S_COMMA_str);
+        Serial.print(FS(S_COMMA));
         Serial.print(om);
-        Serial.print(S_COMMA_str);
+        Serial.print(FS(S_COMMA));
         Serial.print(im);
-        Serial.print(S_COMMA_str);
+        Serial.print(FS(S_COMMA));
         Serial.print(iv);
         Serial.println();
       }
@@ -360,32 +358,31 @@ void setup() {
   //initialise servos
   initialise_servos();
   
+
+
   
   //fetch the firmware fersion string
-  
-  char firwmare_string[strlen_P(S_FIRMWARE_NAME) + strlen_P(S_FIRMWARE_VERSION) + strlen_P(S_COMMA) + 1];
-  char *string_ptr = firwmare_string;
-  READ_STRING(S_FIRMWARE_NAME, string_ptr);
-  string_ptr += strlen_P(S_FIRMWARE_NAME);
-  READ_STRING(S_COMMA, string_ptr);
-  string_ptr += strlen_P(S_COMMA);
-  READ_STRING(S_FIRMWARE_VERSION, string_ptr);
+
   
   //initialise the serial port:
   Serial.begin(1000000);  //for usb coms, no reason not to use fastest available baud rate - this turns out to be the biggest time usage during update/report
   Serial.println();
-  Serial.println(firwmare_string);
+
+  MAKE_STRING(S_FIRMWARE_NAME);           //we use make here so we can pass the string to screen_flash
+  Serial.println(S_FIRMWARE_NAME_str);
+  
   DateTime t_compile;
   t_compile = CompileDateTime();
   serial_print_date_time(t_compile);
   Serial.println();
+
 
   //initialise RTC
   i2c_init();
 
   if (!DS1307_isrunning())
   {
-    Serial.println(F("RTC not running. Updating with compile date/time."));
+    Serial.println(F("Starting RTC"));
     DS1307_adjust(t_compile);
   }
   else
@@ -393,7 +390,7 @@ void setup() {
     DateTime t_now = DS1307_now();
     if (is_after(t_compile, t_now))
     {
-      Serial.println(F("RTC behind compile date/time. Updating."));
+      Serial.println(F("Updating RTC"));
       DS1307_adjust(t_compile);
     }
     else
@@ -412,22 +409,21 @@ void setup() {
 
   //attempt to initialse the logging SD card. 
   //this will include creating a new file from the RTC date for immediate logging
-
+  
   Serial.print(F("Initializing SD card..."));
-  STRING_BUFFER(S_CARD_FAILED_OR_NOT_PRESENT);
+  STRING_BUFFER(S_CARD_FAILED_OR_NOT_PRESENT);//S_NO_SD_CARD);//
   
   if (!SD.begin(PIN_LOG_SDCARD_CS)) {
-    GET_STRING(S_CARD_FAILED_OR_NOT_PRESENT); Serial.println(string);
+    GET_STRING(S_CARD_FAILED_OR_NOT_PRESENT);
     flags_status.sdcard_available = false;
   }
   else
   {
-    GET_STRING(S_CARD_INITIALISED); Serial.println(string);
+    GET_STRING(S_CARD_INITIALISED); //S_NO_SD_CARD);//
     flags_status.sdcard_available = true;
-
   }
-
-  screen_draw_flash(firwmare_string, string);
+  Serial.println(string);
+  screen_draw_flash(S_FIRMWARE_NAME_str, string);
 
 
   //start the ADC
@@ -442,7 +438,7 @@ void setup() {
 
 
   // test the map functions
-  //test_map_implementations();
+//  test_map_implementations();
 
 
 

@@ -13,6 +13,8 @@
 // we can reuse buffer variable names by placing all calls to init and read that buffer in separate {} blocks
 // keep buffer declarations close to where they are used
 
+#define FS(s) ((__FlashStringHelper *)(s))  //for functions that accept it, use in place of F() for globally defined PSTRings
+
 #define STRING_BUFFER(STRING_NAME)  char string[strlen_P(STRING_NAME)+1]
 #define MAKE_STRING(STRING_NAME)  char STRING_NAME ## _str[strlen_P(STRING_NAME)+1]; strcpy_P(STRING_NAME ## _str,STRING_NAME)
 #define READ_STRING(STRING_NAME, buffer) strcpy_P(buffer, STRING_NAME);
@@ -23,12 +25,11 @@
 // define them as consts here and delete the original 
 const char S_DATE[] PROGMEM = __DATE__;
 const char S_TIME[] PROGMEM = __TIME__;
-const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller";
-const char S_FIRMWARE_VERSION[]  PROGMEM = "v0.4a";
+const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller v0.4a";
 const char S_COMMA[] PROGMEM = ", ";
-const char S_COLON[] PROGMEM = ": ";
-const char S_CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or not present.";
-const char S_CARD_INITIALISED[] PROGMEM = "SD Card initialised.";
+const char S_CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or absent"; //if this string is not defined/referenced, or is made shorter than this, an extra 40-60 bytes is consumed for no obvious reason
+//#define S_CARD_FAILED_OR_NOT_PRESENT S_NO_SD_CARD
+const char S_CARD_INITIALISED[] PROGMEM = "SD Card OK";
 const char S_RECORD_VER_C[] PROGMEM = "Record Ver.: ";
 const char S_TIMESTAMP_C[] PROGMEM = "Timestamp: ";
 const char S_MAP_C[] PROGMEM = "MAP: ";
@@ -37,18 +38,18 @@ const char S_A2_C[] PROGMEM = "A2: ";
 const char S_A3_C[] PROGMEM = "A3: ";
 const char S_EGT1_C[] PROGMEM = "EGT1: ";
 const char S_RPM_AVG[] PROGMEM = "RPM avg: ";
-const char S_RPM_NO_OF_TICKS[] PROGMEM = "RPM no of ticks: ";
-const char S_RPM_TICK_TIMES[] PROGMEM = "RPM tick times (ms): ";
+const char S_RPM_NO_OF_TICKS[] PROGMEM = "RPM no.: ";
+const char S_RPM_TICK_TIMES[] PROGMEM = "RPM times (ms): ";
 const char S_OUTPUT_FILE_NAME_C[] PROGMEM = "Output File Name: ";
 
 const char S_MAP_AVG_C[] PROGMEM = "MAP avg: ";
 const char S_A1_AVG_C[] PROGMEM = "A1 avg: ";
 const char S_A2_AVG_C[] PROGMEM = "A2 avg: ";
 const char S_A3_AVG_C[] PROGMEM = "A3 avg: ";
-const char S_ANA_SAMPLES_C[] PROGMEM = "ANA samples: ";
+const char S_ANA_SAMPLES_C[] PROGMEM = "ANA no.: ";
 
 const char S_EGT_AVG_C[] PROGMEM = "EGT avg: ";
-const char S_EGT_SAMPLES_C[] PROGMEM = "EGT samples: ";
+const char S_EGT_SAMPLES_C[] PROGMEM = "EGT no.: ";
 
 const char S_DOT_TXT[] PROGMEM = ".txt";
 const char S_DOT_RAW[] PROGMEM = ".raw";
@@ -67,7 +68,7 @@ const char S_OUTPUT[] PROGMEM = "Output";
 const char S_PID_SV0[] PROGMEM = "PID SV0";
 const char S_PID_SV0_C[] PROGMEM = "PID SV0: ";
 const char S_PID_SV0_AVG_C[] PROGMEM = "PID SV0 avg: ";
-const char S_PID_SAMPLES_C[] PROGMEM = "PID samples: ";
+const char S_PID_SAMPLES_C[] PROGMEM = "PID no.: ";
 
 const char S_ACTIVE[] PROGMEM = "ACTIVE";
 
@@ -99,7 +100,6 @@ const char S_SV2_MIN[] PROGMEM = "SV2 Min";
 const char S_SV0_MAX[] PROGMEM = "SV0 Max";
 const char S_SV1_MAX[] PROGMEM = "SV1 Max";
 const char S_SV2_MAX[] PROGMEM = "SV2 Max";
-
 
 
 // int to char conversion for hex and decimal

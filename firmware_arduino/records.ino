@@ -50,8 +50,7 @@ void generate_file_name()
     }
   }
   //report the selected filename
-  MAKE_STRING(S_OUTPUT_FILE_NAME_C);
-  Serial.print(S_OUTPUT_FILE_NAME_C_str);
+  Serial.print(FS(S_OUTPUT_FILE_NAME_C));
   Serial.println(output_filename);
   
   //check that the file can be opened
@@ -60,7 +59,7 @@ void generate_file_name()
   if(dataFile)
   {
     //print the header
-    MAKE_STRING(S_RECORD_VER_C);    dataFile.print(S_RECORD_VER_C_str);     dataFile.println(DATA_RECORD_VERSION);
+    dataFile.print(FS(S_RECORD_VER_C));     dataFile.println(DATA_RECORD_VERSION);
     file_print_date_time(t_now, dataFile);
     dataFile.println();
     dataFile.close();
@@ -91,25 +90,21 @@ void hash_data(DATA_STORAGE *data)
 
 void stream_print_int_array(Stream *file, int *array_data, unsigned int array_size, const char *title_pgm)
 {
-  MAKE_STRING(title_pgm);
-  file->print(title_pgm_str);
-  MAKE_STRING(S_COMMA);
+  file->print(FS(title_pgm));
   for(int idx = 0; idx < array_size; idx++)
   {
     file->print(array_data[idx]);
-    file->print(S_COMMA_str);
+    file->print(FS(S_COMMA));
   }
   file->println();
 }
 void stream_print_byte_array(Stream *file, byte *array_data, unsigned int array_size, const char *title_pgm)
 {
-  MAKE_STRING(title_pgm);
-  file->print(title_pgm_str);
-  MAKE_STRING(S_COMMA);
+  file->print(FS(title_pgm));
   for(int idx = 0; idx < array_size; idx++)
   {
     file->print(array_data[idx]);
-    file->print(S_COMMA_str);
+    file->print(FS(S_COMMA));
   }
   file->println();
 }
@@ -184,18 +179,18 @@ bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte wri
   {
     case 0: //ser: 712/1128
       {
-        MAKE_STRING(S_RECORD_MARKER);       dst.println(S_RECORD_MARKER_str);
-        MAKE_STRING(S_RECORD_VER_C);        dst.print(S_RECORD_VER_C_str);      dst.println(DATA_RECORD_VERSION);
-        MAKE_STRING(S_TIMESTAMP_C);         dst.print(S_TIMESTAMP_C_str);     dst.println(data_record->timestamp);
+        dst.println(FS(S_RECORD_MARKER));
+        dst.print(FS(S_RECORD_VER_C));      dst.println(DATA_RECORD_VERSION);
+        dst.print(FS(S_TIMESTAMP_C));     dst.println(data_record->timestamp);
       }
       break;
     case 1: //ser: 1440/1916 
       {
-        MAKE_STRING(S_MAP_AVG_C);     dst.print(S_MAP_AVG_C_str);     dst.println(data_record->A0_avg);
-        MAKE_STRING(S_A1_AVG_C);      dst.print(S_A1_AVG_C_str);      dst.println(data_record->A1_avg);
-        MAKE_STRING(S_A2_AVG_C);      dst.print(S_A2_AVG_C_str);      dst.println(data_record->A2_avg);
-        MAKE_STRING(S_A3_AVG_C);      dst.print(S_A3_AVG_C_str);      dst.println(data_record->A3_avg);
-        MAKE_STRING(S_ANA_SAMPLES_C); dst.print(S_ANA_SAMPLES_C_str); dst.println(data_record->ANA_no_of_samples);
+        dst.print(FS(S_MAP_AVG_C));     dst.println(data_record->A0_avg);
+        dst.print(FS(S_A1_AVG_C));      dst.println(data_record->A1_avg);
+        dst.print(FS(S_A2_AVG_C));      dst.println(data_record->A2_avg);
+        dst.print(FS(S_A3_AVG_C));      dst.println(data_record->A3_avg);
+        dst.print(FS(S_ANA_SAMPLES_C)); dst.println(data_record->ANA_no_of_samples);
       }
       break;
     case 2: //ser: 1068/1540
@@ -212,8 +207,8 @@ bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte wri
         break;
     case 6: //ser: 508/936
       {
-        MAKE_STRING(S_EGT_AVG_C); dst.print(S_EGT_AVG_C_str);       dst.println(data_record->EGT_avg);
-        MAKE_STRING(S_EGT_SAMPLES_C); dst.print(S_EGT_SAMPLES_C_str); dst.println(data_record->EGT_no_of_samples);
+        dst.print(FS(S_EGT_AVG_C));       dst.println(data_record->EGT_avg);
+        dst.print(FS(S_EGT_SAMPLES_C)); dst.println(data_record->EGT_no_of_samples);
         break;
       }
     case 7: //ser: 588/1008
@@ -221,14 +216,14 @@ bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte wri
         break;
     case 8: //ser: 588/1008
       {
-        MAKE_STRING(S_RPM_AVG);             dst.print(S_RPM_AVG_str);          dst.println(data_record->RPM_avg);
-        MAKE_STRING(S_RPM_NO_OF_TICKS);     dst.print(S_RPM_NO_OF_TICKS_str);  dst.println(data_record->RPM_no_of_ticks);
+        dst.print(FS(S_RPM_AVG));          dst.println(data_record->RPM_avg);
+        dst.print(FS(S_RPM_NO_OF_TICKS));  dst.println(data_record->RPM_no_of_ticks);
         break;
       }
     case 9: //ser: 540/964
       {
         stream_print_byte_array(&dst, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES);
-        MAKE_STRING(S_RECORD_MARKER);       dst.println(S_RECORD_MARKER_str);
+        dst.println(FS(S_RECORD_MARKER));
       }
     default:
       keep_going = false;

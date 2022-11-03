@@ -333,8 +333,7 @@ void read_touch()
   Serial.print(GD.inputs.tag);
   Serial.print(F("; XY: "));
   Serial.print(GD.inputs.xytouch.x);
-  MAKE_STRING(S_COMMA);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(GD.inputs.xytouch.y);
   Serial.println();
   if(GD.inputs.touching) flags_status.redraw_pending = true;
@@ -449,7 +448,6 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   draw_box(pos_x, pos_y, GRID_SX(4), GRID_SY(4), BOX_WIDTH, opts);
 
   
-  MAKE_STRING(S_COMMA);
   MAKE_STRING(label_pgm);
 
   GD.ColorA(A_OPAQUE);
@@ -486,7 +484,7 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   }
   if(str_ptr <= value_str)
   {
-    Serial.println(F("ERROR: ran out of digits parsing fixed point decimal part"));
+    Serial.println(F("FPERR: dec.")); //has no impact on flash usage? is it being optimised out?
     return;
   }
   *str_ptr-- = '.';
@@ -498,7 +496,7 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   }
   if(str_ptr <= value_str)
   {
-    Serial.println(F("ERROR: ran out of digits parsing fixed point integer part"));
+    Serial.println(F("FPERR: int."));
     return;
   }
   if(value < 0)
@@ -532,14 +530,13 @@ void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *
   GD.ColorRGB(C_BKG_NORMAL);
   draw_box(x,y,sx,sy,BOX_WIDTH, 0);
 #ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
-  MAKE_STRING(S_COMMA);
   Serial.print(F("draw slider box: "));
 //  Serial.print(x);
-//  Serial.print(S_COMMA_str);
+//  Serial.print(FS(S_COMMA));
   Serial.print(y);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(sx);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(sy);
   Serial.println();
 #endif
@@ -549,9 +546,9 @@ void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *
 #ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
   Serial.print(F("draw slider text: "));
 //  Serial.print(x2);
-//  Serial.print(S_COMMA_str);
+//  Serial.print(FS(S_COMMA));
   Serial.print(y2);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.println();
 #endif
   x2 = x + label_size;
@@ -559,11 +556,11 @@ void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *
 #ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
   Serial.print(F("draw slider widget: "));
   Serial.print(x2);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(y2);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(sx2);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.println(label_size);
   Serial.println();
 #endif
@@ -575,22 +572,22 @@ void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *
 
 
 /* map touch coord to value over a given range */
-int get_slider_value_horz(int x_min, int x_max, int out_min, int out_max)
+int get_slider_value_horz(int px_min, int px_max, int param_min, int param_max)
 {
 
-  x_min += SLIDER_HEIGHT+BORDER;
-  x_max -= SLIDER_HEIGHT+BORDER;
+  px_min += SLIDER_HEIGHT+BORDER;
+  px_max -= SLIDER_HEIGHT+BORDER;
   //clamp the x coordinate to the active range
-  int x_coord = constrain(GD.inputs.xytouch.x,x_min,x_max);
+  int x_coord = constrain(GD.inputs.xytouch.x,px_min,px_max);
   //map the active range to servo range
-  int x_val = map(x_coord, x_min, x_max, out_min, out_max);
+  int x_val = map(x_coord, px_min, px_max, param_min, param_max);
   #ifdef DEBUG_SLIDER_VALUE_HORZ
   Serial.print(F("slider horz: "));
   Serial.print(x_coord);
   Serial.print(F(" ("));
-  Serial.print(x_min);
+  Serial.print(px_min);
   Serial.print(F(", "));
-  Serial.print(x_max);
+  Serial.print(px_max);
   Serial.print(F(") -> "));
   Serial.println(x_val);
   #endif
@@ -609,14 +606,13 @@ void draw_slider_vert(int x, int y, int sx, int sy, int label_size, const char *
   GD.ColorRGB(C_BKG_NORMAL);
   draw_box(x,y,sx,sy,BOX_WIDTH, 0);
 #ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
-  MAKE_STRING(S_COMMA);
   Serial.print(F("draw slider box: "));
   Serial.print(x);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(y);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(sx);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(sy);
   Serial.println();
 #endif
@@ -626,9 +622,9 @@ void draw_slider_vert(int x, int y, int sx, int sy, int label_size, const char *
 #ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
   Serial.print(F("draw slider text: "));
   Serial.print(x2);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(y2);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.println();
 #endif
   y2 = y + label_size;
@@ -636,11 +632,11 @@ void draw_slider_vert(int x, int y, int sx, int sy, int label_size, const char *
 #ifdef DEBUG_SCREENS_DRAW_SLIDER_VERT
   Serial.print(F("draw slider widget: "));
   Serial.print(x2);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(y2);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(sy2);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.println(label_size);
   Serial.println();
 #endif
@@ -652,29 +648,28 @@ void draw_slider_vert(int x, int y, int sx, int sy, int label_size, const char *
 
 
 //set servo min and max based on x coordinate, assuming slider is from 3/5->5/5
-int get_slider_value_vert(int y_min, int y_max, int out_min, int out_max)
+int get_slider_value_vert(int py_min, int py_max, int param_min, int param_max)
 {
 
-  y_min += SLIDER_WIDTH+BORDER;
-  y_max -= SLIDER_WIDTH+BORDER;
+  py_min += SLIDER_WIDTH+BORDER;
+  py_max -= SLIDER_WIDTH+BORDER;
   //clamp the x coordinate to the active range
-  int y_coord = constrain(GD.inputs.xytouch.y, y_min, y_max);
+  int y_coord = constrain(GD.inputs.xytouch.y, py_min, py_max);
   //map the active range to servo range
-  int y_val = map(y_coord, y_min, y_max, out_min, out_max);
+  int y_val = map(y_coord, py_min, py_max, param_min, param_max);
   #ifdef DEBUG_SLIDER_VALUE_VERT
-  MAKE_STRING(S_COMMA);
   Serial.print(F("slider: "));
   Serial.print(GD.inputs.xytouch.y);
-  Serial.print(S_COMMA_str);
+  Serial.print(FS(S_COMMA));
   Serial.print(y_coord);
   Serial.print(F(" ("));
-  Serial.print(y_min);
-  Serial.print(S_COMMA_str);
-  Serial.print(y_max);
+  Serial.print(py_min);
+  Serial.print(FS(S_COMMA));
+  Serial.print(py_max);
   Serial.print(F(") -> ("));
-  Serial.print(out_min);
-  Serial.print(S_COMMA_str);
-  Serial.print(out_max);
+  Serial.print(param_min);
+  Serial.print(FS(S_COMMA));
+  Serial.print(param_max);
   Serial.print(F(") "));
   Serial.println(y_val);
   #endif
