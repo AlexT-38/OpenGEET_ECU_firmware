@@ -433,7 +433,7 @@ void draw_readout_decimal(const int pos_x, const int pos_y, int opts, const int 
 
 #define MAX_SIG_FIGS  4
 /* draw a fixed point integer value, with the given number of fractional bits and significant digits */
-void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int value, const byte frac_bits, byte extra_sf, const char *label_pgm)
+void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int value, const byte frac_bits, byte extra_sf, const char *label_pgm, bool small)
 {
   char dx = BORDER, dy =BORDER;
   if(opts&OPT_RIGHTX)
@@ -442,17 +442,26 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   {    dx = 0;   }
   if(opts&OPT_CENTERY)
   {    dy = 0;  }
+  byte grid_sx = GRID_SX(4);   //default size is 1/4 x 1/4 screen
+  byte grid_sy = GRID_SY(4);
+  if(small)
+  {
+    grid_sx = GRID_SX(9);      //small size is width of vertical sliders
+    grid_sy = GRID_SY(6);      //small size is width of vertical sliders
+  }
   
   GD.ColorA(A_BKG_WINDOW);
   GD.ColorRGB(C_BKG_NORMAL);
-  draw_box(pos_x, pos_y, GRID_SX(4), GRID_SY(4), BOX_WIDTH, opts);
+  draw_box(pos_x, pos_y, grid_sx, grid_sy, BOX_WIDTH, opts);
 
+  if(label_pgm != NULL && !small)
+  {
+    MAKE_STRING(label_pgm);
   
-  MAKE_STRING(label_pgm);
-
-  GD.ColorA(A_OPAQUE);
-  GD.ColorRGB(C_LABEL);
-  GD.cmd_text(pos_x+dx, pos_y+20, 28, opts, label_pgm_str);
+    GD.ColorA(A_OPAQUE);
+    GD.ColorRGB(C_LABEL);
+    GD.cmd_text(pos_x+dx, pos_y+20, 28, opts, label_pgm_str);
+  }
 
   char value_str[18];
   char *str_ptr = &value_str[18];
@@ -508,10 +517,19 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
     *str_ptr = ' ';
   }
   byte font_size = 31;
-  if(strlen(str_ptr) > 8) font_size = 30;
-  if(strlen(str_ptr) > 12) font_size = 29;
-  if(strlen(str_ptr) > 14) font_size = 28;
-  if(strlen(str_ptr) > 16) font_size = 27;
+  byte str_len = strlen(str_ptr);
+  if(small)
+  {
+    font_size = 29;
+    if(str_len > 5)      {font_size = 20;}
+    else if(str_len > 3) {font_size -= (str_len -3);}
+  }
+  else
+  {
+    str_len >>=1;
+    if(str_len > 4) font_size -= (str_len - 4);
+    if(str_len > 9) font_size = 26;
+  }
 
   GD.ColorRGB(C_VALUE);
   GD.cmd_text(pos_x+dx, pos_y-8, font_size, opts, str_ptr);
@@ -647,7 +665,6 @@ void draw_slider_vert(int x, int y, int sx, int sy, int label_size, const char *
 
 
 
-//set servo min and max based on x coordinate, assuming slider is from 3/5->5/5
 int get_slider_value_vert(int py_min, int py_max, int param_min, int param_max)
 {
 
@@ -674,6 +691,26 @@ int get_slider_value_vert(int py_min, int py_max, int param_min, int param_max)
   Serial.println(y_val);
   #endif
   return y_val;
+}
+
+/* fetch the slider pixel position
+ *  int 30356
+ *  byte 30356
+ */
+int get_slider_value_vert_px(int py_min, int py_range)
+{
+//  py_min += SLIDER_WIDTH+BORDER;
+//  py_range -= SLIDER_WIDTH+BORDER;
+  //clamp the x coordinate to the active range
+  int y_coord = constrain(GD.inputs.xytouch.y - py_min, 0, py_range);
+  #ifdef DEBUG_SLIDER_VALUE_VERT
+  Serial.print(F("slider: "));
+  Serial.print(GD.inputs.xytouch.y);
+  Serial.print(FS(S_COMMA));
+  Serial.print(y_coord);
+  
+  #endif
+  return y_coord;
 }
 
 void draw_button(int x, int y, byte sx, byte sy, byte tag, const char * string)

@@ -60,7 +60,17 @@ and we can ommit the map() call
 
 log_chart = 'log'#'linear'#
 
-par_min_bits = 4
+"""
+screen space, base 8 (0-255)
+par min vs scr space vs scr low vs effective scr spc vs param min
+0           255         34      221         1
+1           239         20      219         2
+2           223          8      215         4
+3           207          0      207         8
+4           192          1      191         17
+5           175          1      174         34
+"""
+par_min_bits = 3
 par_bits = 16                   #bits to use for parameter space
 par_lim = 1<<par_bits
 par_max = par_lim-1
@@ -74,12 +84,16 @@ steps = scr_max/step
 scr_min = int((scr_lim / par_bits) * par_min_bits)
 par_min = 1<<par_min_bits
 
+print('scr_min:', scr_min)
+print('par_min:', par_min)
+
 y2x_wh_off = step_bits-2                                            # 0,  1,  2
 ana_off = 0.5
 
 xn1 = range(scr_lim)
 xn2 = range(par_lim)
 
+#screen space to parameter space (2^n)
 def x_to_y_calc(x):
     x=x+scr_min
     if x <= scr_min:
@@ -96,7 +110,7 @@ def x_to_y_calc(x):
             y = par_max
         
     return y
-
+#screen space to parameter space (2^n)
 def x_to_y(x):
     #ensure input is an int for python
     x=int(x)
@@ -122,7 +136,7 @@ def x_to_y(x):
 
 
 
-
+#parameter space to screen space (log2(n))
 def y_to_x_calc(y):
     if y <= 0:
         x = 0
@@ -140,6 +154,7 @@ def y_to_x_calc(y):
             x = 0
     return x
 
+#parameter space to screen space (log2(n))
 log = [-1,-1]
 def y_to_x(y):
     #ensure input is an int for python

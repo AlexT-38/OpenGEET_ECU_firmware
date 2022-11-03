@@ -16,7 +16,21 @@
 #define PID_OUTPUT_CENTRE       ( (PID_OUTPUT_MAX + PID_OUTPUT_MIN) >> 1 )
 
 
-
+/* PWL approximation of LOG2 and POW2 */
+#define LOG_PAR_MIN_BITS      (4)
+#define LOG_PAR_BITS          (16)
+#define LOG_PAR_LIM           (1<<LOG_PAR_BITS)
+#define LOG_PAR_MAX           (1<<LOG_PAR_BITS)
+#define LOG_SCR_BITS          (8)
+#define LOG_SCR_LIM           (1<<LOG_SCR_BITS)
+#define LOG_SCR_MAX           (LOG_SCR_LIM-1)
+#define LOG_STEP_BITS         (LOG_SCR_BITS-4)
+#define LOG_STEP              (1<<LOG_STEP_BITS)
+#define LOG_STEPS             (LOG_SCR_MAX/LOG_STEP)
+#define LOG_SCR_MAX           (LOG_SCR_LIM-1)
+#define LOG_SCR_MIN           ((LOG_SCR_LIM * LOG_PAR_MIN_BITS) / LOG_PAR_BITS)
+#define LOG_PAR_MIN           (1<<LOG_PAR_MIN_BITS)
+#define LOG_WH_OFFSET         (LOG_STEP_BITS-2)
 
 typedef struct pid
 {

@@ -17,11 +17,14 @@
 #define PID_SLIDER_RANGE_SY     (GRID_SY(6)*4)
 #define PID_SLIDER_SY           (PID_SLIDER_RANGE_SY + PID_SLIDER_LABEL_SY)
 
+#define LOG_SLIDER_PX_RANGE     174
 
 void pid_set_parameter(int *param)
 {
-  int out_max = pid_convert_k_to_px(PID_FP_MAX);
-  int in_y = get_slider_value_vert(PID_SLIDER_LABEL_SY, PID_SLIDER_SY , out_max, 0);
+//  int out_max = pid_convert_k_to_px(PID_FP_MAX);
+//  int in_y = get_slider_value_vert(PID_SLIDER_LABEL_SY, PID_SLIDER_SY , out_max, 0);
+  // get number of pixels up to range max from base of slider
+  int in_y = get_slider_value_vert_px(PID_SLIDER_LABEL_SY, LOG_SLIDER_PX_RANGE);
   *param = pid_convert_px_to_k(in_y);
 }
 
@@ -52,7 +55,7 @@ void screen_draw_pid_rpm()
   
   
   draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->A0_avg, S_MAP_MBAR);
-  draw_readout_fixed(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->EGT_avg, 2,0, S_EGT1_DEGC);
+  draw_readout_fixed(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->EGT_avg, 2,0, S_EGT1_DEGC, false);
   draw_datetime(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX );
 
   // Mid right column
@@ -77,19 +80,24 @@ void screen_draw_pid_rpm()
 
   char string[] = {'P',0};
 
-  
+  //byte pos_x = PID_SLIDER_X0;
 
-  int slider_max = pid_convert_k_to_px(PID_FP_MAX);
+  int slider_max = LOG_SLIDER_PX_RANGE;//pid_convert_k_to_px(PID_FP_MAX);
   int slider_val = slider_max - pid_convert_k_to_px(RPM_control.kp);
   draw_slider_vert(PID_SLIDER_X0,                   PID_SLIDER_Y0, PID_SLIDER_SX, PID_SLIDER_SY, PID_SLIDER_LABEL_SY, string, TAG_CAL_PID_RPM_P, slider_val, slider_max);
+  //                 px,                            py,      align opts,          value,        frac_bits,  extra_sf, label_pgm, small
+  draw_readout_fixed(PID_SLIDER_X0,                 PID_SLIDER_SY,    0, RPM_control.kp, PID_FP_FRAC_BITS, 3, NULL, true );
 
   string[0] = 'I';
   slider_val = slider_max - pid_convert_k_to_px(RPM_control.ki);
   draw_slider_vert(PID_SLIDER_X0+PID_SLIDER_SX,     PID_SLIDER_Y0, PID_SLIDER_SX, PID_SLIDER_SY, PID_SLIDER_LABEL_SY, string, TAG_CAL_PID_RPM_I, slider_val, slider_max);
-
+  draw_readout_fixed(PID_SLIDER_X0+PID_SLIDER_SX,   PID_SLIDER_SY,    0, RPM_control.kp, PID_FP_FRAC_BITS, 3, NULL, true );
+  
   string[0] = 'D';
   slider_val = slider_max - pid_convert_k_to_px(RPM_control.kd);
-  draw_slider_vert(PID_SLIDER_X0+(PID_SLIDER_SX*2), PID_SLIDER_Y0, PID_SLIDER_SX, PID_SLIDER_SY, PID_SLIDER_LABEL_SY, string, TAG_CAL_PID_RPM_D, slider_val, slider_max);
+  draw_slider_vert(PID_SLIDER_X0+(PID_SLIDER_SX*2),  PID_SLIDER_Y0, PID_SLIDER_SX, PID_SLIDER_SY, PID_SLIDER_LABEL_SY, string, TAG_CAL_PID_RPM_D, slider_val, slider_max);
+  draw_readout_fixed(PID_SLIDER_X0+(PID_SLIDER_SX*2),PID_SLIDER_SY,    0, RPM_control.kp, PID_FP_FRAC_BITS, 3, NULL, true );
+  
 }
 
 /* work around for tag always zero issue*/

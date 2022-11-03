@@ -116,17 +116,74 @@ unsigned int update_PID(struct pid *pid, int feedback)
  *  use px to k to convert screen slider values to pid parameter space
  */
  /* to do, if needed */
-int pid_convert_k_to_px(int val_lin)
+
+/* PWL approximation of LOG2 and POW2 
+#define LOG_PAR_MIN_BITS      (4)
+#define LOG_PAR_BITS          (16)
+#define LOG_PAR_LIM           (1<<LOG_PAR_BITS)
+#define LOG_PAR_MAX           (1<<LOG_PAR_BITS)
+#define LOG_SCR_BITS          (8)
+#define LOG_SCR_LIM           (1<<LOG_SCR_BITS)
+#define LOG_SCR_MAX           (LOG_SCR_LIM-1)
+#define LOG_STEP_BITS         (LOG_SCR_BITS-4)
+#define LOG_STEP              (1<<LOG_STEP_BITS)
+#define LOG_STEPS             (LOG_SCR_MAX/LOG_STEP)
+#define LOG_SCR_MAX           (LOG_SCR_LIM-1)
+#define LOG_SCR_MIN           ((LOG_SCR_LIM * LOG_PAR_MIN_BITS) / LOG_PAR_BITS)
+#define LOG_PAR_MIN           (1<<LOG_PAR_MIN_BITS)
+#define LOG_WH_OFFSET         (LOG_STEP_BITS-2)
+*/
+/* convert parameter space to screen space */
+int pid_convert_k_to_px(unsigned int val_lin)
 {
-  int val_log = val_lin;
+  int val_log = 0;
+
+  if (val_lin >= LOG_PAR_MIN)
+  {
+    unsigned int base = val_lin >> LOG_STEP_BITS;
+    char n = 0;
+    while(base)
+    {
+      n++;
+      base >>=1;
+    }
+    unsigned int frac = val_lin >> (n-1);
+    unsigned int whole = (LOG_WH_OFFSET + n)*LOG_STEP;
+    val_log = whole + frac;
+    if (val_log <= LOG_SCR_MIN)
+    {
+      val_log = 0;
+    }
+    else
+    {
+      val_log -= LOG_SCR_MIN;
+    }
+    
+  }
+  
 
   return val_log;
 }
 
-int pid_convert_px_to_k(int val_log)
+/* convert screen space to parameter space */
+unsigned int pid_convert_px_to_k(int val_log)
 {
-  int val_lin = val_log;
-
+  val_log += LOG_SCR_MIN;
+  int val_lin = 0;
+  if (val_log > LOG_SCR_MIN)
+  {
+    if( val_log > LOG_SCR_MIN )
+    {
+      val_lin = LOG_PAR_MAX;
+    }
+    else
+    {
+      byte whole = val_log/LOG_STEP;
+      byte frac = val_log%LOG_STEP;
+      byte shift = whole - LOG_STEP_BITS;
+      val_lin = (frac + LOG_STEP)<<shift;
+    }
+  }
   return val_lin;
 }
 
