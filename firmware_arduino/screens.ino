@@ -435,20 +435,24 @@ void draw_readout_decimal(const int pos_x, const int pos_y, int opts, const int 
 /* draw a fixed point integer value, with the given number of fractional bits and significant digits */
 void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int value, const byte frac_bits, byte extra_sf, const char *label_pgm, bool small)
 {
-  char dx = BORDER, dy =BORDER;
+  int  dx = BORDER*2, dy = -8;
   if(opts&OPT_RIGHTX)
   {    dx = -dx;  }
   else if(opts&OPT_CENTERX)
   {    dx = 0;   }
-  if(opts&OPT_CENTERY)
-  {    dy = 0;  }
-  byte grid_sx = GRID_SX(4);   //default size is 1/4 x 1/4 screen
-  byte grid_sy = GRID_SY(4);
+  
+  int grid_sx = GRID_SX(4);   //default size is 1/4 x 1/4 screen
+  int grid_sy = GRID_SY(4);
   if(small)
   {
     grid_sx = GRID_SX(9);      //small size is width of vertical sliders
     grid_sy = GRID_SY(6);      //small size is width of vertical sliders
+    dy = dy + (grid_sy>>1);
   }
+  
+//  if(opts&OPT_CENTERY)
+//  {    dy = 0;  }
+  
   
   GD.ColorA(A_BKG_WINDOW);
   GD.ColorRGB(C_BKG_NORMAL);
@@ -521,18 +525,18 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   if(small)
   {
     font_size = 29;
-    if(str_len > 5)      {font_size = 20;}
-    else if(str_len > 3) {font_size -= (str_len -3);}
+    if(str_len > 6)      {font_size = 20;}
+    else if(str_len > 4) {font_size -= (str_len -4);}
   }
   else
   {
     str_len >>=1;
-    if(str_len > 4) font_size -= (str_len - 4);
-    if(str_len > 9) font_size = 26;
+    if(str_len > 9) {font_size = 26;}
+    else if(str_len > 4) {font_size -= (str_len - 4);}
   }
 
   GD.ColorRGB(C_VALUE);
-  GD.cmd_text(pos_x+dx, pos_y-8, font_size, opts, str_ptr);
+  GD.cmd_text(pos_x+dx, pos_y+dy, font_size, opts, str_ptr);
 }
 
 
@@ -703,6 +707,7 @@ int get_slider_value_vert_px(int py_min, int py_range)
 //  py_range -= SLIDER_WIDTH+BORDER;
   //clamp the x coordinate to the active range
   int y_coord = constrain(GD.inputs.xytouch.y - py_min, 0, py_range);
+  y_coord = py_range - y_coord;
   #ifdef DEBUG_SLIDER_VALUE_VERT
   Serial.print(F("slider: "));
   Serial.print(GD.inputs.xytouch.y);

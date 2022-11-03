@@ -1,6 +1,8 @@
 /*
  * single channel pid monitor
  */
+//#define DEBUG_PID_SLIDER_SET
+ 
 #ifdef XN
 #undef XN
 #endif
@@ -19,12 +21,18 @@
 
 #define LOG_SLIDER_PX_RANGE     174
 
+
+
 void pid_set_parameter(int *param)
 {
 //  int out_max = pid_convert_k_to_px(PID_FP_MAX);
 //  int in_y = get_slider_value_vert(PID_SLIDER_LABEL_SY, PID_SLIDER_SY , out_max, 0);
   // get number of pixels up to range max from base of slider
   int in_y = get_slider_value_vert_px(PID_SLIDER_LABEL_SY, LOG_SLIDER_PX_RANGE);
+  #ifdef DEBUG_PID_SLIDER_SET
+  Serial.print(F("pid slider px: "));
+  Serial.println(in_y);
+  #endif
   *param = pid_convert_px_to_k(in_y);
 }
 
@@ -86,17 +94,17 @@ void screen_draw_pid_rpm()
   int slider_val = slider_max - pid_convert_k_to_px(RPM_control.kp);
   draw_slider_vert(PID_SLIDER_X0,                   PID_SLIDER_Y0, PID_SLIDER_SX, PID_SLIDER_SY, PID_SLIDER_LABEL_SY, string, TAG_CAL_PID_RPM_P, slider_val, slider_max);
   //                 px,                            py,      align opts,          value,        frac_bits,  extra_sf, label_pgm, small
-  draw_readout_fixed(PID_SLIDER_X0,                 PID_SLIDER_SY,    0, RPM_control.kp, PID_FP_FRAC_BITS, 3, NULL, true );
+  draw_readout_fixed(PID_SLIDER_X0+PID_SLIDER_SX, PID_SLIDER_SY, OPT_RIGHTX, RPM_control.kp, PID_FP_FRAC_BITS, 0, NULL, true );
 
   string[0] = 'I';
   slider_val = slider_max - pid_convert_k_to_px(RPM_control.ki);
   draw_slider_vert(PID_SLIDER_X0+PID_SLIDER_SX,     PID_SLIDER_Y0, PID_SLIDER_SX, PID_SLIDER_SY, PID_SLIDER_LABEL_SY, string, TAG_CAL_PID_RPM_I, slider_val, slider_max);
-  draw_readout_fixed(PID_SLIDER_X0+PID_SLIDER_SX,   PID_SLIDER_SY,    0, RPM_control.kp, PID_FP_FRAC_BITS, 3, NULL, true );
+  draw_readout_fixed(PID_SLIDER_X0+(PID_SLIDER_SX*2),   PID_SLIDER_SY, OPT_RIGHTX, RPM_control.ki, PID_FP_FRAC_BITS, 0, NULL, true );
   
   string[0] = 'D';
   slider_val = slider_max - pid_convert_k_to_px(RPM_control.kd);
   draw_slider_vert(PID_SLIDER_X0+(PID_SLIDER_SX*2),  PID_SLIDER_Y0, PID_SLIDER_SX, PID_SLIDER_SY, PID_SLIDER_LABEL_SY, string, TAG_CAL_PID_RPM_D, slider_val, slider_max);
-  draw_readout_fixed(PID_SLIDER_X0+(PID_SLIDER_SX*2),PID_SLIDER_SY,    0, RPM_control.kp, PID_FP_FRAC_BITS, 3, NULL, true );
+  draw_readout_fixed(PID_SLIDER_X0+(PID_SLIDER_SX*3),PID_SLIDER_SY, OPT_RIGHTX, RPM_control.kd, PID_FP_FRAC_BITS, 0, NULL, true );
   
 }
 

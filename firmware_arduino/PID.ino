@@ -7,6 +7,8 @@
  *
  */
 //#define DEBUG_PID
+//#define DEBUG_PID_LOG_FUNC
+//#define DEBUG_PID_EXP_FUNC
 #define DEBUG_PID_FEEDBACK
 #define DEBUG_PID_FEEDBACK_VALUE  RPM_TO_MS((RPM_MIN_SET + RPM_MAX_SET)>>1)
 
@@ -138,6 +140,11 @@ int pid_convert_k_to_px(unsigned int val_lin)
 {
   int val_log = 0;
 
+  #ifdef DEBUG_PID_LOG_FUNC
+  Serial.print(F("Log func(x), "));
+  Serial.println(val_lin);
+  #endif
+  
   if (val_lin >= LOG_PAR_MIN)
   {
     unsigned int base = val_lin >> LOG_STEP_BITS;
@@ -158,9 +165,21 @@ int pid_convert_k_to_px(unsigned int val_lin)
     {
       val_log -= LOG_SCR_MIN;
     }
-    
+
+    #ifdef DEBUG_PID_LOG_FUNC
+    Serial.print(F("n: "));
+    Serial.println((byte)n);
+    Serial.print(F("frac: "));
+    Serial.println(frac);
+    Serial.print(F("whole: "));
+    Serial.println(whole);
+    #endif
   }
-  
+  #ifdef DEBUG_PID_LOG_FUNC
+  Serial.print(F("Result: "));
+  Serial.println(val_log);
+  Serial.println();
+  #endif
 
   return val_log;
 }
@@ -168,11 +187,22 @@ int pid_convert_k_to_px(unsigned int val_lin)
 /* convert screen space to parameter space */
 unsigned int pid_convert_px_to_k(int val_log)
 {
-  val_log += LOG_SCR_MIN;
+  
   int val_lin = 0;
+  
+  val_log += LOG_SCR_MIN;
+  #ifdef DEBUG_PID_EXP_FUNC
+  Serial.print(F("Exp func(x), "));
+  Serial.print(LOG_SCR_MIN);
+  Serial.print(F(" < "));
+  Serial.print(val_log);
+  Serial.print(F(" < "));
+  Serial.println(LOG_SCR_MAX);
+  #endif
+  
   if (val_log > LOG_SCR_MIN)
   {
-    if( val_log > LOG_SCR_MIN )
+    if( val_log > LOG_SCR_MAX )
     {
       val_lin = LOG_PAR_MAX;
     }
@@ -182,8 +212,22 @@ unsigned int pid_convert_px_to_k(int val_log)
       byte frac = val_log%LOG_STEP;
       byte shift = whole - LOG_STEP_BITS;
       val_lin = (frac + LOG_STEP)<<shift;
+      
+      #ifdef DEBUG_PID_EXP_FUNC
+      Serial.print(F("whole: "));
+      Serial.println(whole);
+      Serial.print(F("frac: "));
+      Serial.println(frac);
+      Serial.print(F("shift: "));
+      Serial.println(shift);
+      #endif
     }
+    
   }
+  #ifdef DEBUG_PID_EXP_FUNC
+  Serial.print(F("Result: "));
+  Serial.println(val_lin);
+  #endif
   return val_lin;
 }
 
