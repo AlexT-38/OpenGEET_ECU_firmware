@@ -43,19 +43,36 @@ convert  a value of 0-128 to a value of 0,1/256->255 as an 8.8 fp number
 
 this configuration works with variable screen space size,
 but not variable parameter space size
+
+we get 16 segments of varting bittage depending on screen space size
+if we reduce parameter space size by 1 bit, do we get 15 segments?
+alternatively we can set a minimum scrn space value and set anything below it to zero
+this effectively does the same thing, removing n bits from the minimum value, but not from overall precision
+its the loss of precision that affects the accuracy, hence the parameter space is unchanged
+only an offset to screen space is required.
+
+this is handy because the gui slider has a size of ~180 pixels,
+so cutting 256 down to 192 fits the range nicely into our pixel range
+and we can ommit the map() call
+
+
 """
 
+log_chart = 'log'#'linear'#
 
-
+par_min_bits = 4
 par_bits = 16                   #bits to use for parameter space
 par_lim = 1<<par_bits
 par_max = par_lim-1
-scr_bits = 7                    #bits to use for screen space       # 6,  7,  8
+scr_bits = 8                    #bits to use for screen space       # 6,  7,  8
 scr_lim = 1<<scr_bits
 scr_max = scr_lim-1
 step_bits = scr_bits-4                                              # 2,  3,  4
 step = 1<<step_bits
 steps = scr_max/step
+
+scr_min = int((scr_lim / par_bits) * par_min_bits)
+par_min = 1<<par_min_bits
 
 y2x_wh_off = step_bits-2                                            # 0,  1,  2
 ana_off = 0.5
@@ -64,37 +81,42 @@ xn1 = range(scr_lim)
 xn2 = range(par_lim)
 
 def x_to_y_calc(x):
-    
-    if x <= 0:
+    x=x+scr_min
+    if x <= scr_min:
         y = 0
     elif x >= scr_lim:
         y = par_max
-        print('x,y',x,y)
+#        print('x,y',x,y)
     else:
+        #offset x by 1/2, divide by the step size
         y = (pow(2,(x-ana_off)/(step)))
         if quantised:
             y = int(y)
-        if y>par_max:
+        if y>(par_max):
             y = par_max
+        
     return y
 
 def x_to_y(x):
-    #ensure input is an int
+    #ensure input is an int for python
     x=int(x)
-        
-    if x<=0:
+    ##apply the minimum value offset in screen space; min <= x < 256
+    x=x+scr_min
+    #clamp the output to zero below minimum
+    if x<=scr_min:
 #        print (0,0,0,0)
         y = 0
+    #clamp the output to max if the input is out of range
     elif x>=scr_lim:
         y = par_max
-        print('x,y',x,y)
+#        print('x,y',x,y)
     else:
         #get frac and whole parts
-        whole = x//step
-        frac = x%step
-        shift = whole-step_bits
-        base = frac + step
-        y = bin_shift(base, shift)
+        whole = x//step     # this is the segment of the PWL model
+        frac = x%step       # this is the proportion of the segment
+        shift = whole-step_bits # the scale of segment
+        base = frac + step      # the mantissa is (1+decimal)*steps - the +1 is the source of the error at low values?
+        y = bin_shift(base, shift)  #scale the mantissa by the exponent
 #        print(x,frac,whole,y)
     return y
 
@@ -102,40 +124,56 @@ def x_to_y(x):
 
 
 def y_to_x_calc(y):
-    
     if y <= 0:
         x = 0
     elif y >= par_lim:
         x = scr_max
-        print('y,x',y,x)
+#        print('y,x',y,x)
     else:        
         x = (math.log2(y+ana_off)*step)
+        x = x-scr_min
         if quantised:
             x = int(x)
         if x > scr_max:
             x = scr_max
+        elif x < 0:
+            x = 0
     return x
 
 log = [-1,-1]
 def y_to_x(y):
+    #ensure input is an int for python
     y=int(y)
-    if y <= 0:
+    
+    #clamp the output to zero below minimum
+    if y < par_min:
 #        print(0,0)
         x = 0
+    #clamp the output to max if the input is out of range
     elif y >= par_lim:
-        print('y',y)
+#        print('y',y)
         x = scr_max
     else:
-        
+        # discard the unused fractional bits
         base = y>>step_bits
+        # find the most significant bit
         n=0
-        
         while base >0:
             n = n+1
             base =base >>1
-        frac = bin_shift(y,1-n) + bin_shift(1,0-n)
+        #get the used most significant bits
+        frac = bin_shift(y,1-n)
+        
+        #scale the most sig bit by the frac part size
         whole = (y2x_wh_off + n)*step
+        #add linear part to the 1st ord. log value
         x = whole+frac
+        #clamp to minimum value
+        if x < scr_min:
+            x = scr_min
+        #remove the minimum value offset
+        x = x-scr_min
+        
     
         if log[0] != n or log[1] != x:
 #            print(y,n,whole,frac,x)
@@ -156,7 +194,7 @@ plot.step(xn1,zn1,linewidth=0.5)
 plot.legend(['algorithmic',ana_label])
 plot.xlabel('screen')
 plot.ylabel('parameter')
-plot.gca().set_yscale('log')
+plot.gca().set_yscale(log_chart)
 plot.show()
 print()
 
@@ -174,10 +212,9 @@ plot.step(xn2,zn2)
 plot.legend(['algorithmic',ana_label])
 plot.xlabel('parameter')
 plot.ylabel('screen')
-plot.gca().set_xscale('log')
+plot.gca().set_xscale(log_chart)
 plot.show()
 print()
-
 
 print("screen to parameter to screen space")
 
@@ -207,8 +244,8 @@ plot.step(xn2,zn4)
 plot.legend(['algorithmic',ana_label])
 plot.xlabel('parameter')
 plot.ylabel('parameter')
-plot.gca().set_xscale('log')
-plot.gca().set_yscale('log')
+plot.gca().set_xscale(log_chart)
+plot.gca().set_yscale(log_chart)
 plot.show()
 print()
 
@@ -225,6 +262,7 @@ plot.step(xn2,en2)
 plot.legend([err_label])
 plot.xlabel('parameter')
 plot.ylabel('screen %err')
+plot.gca().set_xscale(log_chart)
 plot.show()
 
 plot.step(xn1,en3)
@@ -237,6 +275,7 @@ plot.step(xn2,en4)
 plot.legend([err_label])
 plot.xlabel('parameter')
 plot.ylabel('parameter %err')
+plot.gca().set_xscale(log_chart)
 plot.show()
 
 """
