@@ -14,7 +14,7 @@
 
 
                  //target,  kp,                ki,                kd,  p,  i, d, invert                                                  
-PID RPM_control = {0,       PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0,  0,  0, 0, 1};  
+PID RPM_control = {0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1};  
                   // pid will track tick time instead of rpm, to avoid costly division ops
                   // quantisation from the low resolution may cause problems with the loop, 
 PID VAC_control;  // in which case we'd have to keep a 2x or 4x averaged version, or use units of 100us instead of ms
@@ -54,9 +54,9 @@ unsigned int update_PID(struct pid *pid, int feedback)
   #endif
 
   //calculate demand
-  long p = (long)pid->p * pid->kp;
-  long i = (long)pid->i * pid->ki;
-  long d = (long)pid->d * pid->kd;
+  long p = (long)pid->p * pid->k.p;
+  long i = (long)pid->i * pid->k.i;
+  long d = (long)pid->d * pid->k.d;
   long calc =  p+i+d;
   
   //convert fp to int
@@ -84,11 +84,11 @@ unsigned int update_PID(struct pid *pid, int feedback)
   #ifdef DEBUG_PID
   
   Serial.print(F("PID kp, ki, kd:   "));
-  Serial.print(pid->kp);
+  Serial.print(pid->k.p);
   Serial.print(FS(S_COMMA));
-  Serial.print(pid->ki);
+  Serial.print(pid->k.i);
   Serial.print(FS(S_COMMA));
-  Serial.print(pid->kd);
+  Serial.print(pid->k.d);
   Serial.println();
 
   Serial.print(F("PID t, e, p, i, d, raw, out: "));

@@ -10,7 +10,7 @@
  * the function is __builtin_offsetof also defined as offsetof (type, member | .member | [expr])
  */
  
-#define EEP_VERSION 5
+#define EEP_VERSION 6
 struct eeprom
 {
     byte                touch_calibrated; //is set to 0x7C when calibrated. we can force recalibration by setting this byte to anything else
@@ -19,7 +19,7 @@ struct eeprom
     byte                eep_crc;
     SV_CAL              servo_cal[NO_OF_SERVOS];
     FLAGS_CONFIG        flags_config;
-    
+    PID_K               pid_k_rpm, pid_k_vac;
 };
 /* offsetof doesn not accept array indices, so getting the offset for an array member
  *  requires manually adding the index x the member size.

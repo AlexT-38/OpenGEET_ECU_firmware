@@ -32,10 +32,15 @@
 #define LOG_PAR_MIN           (1<<LOG_PAR_MIN_BITS)
 #define LOG_WH_OFFSET         (LOG_STEP_BITS-2)
 
+typedef struct pid_k
+{
+  int p,i,d;
+}PID_K;
+
 typedef struct pid
 {
   int target;
-  int kp, ki, kd;
+  PID_K k;
   int p;
   long i;
   int d;

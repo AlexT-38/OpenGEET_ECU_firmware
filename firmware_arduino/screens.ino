@@ -294,21 +294,21 @@ void read_touch()
       case TAG_CAL_PID_RPM_P:
         if(touch_event != TOUCH_OFF)
         {
-          pid_set_parameter(&RPM_control.kp);
+          pid_set_parameter(&RPM_control.k.p);
           flags_status.redraw_pending = true;
         }
         break;
       case TAG_CAL_PID_RPM_I:
         if(touch_event != TOUCH_OFF)
         {
-          pid_set_parameter(&RPM_control.ki);
+          pid_set_parameter(&RPM_control.k.i);
           flags_status.redraw_pending = true;
         }
         break;
       case TAG_CAL_PID_RPM_D:
         if(touch_event != TOUCH_OFF)
         {
-          pid_set_parameter(&RPM_control.kd);
+          pid_set_parameter(&RPM_control.k.d);
           flags_status.redraw_pending = true;
         }
         break;
@@ -458,11 +458,12 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   GD.ColorRGB(C_BKG_NORMAL);
   draw_box(pos_x, pos_y, grid_sx, grid_sy, BOX_WIDTH, opts);
 
+  GD.ColorA(A_OPAQUE);
   if(label_pgm != NULL && !small)
   {
     MAKE_STRING(label_pgm);
   
-    GD.ColorA(A_OPAQUE);
+    
     GD.ColorRGB(C_LABEL);
     GD.cmd_text(pos_x+dx, pos_y+20, 28, opts, label_pgm_str);
   }
@@ -526,7 +527,7 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   {
     font_size = 29;
     if(str_len > 6)      {font_size = 20;}
-    else if(str_len > 4) {font_size -= (str_len -4);}
+    else if(str_len > 3) {font_size -= (str_len -3);}
   }
   else
   {

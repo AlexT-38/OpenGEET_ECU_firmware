@@ -62,7 +62,7 @@ log_chart = 'log'#'linear'#
 
 """
 screen space, base 8 (0-255)
-par min vs scr space vs scr low vs effective scr spc vs param min
+par min,    scr max,   scr low, scr rng,    param low
 0           255         34      221         1
 1           239         20      219         2
 2           223          8      215         4
