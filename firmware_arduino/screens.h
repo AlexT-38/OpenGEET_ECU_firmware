@@ -9,7 +9,7 @@
 #define SCREEN_W          480
 #define SCREEN_H          272
 
-#define BORDER            4
+#define CELL_BORDER            4
 #define BOX_WIDTH         2
 
 #define GRID_SX(N)            (int)(SCREEN_W/(N))
@@ -55,9 +55,9 @@
 
 
 //touch and tracker registers
-#define REG_TOUCH_TAG   0x30212C
-#define REG_TOUCH_XY    0x302124
-#define REG_TRACKER     0x307000
+//#define REG_TOUCH_TAG   0x30212C //this is already defined by GD2.h
+//#define REG_TOUCH_XY    0x302124  //this is already defined by GD2.h, and is different! Maybe this is why reading tags were wrong!
+//#define REG_TRACKER     0x307000 //this is already defined by GD2.h, and is different!
 
 //touch event types
 #define TOUCH_OFF       0
@@ -112,6 +112,9 @@ typedef enum tags
   TAG_ENGINE_STOP,
 
   TAG_HOLD_INPUT,
+  TAG_CAL_TORQUE_ZERO,
+  TAG_CAL_TORQUE_MIN,
+  TAG_CAL_TORQUE_MAX,
 
   NO_OF_TAGS,
   

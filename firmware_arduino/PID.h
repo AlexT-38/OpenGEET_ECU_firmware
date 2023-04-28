@@ -20,7 +20,11 @@
 #define LOG_PAR_MIN_BITS      (4)
 #define LOG_PAR_BITS          (16)
 #define LOG_PAR_LIM           (1<<LOG_PAR_BITS)
-#define LOG_PAR_MAX           (1<<LOG_PAR_BITS)
+#if LOG_PAR_BITS == (16)
+#define LOG_PAR_MAX           (UINT16_MAX)
+#else
+#define LOG_PAR_MAX           (LOG_PAR_LIM-1)
+#endif
 #define LOG_SCR_BITS          (8)
 #define LOG_SCR_LIM           (1<<LOG_SCR_BITS)
 #define LOG_SCR_MAX           (LOG_SCR_LIM-1)

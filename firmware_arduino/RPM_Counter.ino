@@ -2,7 +2,7 @@
 
 
 /* time of last tick, stored as microseconds for the benefit of PID */
-static unsigned int rpm_last_tick_time_ms = 0;
+unsigned int rpm_last_tick_time_ms = 0;
 
 //#define RPM_CALC_SIMPLE
 #define RPM_SCALE_BITS 2

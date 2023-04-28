@@ -24,12 +24,14 @@ char load_eeprom()
   SV_CAL servo_cal_t[NO_OF_SERVOS];
   FLAGS_CONFIG flags_config_t;
   PID_K pid_k_rpm_t, pid_k_vac_t;
+  TORQUE_CAL torque_cal_t;
   
   EEP_GET(servo_cal,servo_cal_t);
   EEP_GET(flags_config,flags_config_t);
   EEP_GET(flags_config,flags_config_t);
   EEP_GET(pid_k_rpm,pid_k_rpm_t);
   EEP_GET(pid_k_vac,pid_k_vac_t);
+  EEP_GET(torque_cal,torque_cal_t);
 
   byte crc = 0xFF; 
   //crc = get_crc(crc,servo_cal_t,sizeof(servo_cal_t));
@@ -42,6 +44,7 @@ char load_eeprom()
     flags_config = flags_config_t;
     RPM_control.k = pid_k_rpm_t;
     VAC_control.k = pid_k_vac_t;
+    torque_cal = torque_cal_t;
     return true;
   }
   Serial.print(F("eep CRC fail: "));

@@ -17,6 +17,37 @@
  * Upgrade to an STM10x or 40x device can be made later if required.
  */
 
+#define UNO 1
+#define MEGA 2
+#ifdef ARDUINO_AVR_UNO
+#define TARGET   UNO
+#elif defined (ARDUINO_AVR_MEGA2560) || defined(ARDUINO_AVR_MEGA)
+#define TARGET   MEGA
+#endif
+/* UNO PIN MAP / Circuit description:
+ *  UNO Pin     I/O     Function/name
+ *  0           I       USB Serial Rx
+ *  1           O       USB Serial Tx
+ *  2           I       RPM counter
+ *  3           O       Servo 1
+ *  4           I       DATA: HX711 Load Cell
+ *  5           O       Servo 2
+ *  6           O       Servo 3
+ *  7           O       CS: EGT 1
+ *  8           O       CS: Gameduino FT810
+ *  9           O       CS: Gameduino SD Card / CLK: HX711 Load Cell
+ *  10          O       CS: SD Card
+ *  11          I       MISO: Display, EGT, SD Card
+ *  12          O       MOSI: Display, EGT, SD Card
+ *  13          O       SCK: Display, EGT, SD Card
+ *  14  A0      I       MAP 1
+ *  15  A1      I       User Input 1
+ *  16  A2      I       User Input 2
+ *  17  A3      I       User Input 3
+ *  18  A4      O       SCL / RTC
+ *  19  A5      I/O     SDA / RTC
+ */
+
   /* latest on ram usage:
    *  adding a PID struct and it's output to the record struct
    *  has brought free ram down to 443 bytes.
@@ -38,6 +69,7 @@
   *  and serial port in under 13.3 ms , or else drop data from the rpm counter.
   *  
   *  SD card access is taking approximately 30ms, so double buffering is required.
+  *  SD card access delay can be larger than this and is dependant on the card's buffer size.
   *  
   *  to avoid string literals, strings must be placed into progmem
   *  and read out into a temporary buffer as per https://www.arduino.cc/reference/en/language/variables/utilities/progmem/
@@ -52,6 +84,8 @@
 
 
 #include "tiny_rtc.h"
+#include "hx711.h"
+
 
 #define DEBUG
 
@@ -81,7 +115,7 @@
 
 
 
-
+#include "torque_sensor.h"
 #include "PID.h"
 #include "strings.h"
 #include "screens.h"
@@ -103,10 +137,11 @@
 //#define CONTROL_INPUT_1_NAME      "Reactor Inlet Valve Target"
 //#define CONTROL_INPUT_2_NAME      "Engine Inlet Valve Target"
 
-// sensor types - probably ought to be an enum
+// sensor interface types - probably ought to be an enum
 #define ST_ANALOG                 0
 #define ST_I2C                    1
 #define ST_SPI                    2
+#define ST_SOFT                   3 //software implemented interface
 
 // pressure sensor configuration
 #define NO_OF_MAP_SENSORS         1
@@ -116,6 +151,17 @@
 #define PIN_INPUT_MAP_1           A2
 //#define SENSOR_MAP_1_NAME         "Reactor Fuel Inlet Pressure"
 
+//torque sensor
+#define SENSOR_TYPE_TORQUE        ST_SOFT
+#define ADC_TORQUE_OVR_CHN3    //if defined, torque data will overwrite user input 3
+
+
+//user inputs
+#ifndef ADC_TORQUE_OVR_CHN3
+#define NO_OF_USER_INPUTS   3
+#else
+#define NO_OF_USER_INPUTS   2
+#endif
 //calibration values for Lemark LMS184 1 bar MAP sensor
 //specifying them as Long type to ensure correct evaluation
 #define SENSOR_MAP_CAL_HIGH_LSb     39L    //analog sample value for the high cal point
@@ -235,7 +281,17 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
  *  as ram has been cleaned up, these are now high resolution 
  */
 unsigned int MAP_pressure_abs;
-unsigned int KNOB_values[3];
+/*PID references KNOB values to set Servo values,
+ * so the number of knobs must be at least the number of servos,
+ * even if there are no knobs to set the value
+ */
+#if NO_OF_USER_INPUTS < NO_OF_SERVOS
+#define NO_OF_KNOBS NO_OF_SERVOS
+#else
+#define NO_OF_KNOBS NO_OF_USER_INPUTS
+#endif
+unsigned int KNOB_values[NO_OF_KNOBS];
+
 
 
 
@@ -266,6 +322,12 @@ int lmap( int x,  int in_min,  int in_max,  int out_min,  int out_max)
 {
   return (int)((( long)(x - in_min) * (out_max - out_min)) / (in_max - in_min)) + out_min;
 }
+/* map(), but with long inputs SLOW, but needed for 24bit sensors */
+long longmap(long x, long in_min, long in_max, long out_min, long out_max) 
+{
+  return (long)((long long)(x - in_min) * (out_max - out_min) / (in_max - in_min)) + out_min;
+}
+
 
 /* if input range is a power of two, this function is much faster */
 int ib2map(int x, int in_min, byte in_range_log2, int out_min, int out_max)
@@ -430,7 +492,11 @@ void setup() {
   analogRead(A0);
   analogRead(A1);
   analogRead(A2);
+  #ifndef ADC_TORQUE_OVR_CHN3
   analogRead(A3);
+  #endif
+  
+  configure_torque_sensor();
 
 
   //move all servos to minimum
@@ -497,7 +563,11 @@ void process_analog_inputs()
   int a0 = analogRead(A0);
   int a1 = analogRead(A1);
   int a2 = analogRead(A2);
+#ifndef  ADC_TORQUE_OVR_CHN3
   int a3 = analogRead(A3);
+#else
+  int a3 = torqueRead(); //while technically a 'digital' sensor, the update rate is 10Hz, which matches with the analog update rate, and not the thermo couple update rate
+#endif
 
   //do some sort of processing with these values
   //for now we want to use a1-a3 to directly control servos
@@ -519,7 +589,9 @@ void process_analog_inputs()
 
   KNOB_values[0] = a1;
   KNOB_values[1] = a2;
+#ifndef  ADC_TORQUE_OVR_CHN3  
   KNOB_values[2] = a3;
+#endif
 
   // change what is logged depending on operating mode
   switch(sys_mode)
@@ -560,7 +632,8 @@ void process_digital_inputs()
   #ifdef DEBUG_DIGITAL_TIME
   unsigned int timestamp_us = micros();
   #endif
-  
+
+  //collect egt data only if there are available sample slots
   if (CURRENT_RECORD.EGT_no_of_samples < EGT_SAMPLES_PER_UPDATE)
   {
     if(EGTSensor1.readTemp())

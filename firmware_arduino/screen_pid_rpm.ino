@@ -43,7 +43,7 @@ void screen_draw_pid_rpm()
   byte gx, gy;
 
   /* data record to read */
-  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
+  DATA_RECORD *data_record = &LAST_RECORD;
 
   //clear tag
   GD.Tag(TAG_INVALID);

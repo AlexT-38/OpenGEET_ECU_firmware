@@ -8,14 +8,14 @@
 typedef struct data_record
 {
   long int timestamp;                   // TODO: use the RTC for this
-  unsigned int A0[ANALOG_SAMPLES_PER_UPDATE];    // TODO: replace these with meaningful values, consider seperate update rates, lower resolution
-  unsigned int A1[ANALOG_SAMPLES_PER_UPDATE];
-  unsigned int A2[ANALOG_SAMPLES_PER_UPDATE];
-  unsigned int A3[ANALOG_SAMPLES_PER_UPDATE];
-  unsigned int A0_avg;
-  unsigned int A1_avg;
-  unsigned int A2_avg;
-  unsigned int A3_avg;
+  int A0[ANALOG_SAMPLES_PER_UPDATE];    // TODO: replace these with meaningful values, consider seperate update rates, lower resolution
+  int A1[ANALOG_SAMPLES_PER_UPDATE];
+  int A2[ANALOG_SAMPLES_PER_UPDATE];
+  int A3[ANALOG_SAMPLES_PER_UPDATE];
+  int A0_avg;                           //do we need averages _and_ all samples in the record?
+  int A1_avg;
+  int A2_avg;
+  int A3_avg;
   byte ANA_no_of_samples;
   int EGT[EGT_SAMPLES_PER_UPDATE];
   int EGT_avg;
@@ -45,6 +45,7 @@ DATA_RECORD Data_Record[2];
 byte Data_Record_write_idx = 0;
 
 #define CURRENT_RECORD    Data_Record[Data_Record_write_idx]
+#define LAST_RECORD       Data_Record[1-Data_Record_write_idx]
 extern char output_filename[13]; //8+3 format
 
 extern File log_data_file; 

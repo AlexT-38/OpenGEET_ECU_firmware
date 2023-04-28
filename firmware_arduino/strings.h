@@ -61,6 +61,7 @@ const char S_INPUT_1[] PROGMEM = "Input 1";
 const char S_INPUT_2[] PROGMEM = "Input 2";
 const char S_INPUT_3[] PROGMEM = "Input 3";
 const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
+const char S_TORQUE_MNM[] PROGMEM = "Torque mN.m";
 
 const char S_TARGET[] PROGMEM = "Target";
 const char S_OUTPUT[] PROGMEM = "Output";
@@ -73,6 +74,9 @@ const char S_PID_SAMPLES_C[] PROGMEM = "PID no.: ";
 const char S_ACTIVE[] PROGMEM = "ACTIVE";
 const char S_HOLD[] PROGMEM = "HOLD";
 
+const char S_TQ_SET_ZR[] PROGMEM = "TQ SET ZR";
+const char S_TQ_SET_MX[] PROGMEM = "TQ SET MX";
+const char S_TQ_SET_MN[] PROGMEM = "TQ SET MN";
 
 const char S_RECORD_MARKER[] PROGMEM = "----------";
 

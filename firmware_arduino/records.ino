@@ -112,8 +112,8 @@ void stream_print_byte_array(Stream *file, byte *array_data, unsigned int array_
 /* reset the back record after use */
 void reset_record()
 {
-  Data_Record[1-Data_Record_write_idx] = (DATA_RECORD){0};
-  Data_Record[1-Data_Record_write_idx].timestamp = 0;//millis();//
+  LAST_RECORD = (DATA_RECORD){0};
+  LAST_RECORD.timestamp = 0;//millis();//
 }
 
 
@@ -124,7 +124,7 @@ void finalise_record()
   Data_Record_write_idx = 1-Data_Record_write_idx; 
   
   /* data record to read */
-  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
+  DATA_RECORD *data_record = &LAST_RECORD;
   
   
   /* calculate averages */
@@ -244,7 +244,7 @@ bool write_serial_data_record()
     #endif
 
     /* data record to read */
-    DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;//&Data_Record[1-Data_Record_write_idx];//
+    DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;//&LAST_RECORD;//
   
     if(flags_config.do_serial_write_hex)
     {

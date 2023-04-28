@@ -316,6 +316,27 @@ void read_touch()
         break;
       case TAG_ENGINE_STOP:
         break;
+      case TAG_CAL_TORQUE_ZERO:
+        if(touch_event == TOUCH_OFF)
+        {
+          tq_set_zero();
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_CAL_TORQUE_MAX:
+        if(touch_event == TOUCH_OFF)
+        {
+          tq_set_high();
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_CAL_TORQUE_MIN:
+        if(touch_event == TOUCH_OFF)
+        {
+          tq_set_low();
+          flags_status.redraw_pending = true;
+        }
+        break;
       case TAG_HOLD_INPUT:
         if(touch_event == TOUCH_OFF)
         {
@@ -381,8 +402,8 @@ void draw_box(int px, int py, int sx, int sy, char w, int opt)
   }
   GD.LineWidth(PTSP(w));
   GD.Begin(RECTS);
-  GD.Vertex2ii(px+BORDER,py+BORDER,0,0);
-  GD.Vertex2ii(sx-BORDER,sy-BORDER,0,0);
+  GD.Vertex2ii(px+CELL_BORDER,py+CELL_BORDER,0,0);
+  GD.Vertex2ii(sx-CELL_BORDER,sy-CELL_BORDER,0,0);
 }
 
 /* screen selection */
@@ -411,7 +432,7 @@ void draw_datetime(int pos_x, int pos_y, unsigned int optx)
 /* draw an integer value and a label from progmem */
 void draw_readout_int(const int pos_x, const int pos_y, int opts, const int value, const char *label_pgm)
 {
-  char dx = BORDER, dy =BORDER;
+  char dx = CELL_BORDER, dy =CELL_BORDER;
   if(opts&OPT_RIGHTX)
   {    dx = -dx;  }
   else if(opts&OPT_CENTERX)
@@ -442,7 +463,7 @@ void draw_readout_decimal(const int pos_x, const int pos_y, int opts, const int 
 /* draw a fixed point integer value, with the given number of fractional bits and significant digits */
 void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int value, const byte frac_bits, byte extra_sf, const char *label_pgm, bool small)
 {
-  int  dx = BORDER*2, dy = -8;
+  int  dx = CELL_BORDER*2, dy = -8;
   if(opts&OPT_RIGHTX)
   {    dx = -dx;  }
   else if(opts&OPT_CENTERX)
@@ -550,8 +571,8 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
 
 void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *label_str, byte tag, int value, int val_max)
 {
-  int x2 = x + (BORDER<<1);
-  int sx2 = sx - (label_size + (BORDER<<1) + SLIDER_HEIGHT);
+  int x2 = x + (CELL_BORDER<<1);
+  int sx2 = sx - (label_size + (CELL_BORDER<<1) + SLIDER_HEIGHT);
   int y2 = y + (sy>>1);
   int opt = (tag==GD.inputs.tag)? OPT_FLAT:0;
   
@@ -605,8 +626,8 @@ void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *
 int get_slider_value_horz(int px_min, int px_max, int param_min, int param_max)
 {
 
-  px_min += SLIDER_HEIGHT+BORDER;
-  px_max -= SLIDER_HEIGHT+BORDER;
+  px_min += SLIDER_HEIGHT+CELL_BORDER;
+  px_max -= SLIDER_HEIGHT+CELL_BORDER;
   //clamp the x coordinate to the active range
   int x_coord = constrain(GD.inputs.xytouch.x,px_min,px_max);
   //map the active range to servo range
@@ -627,7 +648,7 @@ int get_slider_value_horz(int px_min, int px_max, int param_min, int param_max)
 void draw_slider_vert(int x, int y, int sx, int sy, int label_size, const char *label_str, byte tag, int value, int val_max)
 {
   int y2 = y + label_size/2;
-  int sy2 = sy - (label_size + (BORDER<<1) + SLIDER_WIDTH);
+  int sy2 = sy - (label_size + (CELL_BORDER<<1) + SLIDER_WIDTH);
   int x2 = x + (sx>>1);
   int opt = (tag==GD.inputs.tag)? OPT_FLAT:0;
   
@@ -680,8 +701,8 @@ void draw_slider_vert(int x, int y, int sx, int sy, int label_size, const char *
 int get_slider_value_vert(int py_min, int py_max, int param_min, int param_max)
 {
 
-  py_min += SLIDER_WIDTH+BORDER;
-  py_max -= SLIDER_WIDTH+BORDER;
+  py_min += SLIDER_WIDTH+CELL_BORDER;
+  py_max -= SLIDER_WIDTH+CELL_BORDER;
   //clamp the x coordinate to the active range
   int y_coord = constrain(GD.inputs.xytouch.y, py_min, py_max);
   //map the active range to servo range
@@ -711,8 +732,8 @@ int get_slider_value_vert(int py_min, int py_max, int param_min, int param_max)
  */
 int get_slider_value_vert_px(int py_min, int py_range)
 {
-//  py_min += SLIDER_WIDTH+BORDER;
-//  py_range -= SLIDER_WIDTH+BORDER;
+//  py_min += SLIDER_WIDTH+CELL_BORDER;
+//  py_range -= SLIDER_WIDTH+CELL_BORDER;
   //clamp the x coordinate to the active range
   int y_coord = constrain(GD.inputs.xytouch.y - py_min, 0, py_range);
   y_coord = py_range - y_coord;
@@ -730,14 +751,14 @@ void draw_button(int x, int y, byte sx, byte sy, byte tag, const char * string)
 {
   GD.Tag(tag);
   int opt = (GD.inputs.tag == tag)? OPT_FLAT : 0;
-  GD.cmd_button(x+BORDER,y+BORDER,sx-(BORDER<<1),sy-(BORDER<<1), 26, opt, string);
+  GD.cmd_button(x+CELL_BORDER,y+CELL_BORDER,sx-(CELL_BORDER<<1),sy-(CELL_BORDER<<1), 26, opt, string);
 }
 
 void draw_toggle_button(int x, int y, byte sx, byte sy, byte tag, byte state, const char * string)
 {
   GD.Tag(tag);
   int opt = state ? OPT_FLAT : 0;
-  GD.cmd_button(x+BORDER,y+BORDER,sx-(BORDER<<1),sy-(BORDER<<1), 26, opt, string);
+  GD.cmd_button(x+CELL_BORDER,y+CELL_BORDER,sx-(CELL_BORDER<<1),sy-(CELL_BORDER<<1), 26, opt, string);
 }
 
 void draw_log_toggle_button(int x, int y, byte sx, byte sy)
@@ -755,7 +776,7 @@ void draw_log_toggle_button(int x, int y, byte sx, byte sy)
     GD.cmd_fgcolor(C_BUTTON_FG);
   }
   MAKE_STRING(S_REC);
-  GD.cmd_button(x+BORDER,y+BORDER,sx-(BORDER<<1),sy-(BORDER<<1), 26, opt, S_REC_str);
+  GD.cmd_button(x+CELL_BORDER,y+CELL_BORDER,sx-(CELL_BORDER<<1),sy-(CELL_BORDER<<1), 26, opt, S_REC_str);
 
   x+=sx>>1;
   y+=sy>>1;
@@ -812,16 +833,16 @@ void draw_screen_selector()
     GD.Tag(TAG_SCREEN_1 + n);                                                                         //set the touch tag
     opt = ( (current_screen == (SCREEN_1 + n)) || (GD.inputs.tag == (TAG_SCREEN_1 + n)) ) * OPT_FLAT;     //draw flat if currently selected, or button is touched
     READ_STRING_FROM(screen_labels, n, label);
-    GD.cmd_button(GRID_XL(0,SCREEN_BUTTON_XN)+BORDER, GRID_YT(n,NO_OF_SCREENS)+BORDER, GRID_SX(SCREEN_BUTTON_XN)-(BORDER<<1), GRID_SY(NO_OF_SCREENS)-(BORDER<<1), SCREEN_BUTTON_FONT, opt, label);
+    GD.cmd_button(GRID_XL(0,SCREEN_BUTTON_XN)+CELL_BORDER, GRID_YT(n,NO_OF_SCREENS)+CELL_BORDER, GRID_SX(SCREEN_BUTTON_XN)-(CELL_BORDER<<1), GRID_SY(NO_OF_SCREENS)-(CELL_BORDER<<1), SCREEN_BUTTON_FONT, opt, label);
   }
 }
 
 void draw_screen_background()
 {
     /* data record to read */
-  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
+  DATA_RECORD *data_record = &LAST_RECORD;
 
-  int colour_bg = C_BKG_NORMAL;
+  long colour_bg = C_BKG_NORMAL;
   /* simple background colour setting by rpm range
      this should be changed to read from system status flags */
   if (data_record->RPM_avg == 0)
