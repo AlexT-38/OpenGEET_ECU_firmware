@@ -9,7 +9,7 @@
 //#define DEBUG_PID
 //#define DEBUG_PID_LOG_FUNC
 //#define DEBUG_PID_EXP_FUNC
-#define DEBUG_PID_FEEDBACK
+//#define DEBUG_PID_FEEDBACK
 #define DEBUG_PID_FEEDBACK_VALUE  RPM_TO_MS((RPM_MIN_SET + RPM_MAX_SET)>>1)
 
 
@@ -252,16 +252,24 @@ void process_pid_loop()
   // buffers for the eeprom min max values
 
   unsigned int sv_targets[NO_OF_SERVOS] = {0};
-
+  byte n=0; //input/servo index
+  
   // copy the dial inputs to the servo outputs
-  for(byte n=0; n<NO_OF_SERVOS; n++)
+  for(n=0; n<NO_OF_SERVOS; n++)
   {
     sv_targets[n] = KNOB_values[n];
   }
+  n=0; //reset the index
+  
   switch(sys_mode)
   {
     default:
     case MODE_DIRECT:
+      // disable writes to servos if holding inputs
+      if(flags_status.hold_direct_input)
+      {
+        n=NO_OF_SERVOS;
+      }
       break;
     case MODE_PID_RPM_CARB:
       // convert control input to target rpm 
@@ -281,7 +289,7 @@ void process_pid_loop()
 
   
   // go through each servo, and map inputs to outputs
-  for (byte n=0; n<NO_OF_SERVOS; n++)
+  for (; n<NO_OF_SERVOS; n++)
   {
     set_servo_position(n, sv_targets[n]);
   }

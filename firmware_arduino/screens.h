@@ -111,6 +111,8 @@ typedef enum tags
   TAG_ENGINE_START,
   TAG_ENGINE_STOP,
 
+  TAG_HOLD_INPUT,
+
   NO_OF_TAGS,
   
 }TAGS_EN;

@@ -37,6 +37,12 @@ void screen_draw_basic()
   draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->A3_avg, S_INPUT_3);
   draw_log_toggle_button(GRID_XL(XN-2,XN),GRID_YT(YN-1,YN),GRID_SX(XN),GRID_SY(YN));
 
+  //mid left column
+  gy = 0;
+  gx--;
+  MAKE_STRING(S_HOLD);
+  draw_toggle_button(GRID_XL(XN-3,XN), GRID_YT(0,YN), GRID_SX(XN),GRID_SY(YN), TAG_HOLD_INPUT, flags_status.hold_direct_input, S_HOLD_str);
+
 }
 
 /* work around for tag always zero issue*/
@@ -46,6 +52,7 @@ byte screen_basic_tags()
 {
   byte tag = TAG_INVALID;
   if(is_touching_inside(GRID_XL(XN-2,XN),GRID_YT(YN-1,YN),GRID_SX(XN),GRID_SY(YN))) { tag = TAG_LOG_TOGGLE;}
+  else if(is_touching_inside(GRID_XL(XN-3,XN),GRID_YT(0,YN),GRID_SX(XN),GRID_SY(YN))) { tag = TAG_HOLD_INPUT;}
   return tag;
 }
 #endif

@@ -6,7 +6,7 @@
  * 
  * Open GEET Engine Control Unit firmware
  *
- * Reads sensor values (rpm, egt, map) and user inputs, control valve positions. 
+ * Reads sensor values (rpm, egt, map, torque) and user inputs, control valve positions. 
  * Optionally drives fuel injection and ignition, reads magnetic fields. Logs all values to sd card.
  * Initially, control inputs will be mapped directly to valve positions. 
  * Once the behaviour of the reactor and engine are better understood, 
@@ -195,7 +195,7 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
 
 
 #define RPM_MIN_SET                   1500
-#define RPM_MAX_SET                   3600
+#define RPM_MAX_SET                   4500
 #define RPM_MIN_SET_ms                RPM_TO_MS(RPM_MIN_SET)
 #define RPM_MAX_SET_ms                RPM_TO_MS(RPM_MAX_SET)
 
@@ -256,12 +256,12 @@ static int touch_timestamp = 0;
  *  ob2map: 39675 - copy of ib2map, but output range is power of 2. no benefit
  */
   
-
+/* map(), but with all inputs and outputs as 16bit integers: (out_range * in_range) must be less than 32k */
 int imap(int x, int in_min, int in_max, int out_min, int out_max)
 {
   return ((x - in_min) * (out_max - out_min) / (in_max - in_min)) + out_min;
 }
-
+/* map(), but with all inputs and outputs as 16bit integers: (out_range * in_range) can exceed 32k */
 int lmap( int x,  int in_min,  int in_max,  int out_min,  int out_max)
 {
   return (int)((( long)(x - in_min) * (out_max - out_min)) / (in_max - in_min)) + out_min;

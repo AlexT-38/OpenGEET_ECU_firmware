@@ -316,6 +316,13 @@ void read_touch()
         break;
       case TAG_ENGINE_STOP:
         break;
+      case TAG_HOLD_INPUT:
+        if(touch_event == TOUCH_OFF)
+        {
+          flags_status.hold_direct_input ^= 1;
+          flags_status.redraw_pending = true;
+        }
+        break;
       default:
 //        flags_status.redraw_pending = true;
         break;

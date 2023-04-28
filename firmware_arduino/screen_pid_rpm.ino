@@ -71,9 +71,20 @@ void screen_draw_pid_rpm()
   gy = 0;
   gx--;
 
-  if(sys_mode!=MODE_DIRECT)
+  if(sys_mode!=MODE_DIRECT || flags_status.hold_direct_input)
   {
-    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, MS_TO_RPM(data_record->A1_avg), S_TARGET);
+    int rpm_control_target;
+    if(sys_mode==MODE_DIRECT)
+    {
+      //take the target from the average input value when 'previewing' the target from direct mode, with outputs held
+      rpm_control_target = amap(data_record->A1_avg, RPM_MIN_SET_ms, RPM_MAX_SET_ms);
+    }
+    else
+    {
+      //otherwise use the actual PID target
+      rpm_control_target = RPM_control.target;
+    }
+    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, MS_TO_RPM(rpm_control_target), S_TARGET);
   }
   else
   {
