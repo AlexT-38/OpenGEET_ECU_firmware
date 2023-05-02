@@ -37,9 +37,9 @@
  *  8           O       CS: Gameduino FT810
  *  9           O       CS: Gameduino SD Card / CLK: HX711 Load Cell
  *  10          O       CS: SD Card
- *  11          I       MISO: Display, EGT, SD Card
- *  12          O       MOSI: Display, EGT, SD Card
- *  13          O       SCK: Display, EGT, SD Card
+ *  11          O       MOSI: Display, EGT, SD Card
+ *  12          I       MISO: Display, EGT, SD Card
+ *  13          O       SCK:  Display, EGT, SD Card
  *  14  A0      I       MAP 1
  *  15  A1      I       User Input 1
  *  16  A2      I       User Input 2
@@ -109,11 +109,14 @@
 //#define DEBUG_SCREEN_RES    //print screen resolution during startup (should be WQVGA: 480 x 272)
 //#define DEBUG_TOUCH_INPUT
 //#define DEBUG_TOUCH_CAL
+//#define DEBUG_TORQUE_SENSOR
+//#define DEBUG_TORQUE_RAW
 
 //#define DEBUG_DISABLE_DIGITAL
 #endif
 
-
+//32008 undefined, 31966 defined
+//#define SQUEESE_HX711
 
 #include "torque_sensor.h"
 #include "PID.h"
@@ -421,22 +424,20 @@ void setup() {
   initialise_servos();
   
 
-
-  
   //fetch the firmware fersion string
 
   
   //initialise the serial port:
   Serial.begin(1000000);  //for usb coms, no reason not to use fastest available baud rate - this turns out to be the biggest time usage during update/report
-  Serial.println();
+//  Serial.println();
 
   MAKE_STRING(S_FIRMWARE_NAME);           //we use make here so we can pass the string to screen_flash
-  Serial.println(S_FIRMWARE_NAME_str);
+//  Serial.println(S_FIRMWARE_NAME_str);
   
   DateTime t_compile;
   t_compile = CompileDateTime();
   serial_print_date_time(t_compile);
-  Serial.println();
+//  Serial.println();
 
 
   //initialise RTC
@@ -484,16 +485,16 @@ void setup() {
     GET_STRING(S_CARD_INITIALISED); //S_NO_SD_CARD);//
     flags_status.sdcard_available = true;
   }
-  Serial.println(string);
+//  Serial.println(string);
   screen_draw_flash(S_FIRMWARE_NAME_str, string);
 
 
   //start the ADC
   analogRead(A0);
-  analogRead(A1);
-  analogRead(A2);
+//  analogRead(A1);
+//  analogRead(A2);
   #ifndef ADC_TORQUE_OVR_CHN3
-  analogRead(A3);
+//  analogRead(A3);
   #endif
   
   configure_torque_sensor();

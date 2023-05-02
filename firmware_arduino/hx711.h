@@ -9,9 +9,12 @@
 // see "hardware/arduino/variants/standard/pins_arduino.h"
 
 #define HX711_CLK_port PORTB
+#define HX711_DATA_port PORTD
 #define HX711_DATA_pin PIND
 #define HX711_CLK_bit 1
 #define HX711_DATA_bit 4
+#define HX711_CLK_ddr DDRB
+#define HX711_DATA_ddr DDRD
 /*
 #elif TARGET == MEGA
 #define HX711_CLK  9

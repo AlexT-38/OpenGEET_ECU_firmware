@@ -54,17 +54,17 @@ void screen_draw_pid_rpm()
   #ifdef  DEBUG_PID_FEEDBACK
   if(sys_mode!=MODE_DIRECT)
   {
-    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, MS_TO_RPM(DEBUG_PID_FEEDBACK_VALUE), S_RPM);
+    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, MS_TO_RPM(DEBUG_PID_FEEDBACK_VALUE), S_RPM);
   }
   else
   #endif
   {
-    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->RPM_avg, S_RPM);
+    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->RPM_avg, S_RPM);
   }
   
   
-  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->A0_avg, S_MAP_MBAR);
-  draw_readout_fixed(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->EGT_avg, 2,0, S_EGT1_DEGC, false);
+  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->A0_avg, S_MAP_MBAR);
+  draw_readout_fixed(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->EGT_avg, 2,0, S_EGT1_DEGC, false);
   draw_datetime(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX );
 
   // Mid right column
@@ -84,13 +84,13 @@ void screen_draw_pid_rpm()
       //otherwise use the actual PID target
       rpm_control_target = RPM_control.target;
     }
-    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, MS_TO_RPM(rpm_control_target), S_TARGET);
+    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, MS_TO_RPM(rpm_control_target), S_TARGET);
   }
   else
   {
-    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->A1_avg, S_INPUT_1);
+    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->A1_avg, S_INPUT_1);
   }  
-  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX | OPT_CENTERY, data_record->PID_SV0_avg, S_OUTPUT);
+  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->PID_SV0_avg, S_OUTPUT);
   
   MAKE_STRING(S_ACTIVE);
   draw_toggle_button(GRID_XL(XN-2,XN),GRID_YT(YN-2,YN),GRID_SX(XN),GRID_SY(YN),TAG_MODE_SET_PID_RPM,(sys_mode == MODE_PID_RPM_CARB),S_ACTIVE_str);

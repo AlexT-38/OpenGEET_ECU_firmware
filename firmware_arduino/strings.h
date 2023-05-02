@@ -61,7 +61,7 @@ const char S_INPUT_1[] PROGMEM = "Input 1";
 const char S_INPUT_2[] PROGMEM = "Input 2";
 const char S_INPUT_3[] PROGMEM = "Input 3";
 const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
-const char S_TORQUE_MNM[] PROGMEM = "Torque mN.m";
+const char S_TORQUE_MNM[] PROGMEM = "Tq. mN.m";
 
 const char S_TARGET[] PROGMEM = "Target";
 const char S_OUTPUT[] PROGMEM = "Output";

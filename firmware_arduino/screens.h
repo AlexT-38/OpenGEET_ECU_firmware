@@ -21,6 +21,8 @@
 #define GRID_XR(n,N)         (int)((n+1)*GRID_SX(N))
 #define GRID_YB(n,N)         (int)((n+1)*GRID_SY(N))
 
+#define DRO_OPT  (OPT_RIGHTX | OPT_CENTERY | OPT_SIGNED)
+
 #define SUBPIXEL_BITS    4
 
 

@@ -7,14 +7,13 @@
  * but to keep values in the int16 range, we will use mN.m as calibration units
  */
 
-#define TORQUE_TIMEOUT_ms 2
+#define TORQUE_TIMEOUT_ms 1
 #define TORQUE_CAL_MAX_mNm    9806
 #define TORQUE_CAL_MIN_mNm    -TORQUE_CAL_MAX_mNm
 
 
 
-#define TORQUE_PRESCALE   4     //divide by 16 to get values in the INT16 range
-#define TORQUE_ROUNDING   _BV(TORQUE_PRESCALE-1)
+
 
 #define TORQUE_CAL_DEFAULT    (300000>>TORQUE_PRESCALE) //default counts for 1kg.m
 
@@ -26,6 +25,7 @@ TORQUE_CAL          torque_cal;
 
 void configure_torque_sensor()
 {
+  //Serial.println(F("tqc"));
   //configure the io pins
   HX711_configure();
   //configure the default calibration
@@ -38,15 +38,32 @@ void configure_torque_sensor()
 
 int torqueRead()
 {
+  #ifdef DEBUG_TORQUE_SENSOR
+  Serial.println(F("tqr"));
+  #endif
   //wait for valid data
   int timeout_ms = millis() + TORQUE_TIMEOUT_ms;
   while(HX711_getDATA() && millis() < timeout_ms);
   //round down to int before applying the calibration
   int torque_mNm = 0;
   if(!HX711_getDATA())
-  { 
-    int torque_mNm = tq_counts_to_mNm((HX711_read_value()+TORQUE_ROUNDING)>>TORQUE_PRESCALE);
+  {
+    
+#ifdef SQUEESE_HX711
+    torque_mNm = tq_counts_to_mNm((HX711_read_value()));//+TORQUE_ROUNDING)>>TORQUE_PRESCALE);
+#else
+  torque_mNm = tq_counts_to_mNm((HX711_read_value()+TORQUE_ROUNDING)>>TORQUE_PRESCALE);
+#endif
   }
+#ifdef DEBUG_TORQUE_SENSOR
+  else
+  {
+    Serial.println(F("tqr FAIL"));
+  }
+  Serial.println(torque_mNm,HEX);
+  //Serial.println(F("tqrd"));
+#endif
+
   return torque_mNm;
 }
 
@@ -55,6 +72,9 @@ int torqueRead()
  */
 int tq_counts_to_mNm(int value_counts)
 {
+  #ifdef DEBUG_TORQUE_RAW
+  return value_counts;
+  #else
   int cal_value;
   if(value_counts < torque_cal.counts_zero)
   {
@@ -65,6 +85,7 @@ int tq_counts_to_mNm(int value_counts)
     cal_value = lmap (value_counts, torque_cal.counts_zero, torque_cal.counts_max, 0,TORQUE_CAL_MAX_mNm);
   }
   return cal_value;
+  #endif
 }
 
 /* this function will block for several seconds, and should not be used when logging, pid is active, or engine is running
@@ -77,9 +98,13 @@ int tq_get_cal_value()
   for(int n = 0; n < TORQUE_CAL_READINGS; n++)
   {
     //wait for data
-    while(HX711_getDATA() && (millis() < timeout_ms));
+    while(HX711_getDATA());// && (millis() < timeout_ms));
     //check for timeout
-    if(HX711_getDATA()) return INT16_MAX;
+/*    if(HX711_getDATA()) 
+    {
+      return INT16_MAX;
+    }
+*/
     //add the new reading
     avg_count += HX711_read_value();
   }
@@ -91,25 +116,31 @@ void tq_set_zero()
   // get the cal value
   int cal_value = tq_get_cal_value();
   // set the value if valid
-  if(cal_value != INT16_MAX){  torque_cal.counts_zero = cal_value;}
+  //if(cal_value != INT16_MAX){  
+  torque_cal.counts_zero = cal_value;
+  //}
   //otherwise use the default
-  else { torque_cal.counts_zero = 0;}
+ // else { torque_cal.counts_zero = 0;}
 }
 void tq_set_high()
 {
   // get the cal value
   int cal_value = tq_get_cal_value();
   // set the value if valid
-  if(cal_value != INT16_MAX){  torque_cal.counts_max = cal_value;}
+  //if(cal_value != INT16_MAX){  
+  torque_cal.counts_max = cal_value;
+  //}
   //otherwise use the default
-  else { torque_cal.counts_max = TORQUE_CAL_DEFAULT;}
+  //else { torque_cal.counts_max = TORQUE_CAL_DEFAULT;}
 }
 void tq_set_low()
 {
   // get the cal value
   int cal_value = tq_get_cal_value();
   // set the value if valid
-  if(cal_value != INT16_MAX){  torque_cal.counts_min = cal_value;}
+  //if(cal_value != INT16_MAX){  
+  torque_cal.counts_min = cal_value;
+  //}
   //otherwise use the default
-  else { torque_cal.counts_min = -TORQUE_CAL_DEFAULT;}
+  //else { torque_cal.counts_min = -TORQUE_CAL_DEFAULT;}
 }

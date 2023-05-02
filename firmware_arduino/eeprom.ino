@@ -47,10 +47,14 @@ char load_eeprom()
     torque_cal = torque_cal_t;
     return true;
   }
+  #ifdef DEBUG_EEPROM_SYSTEM
   Serial.print(F("eep CRC fail: "));
   Serial.print(eep_crc);
   Serial.print(' ');
   Serial.println(crc);
+  #else
+  Serial.println(F("eep CRC fail"));
+  #endif
   return false;
 }
 
