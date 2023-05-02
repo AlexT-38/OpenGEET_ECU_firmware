@@ -74,7 +74,9 @@ void save_eeprom()
   EEP_PUT(flags_config,flags_config);
   EEP_PUT(pid_k_rpm,RPM_control.k);
   EEP_PUT(pid_k_vac,VAC_control.k);
+  EEP_PUT(torque_cal,torque_cal);
   EEP_PUT(eep_crc,eep_crc);
+
 }
 
 /* check for the update flag to be set, write eeprom only once 1 second has passed since the last write */

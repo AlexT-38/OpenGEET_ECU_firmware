@@ -106,13 +106,16 @@
 //#define DEBUG_EEP_CONTENT
 //#define DEBUG_RPM_COUNTER
 //#define DEBUG_MAP_CAL
-//#define DEBUG_SCREEN_RES    //print screen resolution during startup (should be WQVGA: 480 x 272)
+//#define DEBUG_SCREEN_RES        //print screen resolution during startup (should be WQVGA: 480 x 272)
 //#define DEBUG_TOUCH_INPUT
 //#define DEBUG_TOUCH_CAL
 //#define DEBUG_TORQUE_SENSOR
-//#define DEBUG_TORQUE_RAW
-
+//#define DEBUG_TORQUE_RAW        //record raw values
+//#define DEBUG_TORQUE_CAL        //print calibration values on set
+//#define DEBUG_TORQUE_NO_TIMEOUT   //no timeout for reading torque sensor - this saves 40 or so bytes of flash, but will hang if comms lost
+#define DEBUG_TORQUE_CAL_NO_TIMEOUT //no timeout reading torque sensor calibration values, saves about 16 bytes of flash with the above, but without the above, saves 40 bytes (or, conversly CONSUMES 56 bytes)
 //#define DEBUG_DISABLE_DIGITAL
+
 #endif
 
 //32008 undefined, 31966 defined
@@ -445,7 +448,7 @@ void setup() {
 
   if (!DS1307_isrunning())
   {
-    Serial.println(F("Starting RTC"));
+    Serial.println(F("RTC On"));//    Serial.println(F("Starting RTC"));
     DS1307_adjust(t_compile);
   }
   else
@@ -453,12 +456,12 @@ void setup() {
     DateTime t_now = DS1307_now();
     if (is_after(t_compile, t_now))
     {
-      Serial.println(F("Updating RTC"));
+      Serial.println(F("Set RTC"));//Serial.println(F("Updating RTC"));
       DS1307_adjust(t_compile);
     }
     else
     {
-      Serial.print(F("Time now: "));
+      //Serial.print(F("Time: "));//Serial.print(F("Time now: "));
       serial_print_date_time(t_now);
     }
   }
@@ -467,13 +470,15 @@ void setup() {
   flags_config.do_serial_write = true;
   flags_config.do_sdcard_write = true;
 
+  
+
   //load eeprom, write defualts if a different version
   initialise_eeprom();
 
   //attempt to initialse the logging SD card. 
   //this will include creating a new file from the RTC date for immediate logging
   
-  Serial.print(F("Initializing SD card..."));
+  //Serial.print(FS(S_SDCARD));//Serial.print(F("Initializing SD card..."));
   STRING_BUFFER(S_CARD_FAILED_OR_NOT_PRESENT);//S_NO_SD_CARD);//
   
   if (!SD.begin(PIN_LOG_SDCARD_CS)) {
@@ -491,12 +496,6 @@ void setup() {
 
   //start the ADC
   analogRead(A0);
-//  analogRead(A1);
-//  analogRead(A2);
-  #ifndef ADC_TORQUE_OVR_CHN3
-//  analogRead(A3);
-  #endif
-  
   configure_torque_sensor();
 
 

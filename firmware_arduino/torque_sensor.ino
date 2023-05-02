@@ -8,7 +8,7 @@
  */
 
 #define TORQUE_TIMEOUT_ms 1
-#define TORQUE_CAL_MAX_mNm    9806
+#define TORQUE_CAL_MAX_mNm    4903 //9806
 #define TORQUE_CAL_MIN_mNm    -TORQUE_CAL_MAX_mNm
 
 
@@ -29,39 +29,55 @@ void configure_torque_sensor()
   //configure the io pins
   HX711_configure();
   //configure the default calibration
-  torque_cal.counts_zero = 0;
-  torque_cal.counts_max = TORQUE_CAL_DEFAULT;   //approximate 16bit counts for 10kg, based on 3kg cal data (~100000 raw counts)
-  torque_cal.counts_min = -TORQUE_CAL_DEFAULT;  // these values are too low - losing about 5 bits of accuracy
+  if(torque_cal.counts_zero == 0xFFFF)
+  {
+    torque_cal.counts_zero = 0;
+    torque_cal.counts_max = TORQUE_CAL_DEFAULT;   //approximate 16bit counts for 10kg, based on 3kg cal data (~100000 raw counts)
+    torque_cal.counts_min = -TORQUE_CAL_DEFAULT;  // these values are too low - losing about 5 bits of accuracy
+  }
   //trigger a read to ensure the next read is the correct channel/gain, if not default.
   torqueRead(); 
 }
 
 int torqueRead()
 {
-  #ifdef DEBUG_TORQUE_SENSOR
-  Serial.println(F("tqr"));
-  #endif
+#ifdef DEBUG_TORQUE_SENSOR
+  //Serial.println(F("tqr"));
+#endif
   //wait for valid data
+#ifdef DEBUG_TORQUE_NO_TIMEOUT
+  while(HX711_getDATA());
+#else
   int timeout_ms = millis() + TORQUE_TIMEOUT_ms;
   while(HX711_getDATA() && millis() < timeout_ms);
+#endif
+  
   //round down to int before applying the calibration
   int torque_mNm = 0;
+#ifndef DEBUG_TORQUE_NO_TIMEOUT
   if(!HX711_getDATA())
   {
+#endif
     
 #ifdef SQUEESE_HX711
     torque_mNm = tq_counts_to_mNm((HX711_read_value()));//+TORQUE_ROUNDING)>>TORQUE_PRESCALE);
-#else
-  torque_mNm = tq_counts_to_mNm((HX711_read_value()+TORQUE_ROUNDING)>>TORQUE_PRESCALE);
-#endif
-  }
+#else //squeeze
+    torque_mNm = tq_counts_to_mNm((HX711_read_value()+TORQUE_ROUNDING)>>TORQUE_PRESCALE);
+#endif //squeeze
+
 #ifdef DEBUG_TORQUE_SENSOR
+    Serial.println(torque_mNm,HEX);
+#ifndef DEBUG_TORQUE_NO_TIMEOUT
+  }
   else
   {
     Serial.println(F("tqr FAIL"));
   }
-  Serial.println(torque_mNm,HEX);
-  //Serial.println(F("tqrd"));
+#endif // no timeout
+#else // dbug
+#ifndef DEBUG_TORQUE_NO_TIMEOUT
+  }
+#endif 
 #endif
 
   return torque_mNm;
@@ -76,14 +92,26 @@ int tq_counts_to_mNm(int value_counts)
   return value_counts;
   #else
   int cal_value;
+  int a, b,c, d;
   if(value_counts < torque_cal.counts_zero)
   {
-    cal_value = lmap (value_counts, torque_cal.counts_min, torque_cal.counts_zero, TORQUE_CAL_MIN_mNm,0);
+    //cal_value = lmap (value_counts, torque_cal.counts_min, torque_cal.counts_zero, TORQUE_CAL_MIN_mNm,0);
+    a= torque_cal.counts_min;
+    b= torque_cal.counts_zero;
+    c= TORQUE_CAL_MIN_mNm;
+    d= 0;
   }
   else 
   {
-    cal_value = lmap (value_counts, torque_cal.counts_zero, torque_cal.counts_max, 0,TORQUE_CAL_MAX_mNm);
+    //32284
+    //cal_value = lmap (value_counts, torque_cal.counts_zero, torque_cal.counts_max, 0,TORQUE_CAL_MAX_mNm);
+    a= torque_cal.counts_zero;
+    b= torque_cal.counts_max;
+    c= 0;
+    d= TORQUE_CAL_MAX_mNm;
   }
+  //32272 - saves us 12 bytes
+  cal_value = lmap (value_counts, a,b,c,d);
   return cal_value;
   #endif
 }
@@ -94,22 +122,38 @@ int tq_counts_to_mNm(int value_counts)
 int tq_get_cal_value()
 {
   long avg_count = 0;
+#ifndef DEBUG_TORQUE_CAL_NO_TIMEOUT
   int timeout_ms = millis() + 100 + TORQUE_TIMEOUT_ms;
+#endif
+
   for(int n = 0; n < TORQUE_CAL_READINGS; n++)
   {
     //wait for data
+#ifdef DEBUG_TORQUE_CAL_NO_TIMEOUT
     while(HX711_getDATA());// && (millis() < timeout_ms));
+#else 
+    while(HX711_getDATA() && (millis() < timeout_ms));
     //check for timeout
-/*    if(HX711_getDATA()) 
+    if(HX711_getDATA()) 
     {
+#ifdef DEBUG_TORQUE_CAL
+      Serial.println(F("tq cal FAIL"));
+#endif 
       return INT16_MAX;
     }
-*/
+#endif
     //add the new reading
     avg_count += HX711_read_value();
   }
-  return ((avg_count+(TORQUE_CAL_READINGS>>1))>>TORQUE_CAL_OVERSAMPLE);
+#define TORQUE_CAL_SCALE (TORQUE_PRESCALE + TORQUE_CAL_OVERSAMPLE)
+#ifdef DEBUG_TORQUE_CAL
+  Serial.println((avg_count+_BV(TORQUE_CAL_SCALE-1))>>TORQUE_CAL_SCALE,HEX);
+#endif 
+
+  return (avg_count+_BV(TORQUE_CAL_SCALE-1))>>TORQUE_CAL_SCALE;
+
 }
+
 
 void tq_set_zero()
 {

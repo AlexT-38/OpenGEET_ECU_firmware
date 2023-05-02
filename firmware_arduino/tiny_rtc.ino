@@ -22,7 +22,7 @@ void serial_print_date_time(const DateTime t_now)
   Serial.print(string);
   GET_STRING(S_COMMA);
   Serial.print(string);
-  date_to_string(t_now, string);
+  time_to_string(t_now, string);
   Serial.println(string);
 }
 void file_print_date_time(const DateTime t_now, File file) 

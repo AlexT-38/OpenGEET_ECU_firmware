@@ -20,10 +20,6 @@ void HX711_configure()
   HX711_clrCLK();
 }
 
-
-
-
-
 #ifdef SQUEESE_HX711
 /* this doesnt work reliably, and has no real impact on flash size */
 int HX711_read_value()
