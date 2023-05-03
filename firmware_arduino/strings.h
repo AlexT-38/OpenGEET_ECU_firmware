@@ -25,7 +25,7 @@
 // define them as consts here and delete the original 
 const char S_DATE[] PROGMEM = __DATE__;
 const char S_TIME[] PROGMEM = __TIME__;
-const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller v0.5a";
+const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller (UNO) v0.5b";
 const char S_COMMA[] PROGMEM = ", ";
 const char S_CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or absent"; //if this string is not defined/referenced, or is made shorter than this, an extra 40-60 bytes is consumed for no obvious reason
 //#define S_CARD_FAILED_OR_NOT_PRESENT S_NO_SD_CARD

@@ -4,7 +4,7 @@
 #define SCREEN_BUILD_ID  6
 
 //#define TRACKERS_ENABLED
-#define TAG_BYPASS        //set true if tags wont read
+//#define TAG_BYPASS        //set defined if tags wont read
 
 #define SCREEN_W          480
 #define SCREEN_H          272

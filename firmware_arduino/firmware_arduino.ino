@@ -116,6 +116,9 @@
 #define DEBUG_TORQUE_CAL_NO_TIMEOUT //no timeout reading torque sensor calibration values, saves about 16 bytes of flash with the above, but without the above, saves 40 bytes (or, conversly CONSUMES 56 bytes)
 //#define DEBUG_DISABLE_DIGITAL
 
+
+//#define DEBUG_TOUCH_REG_DUMP
+
 #endif
 
 //32008 undefined, 31966 defined
@@ -539,7 +542,54 @@ void setup() {
 
   // wait for MAX chip to stabilize, and to see the splash screen
   delay(4000);
-  //while(1);
+
+#ifdef DEBUG_TOUCH_REG_DUMP
+//302104h REG_TOUCH_MODE : 2
+//302108h REG_TOUCH_ADC_MODE : 1
+//30210Ch REG_TOUCH_CHARGE : 16
+//30211Ch REG_TOUCH_RAW_XY :32
+//302120h REG_TOUCH_RZ : 16
+//302124h REG_TOUCH_SCREEN_XY :32
+//302128h REG_TOUCH_TAG_XY :32
+//30212Ch REG_TOUCH_TAG :8
+//302168h REG_TOUCH_CONFIG :16        0x8381
+//30218Ch REG_TOUCH_DIRECT_XY :32
+//302190h REG_TOUCH_DIRECT_Z1Z2 :32
+
+#define REG_TOUCH_CONFIG 0x302168
+
+  GD.resume();
+  GD.ClearColorRGB(96,192,256);
+  GD.ClearTag(0x23);
+  GD.Clear(1,1,1);
+  GD.ColorRGB(256,192,96);
+  GD.TagMask(1);
+  GD.Tag(0x17);
+  draw_box(0,0,200,300,0,0);
+  GD.ClearTag(0x42);
+  /* display the screen when done */
+  GD.swap();
+  
+  while(1)
+  {
+    Serial.print(F("REG_TOUCH_MODE        0x")); Serial.println(GD.rd(REG_TOUCH_MODE),HEX);
+    Serial.print(F("REG_TOUCH_ADC_MODE    0x")); Serial.println(GD.rd(REG_TOUCH_ADC_MODE),HEX);
+    Serial.print(F("REG_TOUCH_CHARGE      0x")); Serial.println(GD.rd16(REG_TOUCH_CHARGE),HEX);
+    Serial.print(F("REG_TOUCH_RAW_XY      0x")); Serial.println(GD.rd32(REG_TOUCH_RAW_XY),HEX);
+    Serial.print(F("REG_TOUCH_RZ          0x")); Serial.println(GD.rd16(REG_TOUCH_RZ),HEX);
+    Serial.print(F("REG_TOUCH_SCREEN_XY   0x")); Serial.println(GD.rd32(REG_TOUCH_SCREEN_XY),HEX);
+    Serial.print(F("REG_TOUCH_TAG_XY      0x")); Serial.println(GD.rd32(REG_TOUCH_TAG_XY),HEX);
+    Serial.print(F("REG_TOUCH_TAG         0x")); Serial.println(GD.rd(REG_TOUCH_TAG),HEX);
+    Serial.print(F("REG_TOUCH_CONFIG      0x")); Serial.println(GD.rd16(REG_TOUCH_CONFIG),HEX);
+    Serial.print(F("REG_TOUCH_DIRECT_XY   0x")); Serial.println(GD.rd32(REG_TOUCH_DIRECT_XY),HEX);
+    Serial.print(F("REG_TOUCH_DIRECT_Z1Z2 0x")); Serial.println(GD.rd32(REG_TOUCH_DIRECT_Z1Z2),HEX);
+    Serial.print(F("REG_TAG               0x")); Serial.println(GD.rd(REG_TAG),HEX);
+    Serial.println();
+
+    Serial.println();
+      delay(1000);
+  }
+#endif
 
   int timenow = millis();
 

@@ -133,14 +133,11 @@ void read_touch()
   byte touch_tag_old = GD.inputs.tag;
 
   //fetch coords
-#if defined(DEBUG_TOUCH_INPUT) || defined(TAG_BYPASS)
   long int val = GD.rd32(REG_TOUCH_SCREEN_XY);
   xy *coord = (xy*) &val;
   GD.inputs.xytouch.x = coord->y;
-  GD.inputs.xytouch.y = coord->x - 0x400;
-#else
-  GD.inputs.xytouch.x = GD.rd16(REG_TOUCH_SCREEN_XY);
-#endif
+  GD.inputs.xytouch.y = coord->x;
+
 
   //check if a touch is registered
   if(GD.inputs.xytouch.x != 0x8000)
@@ -152,7 +149,7 @@ void read_touch()
     GD.inputs.tag = fetch_tag();
     #else
     // get the tag, and optionally get the tracker tag and value
-    GD.inputs.tag = GD.rd(REG_TAG);
+    GD.inputs.tag = GD.rd(REG_TOUCH_TAG);
     #endif
     
 #ifdef TRACKERS_ENABLED
