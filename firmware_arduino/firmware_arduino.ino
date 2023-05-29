@@ -24,8 +24,24 @@
 #elif defined (ARDUINO_AVR_MEGA2560) || defined(ARDUINO_AVR_MEGA)
 #define TARGET   MEGA
 #endif
-/* UNO PIN MAP / Circuit description:
- *  UNO Pin     I/O     Function/name
+
+/* modifications to the deek-robot data logger sheild:
+ *  
+ *  connect three wires to the breakout pads for 11-13 with a 2x2 male dupont connector
+ *  wire the connector to make the follwoing connections to the MEGA:
+ *  11-51
+ *  12-50
+ *  13-52
+ *  
+ *  pins 11-13 will not be usable.
+ *  
+ *  bend pins 11-13 on the socket extenderso that the do not mate witht eh
+ *  
+ *  cut tracks between breakout pad for pins 4 & 5 and the adjacent SDA and SCL breakout pads
+ *  connect the SDA and SCL pads to the SDA and SCL pads adjecent to AREF pin
+ */
+/* MEGA PIN MAP / Circuit description:
+ *  MEGA Pin    I/O     Function/name
  *  0           I       USB Serial Rx
  *  1           O       USB Serial Tx
  *  2           I       RPM counter
@@ -37,15 +53,19 @@
  *  8           O       CS: Gameduino FT810
  *  9           O       CS: Gameduino SD Card / CLK: HX711 Load Cell
  *  10          O       CS: SD Card
- *  11          O       MOSI: Display, EGT, SD Card
- *  12          I       MISO: Display, EGT, SD Card
- *  13          O       SCK:  Display, EGT, SD Card
+ *  11          I       Unusable / MOSI
+ *  12          I       Unusable / MISO
+ *  13          I       Unusable / SCK
  *  14  A0      I       MAP 1
  *  15  A1      I       User Input 1
  *  16  A2      I       User Input 2
  *  17  A3      I       User Input 3
- *  18  A4      O       SCL / RTC
- *  19  A5      I/O     SDA / RTC
+ *  21          O       SCL / RTC
+ *  20          I/O     SDA / RTC
+ *  50          I       MISO: Display, EGT, SD Card
+ *  51          O       MOSI: Display, EGT, SD Card  
+ *  52          O       SCK:  Display, EGT, SD Card
+ *  
  */
 
   /* latest on ram usage:
@@ -434,10 +454,10 @@ void setup() {
   
   //initialise the serial port:
   Serial.begin(1000000);  //for usb coms, no reason not to use fastest available baud rate - this turns out to be the biggest time usage during update/report
-//  Serial.println();
+  Serial.println();
 
   MAKE_STRING(S_FIRMWARE_NAME);           //we use make here so we can pass the string to screen_flash
-//  Serial.println(S_FIRMWARE_NAME_str);
+  Serial.println(S_FIRMWARE_NAME_str);
   
   DateTime t_compile;
   t_compile = CompileDateTime();
@@ -590,6 +610,7 @@ void setup() {
   }
 #endif
 
+  Serial.println(F("Init Complete"));
   int timenow = millis();
 
   //set the initial times for the loop events
@@ -598,6 +619,8 @@ void setup() {
   egt_timestamp = timenow + EGT_UPDATE_START_ms;
   pid_timestamp = timenow + PID_UPDATE_START_ms;
   touch_timestamp = timenow + TOUCH_READ_START_ms;
+
+  
 }
 
 
