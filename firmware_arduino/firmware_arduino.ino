@@ -115,11 +115,10 @@
 //#define DEBUG_TORQUE_NO_TIMEOUT   //no timeout for reading torque sensor - this saves 40 or so bytes of flash, but will hang if comms lost
 #define DEBUG_TORQUE_CAL_NO_TIMEOUT //no timeout reading torque sensor calibration values, saves about 16 bytes of flash with the above, but without the above, saves 40 bytes (or, conversly CONSUMES 56 bytes)
 //#define DEBUG_DISABLE_DIGITAL
-
-
 //#define DEBUG_TOUCH_REG_DUMP
-
 #endif
+
+//#define OVERWRITE_TOUCH_CAL
 
 //32008 undefined, 31966 defined
 //#define SQUEESE_HX711

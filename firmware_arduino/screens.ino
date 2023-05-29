@@ -260,6 +260,18 @@ void read_touch()
           load_eeprom();
         }
         break;
+      case TAG_EEPROM_EXPORT:
+        if(touch_event == TOUCH_OFF)
+        {
+          export_eeprom(&Serial);
+        }
+        break;
+//      case TAG_EEPROM_IMPORT:
+//        if(touch_event == TOUCH_OFF)
+//        {
+//          import_eeprom(&Serial);
+//        }
+//        break;
       case TAG_LOG_TOGGLE_SDCARD:
         if(touch_event == TOUCH_ON && !flags_status.logging_active) { flags_config.do_sdcard_write ^=1; }
         break;

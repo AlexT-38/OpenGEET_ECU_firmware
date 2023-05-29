@@ -27,6 +27,7 @@ const char S_DATE[] PROGMEM = __DATE__;
 const char S_TIME[] PROGMEM = __TIME__;
 const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller (UNO) v0.5b";
 const char S_COMMA[] PROGMEM = ", ";
+const char S_COLON[] PROGMEM = ": ";
 const char S_CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or absent"; //if this string is not defined/referenced, or is made shorter than this, an extra 40-60 bytes is consumed for no obvious reason
 //#define S_CARD_FAILED_OR_NOT_PRESENT S_NO_SD_CARD
 const char S_CARD_INITIALISED[] PROGMEM = "SD Card OK";
@@ -91,6 +92,11 @@ const char S_NO_SD_CARD[] PROGMEM = "No SD Card";
 
 const char S_SAVE[] PROGMEM = "SAVE";
 const char S_LOAD[] PROGMEM = "LOAD";
+
+
+const char S_EXPORT[] PROGMEM = "EXPORT";
+const char S_IMPORT[] PROGMEM = "IMPORT";
+
 
 const char S_BASIC[] PROGMEM = "Basic";
 const char S_PID_RPM[] PROGMEM = "PID RPM";

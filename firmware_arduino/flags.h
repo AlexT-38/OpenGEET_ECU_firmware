@@ -32,6 +32,11 @@ typedef struct {
     byte do_sdcard_write_hex:1;
 }FLAGS_CONFIG;
 
+typedef union flags_config_union{
+  FLAGS_CONFIG flags;
+  byte data;
+}FLAGS_CONFIG_UNION;
+
 //these flags indicate the state of the system
 typedef struct {
     byte update_eeprom:1;
