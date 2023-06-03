@@ -22,7 +22,6 @@ Upgrade to an STM10x or 40x device can be made later if required.
 - Starter/Generator BLDC integration
 - PID control of reactor vacuum
 - Reactor state monitoring (starting, in spec, out of spec)
-- Replace 3rd party thermocouple library
 - Replace blocking FATFS library
 - Updated UI: configurable screen, multiple settings pages
 
@@ -44,6 +43,7 @@ Upgrade to an STM10x or 40x device can be made later if required.
 - Data records store calibrated data by sensor type
 - Full EEPROM export/import
 - Shaft power readout
+- Replace 3rd party thermocouple library
 
 ### v0.5
 
