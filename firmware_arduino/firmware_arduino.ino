@@ -17,25 +17,15 @@
  * Upgrade to an STM10x or 40x device can be made later if required.
  */
 
-#define UNO 1
-#define MEGA 2
-#ifdef ARDUINO_AVR_UNO
-#define TARGET   UNO
-#elif defined (ARDUINO_AVR_MEGA2560) || defined(ARDUINO_AVR_MEGA)
-#define TARGET   MEGA
-#endif
 
 /* modifications to the deek-robot data logger sheild:
  *  
- *  connect three wires to the breakout pads for 11-13 with a 2x2 male dupont connector
- *  wire the connector to make the follwoing connections to the MEGA:
+ *  link the following pins on the underside of the arduino Mega:
  *  11-51
  *  12-50
  *  13-52
  *  
  *  pins 11-13 will not be usable.
- *  
- *  bend pins 11-13 on the socket extenderso that the do not mate witht eh
  *  
  *  cut tracks between breakout pad for pins 4 & 5 and the adjacent SDA and SCL breakout pads
  *  connect the SDA and SCL pads to the SDA and SCL pads adjecent to AREF pin
@@ -126,6 +116,7 @@
 //#define DEBUG_EEP_CONTENT
 //#define DEBUG_RPM_COUNTER
 //#define DEBUG_MAP_CAL
+//#define DEBUG_TMP_CAL
 //#define DEBUG_SCREEN_RES        //print screen resolution during startup (should be WQVGA: 480 x 272)
 //#define DEBUG_TOUCH_INPUT
 //#define DEBUG_TOUCH_CAL
@@ -158,9 +149,6 @@
 //rpm counter interrupt pin
 #define PIN_RPM_COUNTER_INPUT     2 //INT0 -this clashes with the gameduino interupt pin
 
-// control input pins
-#define PIN_CONTROL_INPUT_1       A0
-#define PIN_CONTROL_INPUT_2       A1
 
 //#define CONTROL_INPUT_1_NAME      "Reactor Inlet Valve Target"
 //#define CONTROL_INPUT_2_NAME      "Engine Inlet Valve Target"
@@ -181,15 +169,11 @@
 
 //torque sensor
 #define SENSOR_TYPE_TORQUE        ST_SOFT
-#define ADC_TORQUE_OVR_CHN3    //if defined, torque data will overwrite user input 3
 
 
 //user inputs
-#ifndef ADC_TORQUE_OVR_CHN3
-#define NO_OF_USER_INPUTS   3
-#else
-#define NO_OF_USER_INPUTS   2
-#endif
+#define NO_OF_USER_INPUTS   4
+
 //calibration values for Lemark LMS184 1 bar MAP sensor
 //specifying them as Long type to ensure correct evaluation
 #define SENSOR_MAP_CAL_HIGH_LSb     39L    //analog sample value for the high cal point
@@ -222,7 +206,13 @@
  *  Rounding fixed by specifiying float literals
  */
 
-// temperature sensor configuration
+// analog low temperature NTC / PTC sensors, manifold inlet temperatures etc
+#define NO_OF_TMP_SENSORS         0
+
+
+
+
+// digital thermocouple sensor configuration
 #define NO_OF_EGT_SENSORS         1
 
 #define MAX6675                   1
@@ -234,9 +224,11 @@
   #define SENSOR_MODEL_EGT_1        MAX6675
 //  #define SENSOR_EGT_1_NAME         "Reactor Exhaust Inlet Temperature"
 
-  #if SENSOR_MODEL_EGT_1 == MAX6675
-GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
-  #endif
+//  #if SENSOR_MODEL_EGT_1 == MAX6675
+//todo: eliminate this 3rd party library
+GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor[NO_OF_EGT_SENSORS];
+//  #endif
+  
 #endif
 
 
@@ -291,7 +283,7 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor1;
  *      A - analog                                                      070     170     270     370     470     570     10
  
  *      
- *      1/3ms per char
+ *      3.33ms per char
  *         010   030   050   070   090   110   130   150   170   190   210   230   250   270   290   310   330   350   370   390   410   430   450   470   490
  *      000   020   040   060   080   100   120   140   160   180   200   220   240   260   280   300   320   340   360   380   400   420   440   460   480   500
  *      U           P        A  T  P     E        P        A  T  P              P        A  T  P              P     E  A  T P               P        A  T  P  U
@@ -517,7 +509,7 @@ void setup() {
 
 
   //start the ADC
-  analogRead(A0);
+  configureADC();
   configure_torque_sensor();
 
 
@@ -625,76 +617,7 @@ void setup() {
 
 
 
-void process_analog_inputs()
-{
-  #ifdef DEBUG_ANALOG_TIME
-  unsigned int timestamp_us = micros();
-  #endif
-  
-  //collect analog inputs
-  int a0 = analogRead(A0);
-  int a1 = analogRead(A1);
-  int a2 = analogRead(A2);
-#ifndef  ADC_TORQUE_OVR_CHN3
-  int a3 = analogRead(A3);
-#else
-  int a3 = torqueRead(); //while technically a 'digital' sensor, the update rate is 10Hz, which matches with the analog update rate, and not the thermo couple update rate
-#endif
 
-  //do some sort of processing with these values
-  //for now we want to use a1-a3 to directly control servos
-  // and convert a0 to millibar (abs) using factory calibration points
-  // we need to store these values statically, 
-  // and reference them in a pid control loop that controls servo output
-
-  // scale sensor reading to give gauge vacuum 
-  MAP_pressure_abs = amap(a0, SENSOR_MAP_CAL_MIN_mbar, SENSOR_MAP_CAL_MAX_mbar); 
-
-  #ifdef DEBUG_MAP_CAL
-  Serial.print(F("map cal; in, min, max, out: "));
-  Serial.print(a0); Serial.print(F(", "));
-  Serial.print(SENSOR_MAP_CAL_MIN_mbar); Serial.print(F(", "));
-  Serial.print(SENSOR_MAP_CAL_MAX_mbar); Serial.print(F(", "));
-  Serial.print(MAP_pressure_abs); Serial.print(F(", "));
-  Serial.println();
-  #endif
-
-  KNOB_values[0] = a1;
-  KNOB_values[1] = a2;
-#ifndef  ADC_TORQUE_OVR_CHN3  
-  KNOB_values[2] = a3;
-#endif
-
-  // change what is logged depending on operating mode
-  switch(sys_mode)
-  {
-    default:
-      break;
-    case MODE_PID_RPM_CARB:
-      a1 = amap(a1, RPM_MIN_SET_ms, RPM_MAX_SET_ms); //converting to rpm is costly, so we convert during record update, and only the average
-      break;
-  }
-  
-  //log the analog values, if there's space in the current record
-  if (CURRENT_RECORD.ANA_no_of_samples < ANALOG_SAMPLES_PER_UPDATE)
-  {
-    //log calibrated data
-    unsigned int analog_index = CURRENT_RECORD.ANA_no_of_samples++;
-    CURRENT_RECORD.A0[analog_index] = MAP_pressure_abs;
-    CURRENT_RECORD.A1[analog_index] = a1;
-    CURRENT_RECORD.A2[analog_index] = a2;
-    CURRENT_RECORD.A3[analog_index] = a3;
-    CURRENT_RECORD.A0_avg += CURRENT_RECORD.A0[analog_index];
-    CURRENT_RECORD.A1_avg += CURRENT_RECORD.A1[analog_index];
-    CURRENT_RECORD.A2_avg += CURRENT_RECORD.A2[analog_index];
-    CURRENT_RECORD.A3_avg += CURRENT_RECORD.A3[analog_index];
-  }
-  #ifdef DEBUG_ANALOG_TIME
-  timestamp_us = micros() - timestamp_us;
-  Serial.print(F("t_ana us: "));
-  Serial.println(timestamp_us);
-  #endif
-}
 
 void process_digital_inputs()
 {
@@ -708,12 +631,17 @@ void process_digital_inputs()
   //collect egt data only if there are available sample slots
   if (CURRENT_RECORD.EGT_no_of_samples < EGT_SAMPLES_PER_UPDATE)
   {
-    if(EGTSensor1.readTemp())
+    byte inc_samples = 0;
+    for(int idx = 0; idx < NO_OF_EGT_SENSORS; idx++)
     {
-      int EGT1_value = EGTSensor1.getTempIntRaw();
-      CURRENT_RECORD.EGT[CURRENT_RECORD.EGT_no_of_samples++] = EGT1_value;
-      CURRENT_RECORD.EGT_avg += EGT1_value;
+      if(EGTSensor[idx].readTemp())
+      {
+        int EGT_value = EGTSensor[idx].getTempIntRaw();
+        CURRENT_RECORD.EGT[idx][CURRENT_RECORD.EGT_no_of_samples] = EGT_value;
+        inc_samples = 1;
+      }
     }
+    CURRENT_RECORD.EGT_no_of_samples += inc_samples;
   }
   #ifdef DEBUG_DIGITAL_TIME
   timestamp_us = micros() - timestamp_us;
@@ -738,7 +666,7 @@ bool process_update_loop()
   #endif
   switch(update_step)
   {
-    
+    //todo: make writing to sd card a seperate process
     case 0:   
       reset_record();
       finalise_record();

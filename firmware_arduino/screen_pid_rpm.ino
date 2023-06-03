@@ -59,12 +59,12 @@ void screen_draw_pid_rpm()
   else
   #endif
   {
-    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->RPM_avg, S_RPM);
+    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.RPM, S_RPM);
   }
   
   
-  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->A0_avg, S_MAP_MBAR);
-  draw_readout_fixed(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->EGT_avg, 2,0, S_EGT1_DEGC, false);
+  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.MAP[0], S_MAP_MBAR);
+  draw_readout_fixed(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.EGT[0], 2,0, S_EGT1_DEGC, false);
   draw_datetime(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX );
 
   // Mid right column
@@ -77,7 +77,7 @@ void screen_draw_pid_rpm()
     if(sys_mode==MODE_DIRECT)
     {
       //take the target from the average input value when 'previewing' the target from direct mode, with outputs held
-      rpm_control_target = amap(data_record->A1_avg, RPM_MIN_SET_ms, RPM_MAX_SET_ms);
+      rpm_control_target = amap(Data_Averages.USR[0], RPM_MIN_SET_ms, RPM_MAX_SET_ms);
     }
     else
     {
@@ -88,9 +88,9 @@ void screen_draw_pid_rpm()
   }
   else
   {
-    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->A1_avg, S_INPUT_1);
+    draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.USR[0], S_INPUT_1);
   }  
-  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->PID_SV0_avg, S_OUTPUT);
+  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.SRV[0], S_OUTPUT);
   
   MAKE_STRING(S_ACTIVE);
   draw_toggle_button(GRID_XL(XN-2,XN),GRID_YT(YN-2,YN),GRID_SX(XN),GRID_SY(YN),TAG_MODE_SET_PID_RPM,(sys_mode == MODE_PID_RPM_CARB),S_ACTIVE_str);

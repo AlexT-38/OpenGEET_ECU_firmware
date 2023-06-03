@@ -24,22 +24,17 @@ void screen_draw_basic()
   // Right hand column
   gx = XN-1;
   gy = 0;
-  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->RPM_avg, S_RPM);
-  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->A0_avg, S_MAP_MBAR);
-  draw_readout_fixed(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->EGT_avg, 2,0, S_EGT1_DEGC, false);
+  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.RPM, S_RPM);
+  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.MAP[0], S_MAP_MBAR);
+  draw_readout_fixed(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.EGT[0], 2,0, S_EGT1_DEGC, false);
   draw_datetime(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX );
 
   // Mid right column
   gy = 0;
   gx--;
-  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->A1_avg, S_INPUT_1);
-  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->A2_avg, S_INPUT_2);
-  #ifndef ADC_TORQUE_OVR_CHN3
-  #define A3_STRING S_INPUT_3
-  #else
-  #define A3_STRING S_TORQUE_MNM
-  #endif
-  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, data_record->A3_avg, A3_STRING);
+  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.USR[0], S_INPUT_1);
+  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.USR[1], S_INPUT_2);
+  draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.TRQ, S_TORQUE_MNM);
   
   draw_log_toggle_button(GRID_XL(XN-2,XN),GRID_YT(YN-1,YN),GRID_SX(XN),GRID_SY(YN));
 

@@ -854,9 +854,9 @@ void draw_screen_background()
   long colour_bg = C_BKG_NORMAL;
   /* simple background colour setting by rpm range
      this should be changed to read from system status flags */
-  if (data_record->RPM_avg == 0)
+  if (Data_Averages.RPM == 0)
   {    colour_bg = C_BKG_STOPPED;  }
-  else if (data_record->RPM_avg < 1300 || data_record->RPM_avg > 3800)
+  else if (Data_Averages.RPM < 1300 || Data_Averages.RPM > 3800)
   {    colour_bg = C_BKG_WARNING;  }
   else
   {    colour_bg = C_BKG_RUNNING;  }

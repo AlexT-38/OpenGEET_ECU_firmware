@@ -34,19 +34,22 @@ const char S_CARD_INITIALISED[] PROGMEM = "SD Card OK";
 const char S_RECORD_VER_C[] PROGMEM = "Record Ver.: ";
 const char S_TIMESTAMP_C[] PROGMEM = "Timestamp: ";
 const char S_MAP_C[] PROGMEM = "MAP: ";
-const char S_A1_C[] PROGMEM = "A1: ";
-const char S_A2_C[] PROGMEM = "A2: ";
-const char S_A3_C[] PROGMEM = "A3: ";
-const char S_EGT1_C[] PROGMEM = "EGT1: ";
+const char S_USR_C[] PROGMEM = "USR: ";
+const char S_TMP_C[] PROGMEM = "TMP: ";
+const char S_TRQ_C[] PROGMEM = "TRQ: ";
+const char S_EGT_C[] PROGMEM = "EGT: ";
+
 const char S_RPM_AVG[] PROGMEM = "RPM avg: ";
 const char S_RPM_NO_OF_TICKS[] PROGMEM = "RPM no.: ";
 const char S_RPM_TICK_TIMES[] PROGMEM = "RPM times (ms): ";
 const char S_OUTPUT_FILE_NAME_C[] PROGMEM = "Output File Name: ";
 
+
+
+
+
 const char S_MAP_AVG_C[] PROGMEM = "MAP avg: ";
-const char S_A1_AVG_C[] PROGMEM = "A1 avg: ";
-const char S_A2_AVG_C[] PROGMEM = "A2 avg: ";
-const char S_A3_AVG_C[] PROGMEM = "A3 avg: ";
+
 const char S_ANA_SAMPLES_C[] PROGMEM = "ANA no.: ";
 
 const char S_EGT_AVG_C[] PROGMEM = "EGT avg: ";

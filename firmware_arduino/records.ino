@@ -5,6 +5,19 @@
  *  or /YYYMMDD/LOG_0001.txt
  *  meanwhile, we'll just overwrite older files
  */
+ #define NO_IDX 0xff
+
+/* the records to write to */
+DATA_RECORD Data_Records[2];
+/* the index of the currently written record */
+byte Data_Record_write_idx = 0;
+
+/* averages for all data over the update period */
+DATA_AVERAGES Data_Averages;
+
+/* list of numbers of parameter types in data record */
+DATA_CONFIG Data_Config = {DATA_RECORD_VERSION, NO_OF_USER_INPUTS, NO_OF_MAP_SENSORS, NO_OF_TMP_SENSORS, NO_OF_EGT_SENSORS, NO_OF_SERVOS};
+
 
 static DATA_STORAGE data_store;
 
@@ -88,8 +101,9 @@ void hash_data(DATA_STORAGE *data)
   data->hash = hash;
 }
 
-void stream_print_int_array(Stream *file, int *array_data, unsigned int array_size, const char *title_pgm)
+void stream_print_int_array(Stream *file, int *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
 {
+  if(idx < 0xff) file->print(idx);
   file->print(FS(title_pgm));
   for(int idx = 0; idx < array_size; idx++)
   {
@@ -98,8 +112,9 @@ void stream_print_int_array(Stream *file, int *array_data, unsigned int array_si
   }
   file->println();
 }
-void stream_print_byte_array(Stream *file, byte *array_data, unsigned int array_size, const char *title_pgm)
+void stream_print_byte_array(Stream *file, byte *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
 {
+  if(idx < 0xff) file->print(idx);
   file->print(FS(title_pgm));
   for(int idx = 0; idx < array_size; idx++)
   {
@@ -130,34 +145,51 @@ void finalise_record()
   /* calculate averages */
   if(data_record->ANA_no_of_samples > 0)
   {
-    int rounding = data_record->ANA_no_of_samples/2;
-    data_record->A0_avg += rounding;
-    data_record->A1_avg += rounding;
-    data_record->A2_avg += rounding;
-    data_record->A3_avg += rounding;
-    
-    data_record->A0_avg /= data_record->ANA_no_of_samples;
-    data_record->A1_avg /= data_record->ANA_no_of_samples;
-    data_record->A2_avg /= data_record->ANA_no_of_samples;
-    data_record->A3_avg /= data_record->ANA_no_of_samples;
+    int rounding = data_record->ANA_no_of_samples>>1;
+    for(byte idx = 0; idx<Data_Config.USR_no; idx++)
+    {
+      Data_Averages.USR[idx] = rounding;
+      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.USR[idx] += data_record->USR[idx];}
+      Data_Averages.USR[idx] /= data_record->ANA_no_of_samples;
+    }
+    for(byte idx = 0; idx<Data_Config.MAP_no; idx++)
+    {
+      Data_Averages.MAP[idx] = rounding;
+      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.MAP[idx] += data_record->MAP[idx];}
+      Data_Averages.MAP[idx] /= data_record->ANA_no_of_samples;
+    }
+    for(byte idx = 0; idx<Data_Config.TMP_no; idx++)
+    {
+      Data_Averages.TMP[idx] = rounding;
+      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.TMP[idx] += data_record->TMP[idx];}
+      Data_Averages.TMP[idx] /= data_record->ANA_no_of_samples;
+    }
   }
   if(data_record->EGT_no_of_samples > 0)
   {
-    unsigned int rounding = data_record->EGT_no_of_samples/2;
-    data_record->EGT_avg += rounding;
-    data_record->EGT_avg /= data_record->EGT_no_of_samples;
+    unsigned int rounding = data_record->EGT_no_of_samples>>1;
+    for(byte idx = 0; idx<Data_Config.EGT_no; idx++)
+    {
+      Data_Averages.EGT[idx] = rounding;
+      for(byte sample = 0; sample < data_record->EGT_no_of_samples; sample++) {Data_Averages.EGT[idx] += data_record->EGT[idx];}
+      Data_Averages.EGT[idx] /= data_record->EGT_no_of_samples;
+    }
   }
   //keep elapsed time in a sensible range to avoid overflows
   rpm_clip_time();
   // get the average rpm for this record 
-  data_record->RPM_avg = get_rpm(data_record);
+  Data_Averages.RPM = get_rpm(data_record);
 
   // calculate the average servo demand from the pid
-  if(data_record->PID_no_of_samples > 0)
+  if(data_record->SRV_no_of_samples > 0)
   {
-    int rounding = data_record->PID_no_of_samples/2;
-    data_record->PID_SV0_avg + rounding;
-    data_record->PID_SV0_avg /= data_record->PID_no_of_samples;
+    int rounding = data_record->SRV_no_of_samples>>1;
+    for(byte idx = 0; idx<Data_Config.SRV_no; idx++)
+    {
+      Data_Averages.SRV[idx] = rounding;
+      for(byte sample = 0; sample < data_record->SRV_no_of_samples; sample++) {Data_Averages.SRV[idx] += data_record->SRV[idx];}
+      Data_Averages.SRV[idx] /= data_record->SRV_no_of_samples;
+    }
   }
 
 
@@ -178,51 +210,77 @@ bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte wri
   switch(write_data_step)
   {
     case 0: //ser: 712/1128
-      {
-        dst.println(FS(S_RECORD_MARKER));
-        dst.print(FS(S_RECORD_VER_C));      dst.println(DATA_RECORD_VERSION);
-        dst.print(FS(S_TIMESTAMP_C));     dst.println(data_record->timestamp);
-      }
-      break;
-    case 1: //ser: 1440/1916 
-      {
-        dst.print(FS(S_MAP_AVG_C));     dst.println(data_record->A0_avg);
-        dst.print(FS(S_A1_AVG_C));      dst.println(data_record->A1_avg);
-        dst.print(FS(S_A2_AVG_C));      dst.println(data_record->A2_avg);
-        dst.print(FS(S_A3_AVG_C));      dst.println(data_record->A3_avg);
+        {
+          dst.println(FS(S_RECORD_MARKER));
+          dst.print(FS(S_RECORD_VER_C));      dst.println(DATA_RECORD_VERSION);
+          dst.print(FS(S_TIMESTAMP_C));     dst.println(data_record->timestamp);
+        }
+        break;
+        
+    case 1: //ser: 
+        for(byte idx = 0; idx < Data_Config.USR_no; idx++)
+        {
+          dst.print(idx); dst.print(FS(S_USR_C));     dst.println(Data_Averages.USR[idx]);
+        }
+        for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
+        {
+          dst.print(idx); dst.print(FS(S_MAP_C));     dst.println(Data_Averages.MAP[idx]);
+        }
+        for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
+        {
+          dst.print(idx); dst.print(FS(S_TMP_C));     dst.println(Data_Averages.TMP[idx]);
+        }
+        dst.print(FS(S_TRQ_C));     dst.println(Data_Averages.TRQ);
         dst.print(FS(S_ANA_SAMPLES_C)); dst.println(data_record->ANA_no_of_samples);
-      }
-      break;
-    case 2: //ser: 1068/1540
-        stream_print_int_array(&dst, data_record->A0, data_record->ANA_no_of_samples, S_MAP_C);
         break;
-    case 3: //ser: 1060/1534
-        stream_print_int_array(&dst, data_record->A1, data_record->ANA_no_of_samples, S_A1_C);
+        
+    case 2: //ser: 
+        for(byte idx = 0; idx < Data_Config.USR_no; idx++)
+        {
+          stream_print_int_array(&dst, data_record->USR[idx], data_record->ANA_no_of_samples, S_USR_C, idx);
+        }
         break;
-    case 4: //ser: 1332/1804
-        stream_print_int_array(&dst, data_record->A2, data_record->ANA_no_of_samples, S_A2_C);
+        
+    case 3: //ser: 
+        for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
+        {
+          stream_print_int_array(&dst, data_record->MAP[idx], data_record->ANA_no_of_samples, S_MAP_C, idx);
+        }
         break;
-    case 5: //ser: 1088/1576
-        stream_print_int_array(&dst, data_record->A3, data_record->ANA_no_of_samples, S_A3_C);
+        
+    case 4: //ser: 
+        for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
+        {
+          stream_print_int_array(&dst, data_record->TMP[idx], data_record->ANA_no_of_samples, S_TMP_C, idx);
+        }
         break;
-    case 6: //ser: 508/936
-      {
-        dst.print(FS(S_EGT_AVG_C));       dst.println(data_record->EGT_avg);
+        
+    case 5: //ser: 
+        stream_print_int_array(&dst, data_record->TRQ, data_record->ANA_no_of_samples, S_TRQ_C, NO_IDX);
+
+        break;
+    case 6: //ser: 
+        for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
+        {
+          dst.print(idx); dst.print(FS(S_EGT_AVG_C));       dst.println(Data_Averages.EGT[idx]);
+        }
+        break;
         dst.print(FS(S_EGT_SAMPLES_C)); dst.println(data_record->EGT_no_of_samples);
-        break;
-      }
-    case 7: //ser: 588/1008
-        stream_print_int_array(&dst, data_record->EGT, data_record->EGT_no_of_samples, S_EGT1_C);
+    case 7: //ser: 
+        for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
+        {
+          stream_print_int_array(&dst, data_record->EGT[idx], data_record->EGT_no_of_samples, S_EGT_C, idx);
+        }
         break;
     case 8: //ser: 588/1008
       {
-        dst.print(FS(S_RPM_AVG));          dst.println(data_record->RPM_avg);
+        dst.print(FS(S_RPM_AVG));          dst.println(Data_Averages.RPM);
         dst.print(FS(S_RPM_NO_OF_TICKS));  dst.println(data_record->RPM_no_of_ticks);
         break;
       }
     case 9: //ser: 540/964
       {
-        stream_print_byte_array(&dst, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES);
+        stream_print_int_array(&dst, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES, NO_IDX);
         dst.println(FS(S_RECORD_MARKER));
       }
     default:

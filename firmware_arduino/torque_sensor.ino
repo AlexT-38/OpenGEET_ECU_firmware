@@ -5,6 +5,11 @@
  * Presumably we can safely use it as a 100N load cell
  * for calibration purposes, we will use 1kg.m
  * but to keep values in the int16 range, we will use mN.m as calibration units
+ * 
+ * how long does it take to read this?
+ * fastest possible is 0.1+25*0.4 us = 10.1 us
+ * typical is 2*25 = 50us, 
+ * either way is less than half the time is takes to read a single internal ADC input
  */
 
 #define TORQUE_TIMEOUT_ms 1
