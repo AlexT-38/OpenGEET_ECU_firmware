@@ -131,8 +131,13 @@
 
 //#define OVERWRITE_TOUCH_CAL
 
-//32008 undefined, 31966 defined
-//#define SQUEESE_HX711
+
+// I/O counts by type
+#define NO_OF_USER_INPUTS         2     //physical knobs
+#define NO_OF_MAP_SENSORS         1     //pressure sensors
+#define NO_OF_TMP_SENSORS         0     // analog low temperature NTC / PTC sensors, manifold inlet temperatures etc
+#define NO_OF_EGT_SENSORS         1     // digital thermocouple sensors, MAX6675
+#define NO_OF_SERVOS              2
 
 #include "torque_sensor.h"
 #include "PID.h"
@@ -159,20 +164,10 @@
 #define ST_SPI                    2
 #define ST_SOFT                   3 //software implemented interface
 
-// pressure sensor configuration
-#define NO_OF_MAP_SENSORS         1
-
-// pressure sensor 1
-#define SENSOR_TYPE_MAP_1         ST_ANALOG
-#define PIN_INPUT_MAP_1           A2
-//#define SENSOR_MAP_1_NAME         "Reactor Fuel Inlet Pressure"
-
-//torque sensor
-#define SENSOR_TYPE_TORQUE        ST_SOFT
 
 
-//user inputs
-#define NO_OF_USER_INPUTS   4
+
+
 
 //calibration values for Lemark LMS184 1 bar MAP sensor
 //specifying them as Long type to ensure correct evaluation
@@ -206,34 +201,16 @@
  *  Rounding fixed by specifiying float literals
  */
 
-// analog low temperature NTC / PTC sensors, manifold inlet temperatures etc
-#define NO_OF_TMP_SENSORS         0
-
-
 
 
 // digital thermocouple sensor configuration
-#define NO_OF_EGT_SENSORS         1
-
-#define MAX6675                   1
-
-// temperature sensor
-#if NO_OF_EGT_SENSORS > 0
-  #define SENSOR_TYPE_EGT_1         ST_SPI
-  #define PIN_SPI_EGT_1_CS          7
-  #define SENSOR_MODEL_EGT_1        MAX6675
-//  #define SENSOR_EGT_1_NAME         "Reactor Exhaust Inlet Temperature"
-
-//  #if SENSOR_MODEL_EGT_1 == MAX6675
-//todo: eliminate this 3rd party library
-GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor[NO_OF_EGT_SENSORS];
-//  #endif
+#define PIN_SPI_EGT_1_CS          7
+byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
   
-#endif
 
 
 
-// update rates
+// Task Schedule
 
 // screen/log file update
 #define UPDATE_INTERVAL_ms            500
@@ -297,10 +274,7 @@ GyverMAX6675_SPI<PIN_SPI_EGT_1_CS> EGTSensor[NO_OF_EGT_SENSORS];
 #include "records.h"
 
 
-/* some low resolution mapped analog values 
- *  as ram has been cleaned up, these are now high resolution 
- */
-unsigned int MAP_pressure_abs;
+
 /*PID references KNOB values to set Servo values,
  * so the number of knobs must be at least the number of servos,
  * even if there are no knobs to set the value
@@ -433,6 +407,9 @@ void setup() {
   digitalWrite(9, HIGH);
   pinMode(8, OUTPUT);
   digitalWrite(8, HIGH);
+
+  //set EGT CS pins high
+  for(byte idx = 0; idx < NO_OF_EGT_SENSORS; idx++) { ConfigureMAX6675(EGTSensors[idx]); }
  
   //configure the RPM input
   configiure_rpm_counter();
@@ -634,10 +611,9 @@ void process_digital_inputs()
     byte inc_samples = 0;
     for(int idx = 0; idx < NO_OF_EGT_SENSORS; idx++)
     {
-      if(EGTSensor[idx].readTemp())
+      if(MAX6675_ReadTemp(EGTSensors[idx]))
       {
-        int EGT_value = EGTSensor[idx].getTempIntRaw();
-        CURRENT_RECORD.EGT[idx][CURRENT_RECORD.EGT_no_of_samples] = EGT_value;
+        CURRENT_RECORD.EGT[idx][CURRENT_RECORD.EGT_no_of_samples] = MAX6675_GetData();
         inc_samples = 1;
       }
     }

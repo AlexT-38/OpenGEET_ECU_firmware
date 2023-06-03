@@ -7,10 +7,20 @@
  *  we can read external digital adcs (ie torque gauge) while this is happenening
  *  process_adc has 10ms to complete before the next scheduled task
  */
+// sensor channel mapping
+//user inputs will be mapped to analog channels starting from
+#define ADC_CHN_USR_START             0
+#define ADC_CHN_USR_END               (ADC_CHN_USR_START+NO_OF_USER_INPUTS-1)
+//MAP sensors will start from
+#define ADC_CHN_MAP_START             (ADC_CHN_USR_END+1)
+#define ADC_CHN_MAP_END               (ADC_CHN_MAP_START+NO_OF_MAP_SENSORS-1)
+//TMP sensors will start from
+#define ADC_CHN_TMP_START             (ADC_CHN_MAP_END+1)     
+#define ADC_CHN_TMP_END               (ADC_CHN_TMP_START+NO_OF_TMP_SENSORS-1)
 
-#define ADC_CHANNELS    16        // number of ADC inputs to scan
-//#define ADC_MAP                   // enable remapping of inputs - only required if using a sheild that blocks access to some ADC pins, or not using an R3 board with dedicated SDA/SCL pins
-#define ADC_MULTISAMPLE           //enable sampling the ADC multiple times and taking the average. 
+#define ADC_CHANNELS                  16//(ADC_CHN_TMP_END+1)        // number of ADC inputs to scan
+#define ADC_MAP                   // enable remapping of inputs - only required if using a sheild that blocks access to some ADC pins, or not using an R3 board with dedicated SDA/SCL pins
+//#define ADC_MULTISAMPLE           //enable sampling the ADC multiple times and taking the average. 
                                   //this feature needs some thought, as it may be better to sample over time using a timer to trigger a sampling run
                                   //or it may be better to retain the extra bits from oversampling instead of rounding back down to 10bit
                                   //or it could just be a complete waste of time.
@@ -18,16 +28,7 @@
                                   //and there is only 1x 10Hz external ADC (torque sensor)
 
 
-// sensor channel mapping
-//user inputs will be mapped to analog channels starting from
-#define ADC_CHN_USR_START             0
-#define ADC_CHN_USR_END               (NO_OF_USER_INPUTS-1)
-//MAP sensors will start from
-#define ADC_CHN_MAP_START             (ADC_CHN_USR_END+1)
-#define ADC_CHN_MAP_END               (ADC_CHN_MAP_START+NO_OF_MAP_SENSORS-1)
-//TMP sensors will start from
-#define ADC_CHN_TMP_START             (ADC_CHN_MAP_END+1)     
-#define ADC_CHN_TMP_END               (ADC_CHN_TMP_START+NO_OF_TMP_SENSORS-1)
+
 
 
 
@@ -42,7 +43,7 @@ byte ADC_sample;
 #endif
 
 #ifdef ADC_MAP
-static byte ADC_channel_map[ADC_CHANNELS] = {0,1,2,3,4,5,8,9};
+static byte ADC_channel_map[ADC_CHANNELS] = {1,2,0};
 #define ADC_SELECT  ADC_channel_map[ADC_channel]
 #else
 #define ADC_SELECT  ADC_channel
