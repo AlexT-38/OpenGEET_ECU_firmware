@@ -1,12 +1,23 @@
 
 /* ADC handling.
  *  After the first sample, it takes 13 Tclk(adc) ticks to complete a conversion
- *  at 16Mhz with 128 prescaler, Tclk(adc) = 104us
- *  to sample all sixteen channels takes 1664 us
- *  to sample all sixteen channels twice takes 3328 us
+ *  at 16Mhz with 128 prescaler, Tclk(adc) = 104 us     measured: 108us
+ *  to sample all sixteen channels takes 1664 us        measured: 1892 (analogRead)
+ *  to sample all sixteen channels twice takes 3328 us  measured: 3692 (analogRead)
  *  we can read external digital adcs (ie torque gauge) while this is happenening
  *  process_adc has 10ms to complete before the next scheduled task
  */
+
+//configuration
+
+#define ADC_CHANNELS                  16//(ADC_CHN_TMP_END+1)        // number of ADC inputs to scan
+#define ADC_MAP                   // enable remapping of inputs - only required if using a sheild that blocks access to some ADC pins, or not using an R3 board with dedicated SDA/SCL pins
+#define ADC_MULTISAMPLE           //enable sampling the ADC multiple times and taking the average. 
+                                  //this feature needs some thought, as it may be better to sample over time using a timer to trigger a sampling run
+                                  //or it may be better to retain the extra bits from oversampling instead of rounding back down to 10bit
+                                  //or it could just be a complete waste of time.
+
+
 // sensor channel mapping
 //user inputs will be mapped to analog channels starting from
 #define ADC_CHN_USR_START             0
@@ -18,23 +29,11 @@
 #define ADC_CHN_TMP_START             (ADC_CHN_MAP_END+1)     
 #define ADC_CHN_TMP_END               (ADC_CHN_TMP_START+NO_OF_TMP_SENSORS-1)
 
-#define ADC_CHANNELS                  16//(ADC_CHN_TMP_END+1)        // number of ADC inputs to scan
-#define ADC_MAP                   // enable remapping of inputs - only required if using a sheild that blocks access to some ADC pins, or not using an R3 board with dedicated SDA/SCL pins
-//#define ADC_MULTISAMPLE           //enable sampling the ADC multiple times and taking the average. 
-                                  //this feature needs some thought, as it may be better to sample over time using a timer to trigger a sampling run
-                                  //or it may be better to retain the extra bits from oversampling instead of rounding back down to 10bit
-                                  //or it could just be a complete waste of time.
-#define ADC_USE_ISR               //use the ADC ISR to handle the sample run. given that the time required to sample all 16 channels twice is 1/3rd of the available processing time
-                                  //and there is only 1x 10Hz external ADC (torque sensor)
-
-
-
-
 
 
 int ADC_results[ADC_CHANNELS];
 byte ADC_channel;
-bool ADC_complete;
+volatile bool ADC_complete;
 
 #ifdef ADC_MULTISAMPLE 
 #define ADC_EXTRA_BITS  1
@@ -44,110 +43,70 @@ byte ADC_sample;
 
 #ifdef ADC_MAP
 static byte ADC_channel_map[ADC_CHANNELS] = {1,2,0};
-#define ADC_SELECT  ADC_channel_map[ADC_channel]
+#define ADC_SELECT  ADC_channel_map[chn]
 #else
-#define ADC_SELECT  ADC_channel
+#define ADC_SELECT  chn
 #endif
-
-#ifdef ADC_USE_ISR
-ISR(ADC_vect)
-#else
-void ADC_process()
-#endif
-{
-  //grab the result and increment the channel
-  ADC_results[ADC_channel++] += ADC;
-  
-  if(ADC_channel < ADC_CHANNELS)
-  {
-    //ADC is in two banks of 8, ADMUX set the bank's channel and voltage reference
-    ADMUX = (ADC_SELECT & 0x7) | _BV(REFS0);
-    //select the bank
-    ADCSRB = ADC_SELECT & 0x8;
-    #ifndef ADC_MULTISAMPLE 
-    //start the next conversion
-    ADCSRA |= _BV(ADSC);
-    #endif
-  }
-  else 
-  {
-    ADC_channel = 0;
-    #ifndef ADC_MULTISAMPLE 
-    ADC_complete = true;
-    #endif
-  }
-#ifdef ADC_MULTISAMPLE 
-  //run multiple samples
-  if(ADC_sample < ADC_SAMPLES)
-  {
-    //start the next conversion
-    ADCSRA |= _BV(ADSC);
-  }
-  else
-  {
-    ADC_complete = true;
-    ADC_sample = 0;
-  }
-#endif
-
-}
-
-void startADC()
-{
-  ADC_complete = false;
-  //start the next conversion
-  ADCSRA |= _BV(ADSC);
-}
-
 
 void configureADC()
 {
-  //set the reference
-  ADMUX = _BV(REFS0);
   //disable the digital inputs
   DIDR0 = 0xFF;
   DIDR1 = 0xFF;
+  PORTF=0x0;
+  PORTK=0x0;
+  DDRF=0;
+  DDRK=0;
 
-  //enable the ADC and interrupt flag, prescaler to slowest rate
-  ADCSRA = _BV(ADEN) | _BV(ADIE) | 0x7;
-
-  startADC();
-  //if ISR is enabled, this will run a complete sample process
+  analogRead(A0);
 }
-
-
-
 
 void process_analog_inputs()
 {
   #ifdef DEBUG_ANALOG_TIME
   unsigned int timestamp_us = micros();
   #endif
-  
-  startADC();
 
   //read the torque sensor while we wait for the ADC to catch complete.
-  int torque = torqueRead(); //while technically a 'digital' sensor, the update rate is 10Hz, which matches with the analog update rate, and not the MAX6675 update rate
-
-  while(!ADC_complete)
-  {
-#ifndef ADC_USE_ISR
-    //wait for interrupt flag
-    while(ADCSRA&_BV(ADIF)==0);
-    //run the sample process
-    ADC_process();
-#endif
-  }
+  int torque = torqueRead(); //while technically a 'digital' sensor (in terms of interface), the update rate is 10Hz, which matches with the analog update rate, and not the MAX6675 update rate
+                             //the torque data is always one sample behind, since the conversion takes 100ms
 
 
   
-  // average extra samples
-#ifdef ADC_MULTISAMPLE
+  #ifndef ADC_MULTISAMPLE
+  for(byte chn = 0; chn < ADC_CHANNELS; chn++)
+  {
+    ADC_results[chn] = analogRead(A0+ADC_SELECT);
+  }
+  #else
+  //clear the results table
+  memset(ADC_results,0,sizeof(ADC_results));
+  
+  for(byte smp = 0; smp < ADC_SAMPLES; smp++)
+  {
+    for(byte chn = 0; chn < ADC_CHANNELS; chn++)
+    {
+      ADC_results[chn] += analogRead(A0+ADC_SELECT);
+    }
+  }
   for (int chn = 0; chn < ADC_CHANNELS; chn++)
   {
     ADC_results[chn] = (ADC_results[chn]+_BV(ADC_EXTRA_BITS-1)) >> ADC_EXTRA_BITS;
   }
-#endif
+  #endif
+  
+
+
+  #ifdef DEBUG_ADC
+  Serial.println(F("ADC results:"));
+  for (int chn = 0; chn < ADC_CHANNELS; chn++)
+  {
+    Serial.print(chn);
+    Serial.print(FS(S_COLON));
+    Serial.println(ADC_results[chn]);
+  }
+  Serial.println();
+  #endif
 
   //copy user inputs to knob values todo: make this make sense - PID's should probably take their target values direct from ADC_results
   for(byte knob=0; knob<NO_OF_KNOBS; knob++)
@@ -217,10 +176,10 @@ void process_analog_inputs()
     for(byte idx = 0; idx < Data_Config.TMP_no; idx++) {CURRENT_RECORD.USR[idx][analog_index] = ADC_results[ADC_CHN_TMP_START+idx];}
 
   }
+
   #ifdef DEBUG_ANALOG_TIME
   timestamp_us = micros() - timestamp_us;
   Serial.print(F("t_ana us: "));
   Serial.println(timestamp_us);
   #endif
-
 }

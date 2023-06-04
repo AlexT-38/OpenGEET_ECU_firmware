@@ -108,9 +108,10 @@
 //#define DEBUG_SDCARD_TIME       //measure how long SD card log write takes            t:  30000
 //#define DEBUG_SERIAL_TIME       //measure how long serial log write takes             t:
 //#define DEBUG_PID_TIME          //measure how long the pid loop takes                 t:     48(direct) 76(1ch)      
-//#define DEBUG_ANALOG_TIME       //measure how long analog read and processing takes   t:
+#define DEBUG_ANALOG_TIME       //measure how long analog read and processing takes   t:
 //#define DEBUG_DIGITAL_TIME      //measure how long reading from digital sensors takes t:  
 //#define DEBUG_TOUCH_TIME        //measure how long reading and processing touch input t:                125           300
+//#define DEBUG_ADC
 //#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
 //#define DEBUG_EEP_CONTENT
@@ -127,6 +128,7 @@
 #define DEBUG_TORQUE_CAL_NO_TIMEOUT //no timeout reading torque sensor calibration values, saves about 16 bytes of flash with the above, but without the above, saves 40 bytes (or, conversly CONSUMES 56 bytes)
 //#define DEBUG_DISABLE_DIGITAL
 //#define DEBUG_TOUCH_REG_DUMP
+//#define DEBUG_CAL_TOUCH
 #endif
 
 //#define OVERWRITE_TOUCH_CAL
@@ -153,20 +155,6 @@
 
 //rpm counter interrupt pin
 #define PIN_RPM_COUNTER_INPUT     2 //INT0 -this clashes with the gameduino interupt pin
-
-
-//#define CONTROL_INPUT_1_NAME      "Reactor Inlet Valve Target"
-//#define CONTROL_INPUT_2_NAME      "Engine Inlet Valve Target"
-
-// sensor interface types - probably ought to be an enum
-#define ST_ANALOG                 0
-#define ST_I2C                    1
-#define ST_SPI                    2
-#define ST_SOFT                   3 //software implemented interface
-
-
-
-
 
 
 //calibration values for Lemark LMS184 1 bar MAP sensor
@@ -425,7 +413,7 @@ void setup() {
   Serial.begin(1000000);  //for usb coms, no reason not to use fastest available baud rate - this turns out to be the biggest time usage during update/report
   Serial.println();
 
-  MAKE_STRING(S_FIRMWARE_NAME);           //we use make here so we can pass the string to screen_flash
+  MAKE_STRING(S_FIRMWARE_NAME);           //we use make here so we can pass the string to screen_splash
   Serial.println(S_FIRMWARE_NAME_str);
   
   DateTime t_compile;
@@ -482,7 +470,7 @@ void setup() {
     flags_status.sdcard_available = true;
   }
 //  Serial.println(string);
-  screen_draw_flash(S_FIRMWARE_NAME_str, string);
+  screen_draw_splash(S_FIRMWARE_NAME_str, string);
 
 
   //start the ADC
@@ -527,7 +515,7 @@ void setup() {
   Serial.println();
 #endif
 
-
+  Serial.println(F("Init Complete"));
   // wait for MAX chip to stabilize, and to see the splash screen
   delay(4000);
 
@@ -579,7 +567,7 @@ void setup() {
   }
 #endif
 
-  Serial.println(F("Init Complete"));
+  
   int timenow = millis();
 
   //set the initial times for the loop events
@@ -689,7 +677,7 @@ void loop() {
     flags_status.update_active = true;
     /* emit the timestamp interval of the current update, if debugging */
     #ifdef DEBUG_LOOP
-    Serial.print(F("UPD: ")); Serial.println(timenow);
+    Serial.print(F("\nUPD: ")); Serial.println(timenow);
     #endif
   }
   if(flags_status.update_active)
@@ -710,7 +698,7 @@ void loop() {
 
     // debug marker
     #ifdef DEBUG_LOOP
-    Serial.print(F("DIG: ")); Serial.println(timenow);
+    Serial.print(F("\nDIG: ")); Serial.println(timenow);
     #endif
     
     process_digital_inputs();
@@ -729,7 +717,7 @@ void loop() {
 
     //debug marker
     #ifdef DEBUG_LOOP
-    Serial.print(F("ANA: "));Serial.println(timenow);
+    Serial.print(F("\nANA: "));Serial.println(timenow);
     #endif
     
     process_analog_inputs();
@@ -760,7 +748,7 @@ void loop() {
 
     //debug marker
     #ifdef DEBUG_LOOP
-    Serial.print(F("PID: ")); Serial.println(timenow);
+    Serial.print(F("\nPID: ")); Serial.println(timenow);
     #endif  
 
     process_pid_loop();
@@ -782,7 +770,7 @@ void loop() {
 
     //debug marker
     #ifdef DEBUG_LOOP
-    Serial.print(F("TOUCH: ")); Serial.println(timenow);
+    Serial.print(F("\nTOUCH: ")); Serial.println(timenow);
     #endif  
 
     read_touch();
@@ -799,4 +787,8 @@ void loop() {
 
 
   check_eeprom_update();
+
+  #ifdef DEBUG_LOOP
+  //Serial.print('.');
+  #endif
 }

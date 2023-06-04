@@ -9,7 +9,7 @@
  * how long does it take to read this?
  * fastest possible is 0.1+25*0.4 us = 10.1 us
  * typical is 2*25 = 50us, 
- * either way is less than half the time is takes to read a single internal ADC input
+ * either way is more than the time taken to read one ADC, but less than less than half the time is takes to read all 16 inputs
  */
 
 #define TORQUE_TIMEOUT_ms 1

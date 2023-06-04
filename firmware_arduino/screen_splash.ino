@@ -1,11 +1,18 @@
-/* flash screen shown at startup only */
+/* splash screen shown at startup only */
 
-void screen_draw_flash(const char * firwmare_string, const char * card_status_string)
+void screen_draw_splash(const char * firwmare_string, const char * card_status_string)
 {
     
   //initialise the display
   GD.begin(~GD_STORAGE);
 
+  //configure the screen orientation
+  GD.wr(REG_ROTATE, 0); //inverted landscape
+
+#ifdef DEBUG_CAL_TOUCH
+  GD.self_calibrate();
+  for (int i = 0; i < 24; i++) {EEPROM.write(1 + i, GD.rd(REG_TOUCH_TRANSFORM_A + i));}
+#endif
   // draw splash screen...
   GD.Clear();
 
