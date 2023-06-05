@@ -118,6 +118,7 @@
 //#define DEBUG_EEP_CONTENT
 //#define DEBUG_RPM_COUNTER
 //#define DEBUG_MAP_CAL
+#define DEBUG_MAP
 //#define DEBUG_TMP_CAL
 //#define DEBUG_SCREEN_RES        //print screen resolution during startup (should be WQVGA: 480 x 272)
 //#define DEBUG_TOUCH_INPUT

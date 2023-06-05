@@ -21,13 +21,13 @@
 // sensor channel mapping
 //user inputs will be mapped to analog channels starting from
 #define ADC_CHN_USR_START             0
-#define ADC_CHN_USR_END               (ADC_CHN_USR_START+NO_OF_USER_INPUTS-1)
+#define ADC_CHN_USR_END               (ADC_CHN_USR_START+NO_OF_USER_INPUTS)
 //MAP sensors will start from
-#define ADC_CHN_MAP_START             (ADC_CHN_USR_END+1)
-#define ADC_CHN_MAP_END               (ADC_CHN_MAP_START+NO_OF_MAP_SENSORS-1)
+#define ADC_CHN_MAP_START             (ADC_CHN_USR_END)
+#define ADC_CHN_MAP_END               (ADC_CHN_MAP_START+NO_OF_MAP_SENSORS)
 //TMP sensors will start from
-#define ADC_CHN_TMP_START             (ADC_CHN_MAP_END+1)     
-#define ADC_CHN_TMP_END               (ADC_CHN_TMP_START+NO_OF_TMP_SENSORS-1)
+#define ADC_CHN_TMP_START             (ADC_CHN_MAP_END)     
+#define ADC_CHN_TMP_END               (ADC_CHN_TMP_START+NO_OF_TMP_SENSORS)
 
 
 
@@ -126,7 +126,7 @@ void process_analog_inputs()
     ADC_results[idx] = amap(ADC_results[idx], SENSOR_MAP_CAL_MIN_mbar, SENSOR_MAP_CAL_MAX_mbar); 
     
     #ifdef DEBUG_MAP_CAL
-    Serial.print(idx-ADC_CHN_MAP);
+    Serial.print(idx-ADC_CHN_MAP_START);
     Serial.print(F(" map cal; in, min, max, out: "));
     Serial.print(pressure_LSBs); Serial.print(F(", "));
     Serial.print(SENSOR_MAP_CAL_MIN_mbar); Serial.print(F(", "));
