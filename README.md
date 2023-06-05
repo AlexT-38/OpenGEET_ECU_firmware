@@ -16,7 +16,7 @@ Upgrade to an STM10x or 40x device can be made later if required.
 
 #### Development roadmap:
 
-### 0.8+
+### 0.7+
 
 **Objectives:**
 - Starter/Generator BLDC integration
@@ -24,16 +24,13 @@ Upgrade to an STM10x or 40x device can be made later if required.
 - Reactor state monitoring (starting, in spec, out of spec)
 - Replace blocking FATFS library
 - Updated UI: configurable screen, multiple settings pages
-
-### v0.7
-
-**Objectives:**
-
 - Additional user input: 4 knobs and 2 push buttons
 - Updated UI: dynamic labels for physical input
 - Prony brake servo
 - Time/date and RTC trim control
 - Thermistor inputs for air inlet, reactor output, oil temperatures etc.
+- Full EEPROM export/import
+- Shaft power readout
 
 ### v0.6
 
@@ -41,8 +38,7 @@ Upgrade to an STM10x or 40x device can be made later if required.
 
 - Arduino MEGA update
 - Data records store calibrated data by sensor type
-- Full EEPROM export/import
-- Shaft power readout
+- Configurable maximum no of sensors by type
 - Replace 3rd party thermocouple library
 
 ### v0.5
