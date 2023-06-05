@@ -149,19 +149,21 @@ void finalise_record()
     for(byte idx = 0; idx<Data_Config.USR_no; idx++)
     {
       Data_Averages.USR[idx] = rounding;
-      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.USR[idx] += data_record->USR[idx];}
+      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.USR[idx] += data_record->USR[idx][sample];}
+      
       Data_Averages.USR[idx] /= data_record->ANA_no_of_samples;
+
     }
     for(byte idx = 0; idx<Data_Config.MAP_no; idx++)
     {
       Data_Averages.MAP[idx] = rounding;
-      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.MAP[idx] += data_record->MAP[idx];}
+      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.MAP[idx] += data_record->MAP[idx][sample];}
       Data_Averages.MAP[idx] /= data_record->ANA_no_of_samples;
     }
     for(byte idx = 0; idx<Data_Config.TMP_no; idx++)
     {
       Data_Averages.TMP[idx] = rounding;
-      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.TMP[idx] += data_record->TMP[idx];}
+      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.TMP[idx] += data_record->TMP[idx][sample];}
       Data_Averages.TMP[idx] /= data_record->ANA_no_of_samples;
     }
   }
@@ -171,7 +173,7 @@ void finalise_record()
     for(byte idx = 0; idx<Data_Config.EGT_no; idx++)
     {
       Data_Averages.EGT[idx] = rounding;
-      for(byte sample = 0; sample < data_record->EGT_no_of_samples; sample++) {Data_Averages.EGT[idx] += data_record->EGT[idx];}
+      for(byte sample = 0; sample < data_record->EGT_no_of_samples; sample++) {Data_Averages.EGT[idx] += data_record->EGT[idx][sample];}
       Data_Averages.EGT[idx] /= data_record->EGT_no_of_samples;
     }
   }
@@ -187,7 +189,7 @@ void finalise_record()
     for(byte idx = 0; idx<Data_Config.SRV_no; idx++)
     {
       Data_Averages.SRV[idx] = rounding;
-      for(byte sample = 0; sample < data_record->SRV_no_of_samples; sample++) {Data_Averages.SRV[idx] += data_record->SRV[idx];}
+      for(byte sample = 0; sample < data_record->SRV_no_of_samples; sample++) {Data_Averages.SRV[idx] += data_record->SRV[idx][sample];}
       Data_Averages.SRV[idx] /= data_record->SRV_no_of_samples;
     }
   }

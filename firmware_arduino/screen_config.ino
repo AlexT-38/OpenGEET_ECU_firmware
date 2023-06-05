@@ -32,11 +32,11 @@ void screen_draw_config()
   MAKE_STRING(S_SERIAL);
   draw_toggle_button(GRID_XL(1,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_serial_write,S_SERIAL_str);
   MAKE_STRING(S_HEX);
-  draw_toggle_button(GRID_XL(1,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_serial_write_hex,S_HEX_str);
+  draw_toggle_button(GRID_XL(1,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL_HEX,flags_config.do_serial_write_hex,S_HEX_str);
   MAKE_STRING(S_SDCARD);
-  draw_toggle_button(GRID_XL(2,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_sdcard_write,S_SDCARD_str);
+  draw_toggle_button(GRID_XL(2,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SDCARD,flags_config.do_sdcard_write,S_SDCARD_str);
   MAKE_STRING(S_DOT_RAW);
-  draw_toggle_button(GRID_XL(2,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_sdcard_write_hex,S_DOT_RAW_str);
+  draw_toggle_button(GRID_XL(2,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SDCARD_HEX,flags_config.do_sdcard_write_hex,S_DOT_RAW_str);
   
   char strings[6][10];
   READ_STRING(S_SV0_MIN, strings[0]);

@@ -108,9 +108,10 @@
 //#define DEBUG_SDCARD_TIME       //measure how long SD card log write takes            t:  30000
 //#define DEBUG_SERIAL_TIME       //measure how long serial log write takes             t:
 //#define DEBUG_PID_TIME          //measure how long the pid loop takes                 t:     48(direct) 76(1ch)      
-#define DEBUG_ANALOG_TIME       //measure how long analog read and processing takes   t:
+//#define DEBUG_ANALOG_TIME       //measure how long analog read and processing takes   t:
 //#define DEBUG_DIGITAL_TIME      //measure how long reading from digital sensors takes t:  
 //#define DEBUG_TOUCH_TIME        //measure how long reading and processing touch input t:                125           300
+#define DEBUG_RECORD
 //#define DEBUG_ADC
 //#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
@@ -251,7 +252,7 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
  *      3.33ms per char
  *         010   030   050   070   090   110   130   150   170   190   210   230   250   270   290   310   330   350   370   390   410   430   450   470   490
  *      000   020   040   060   080   100   120   140   160   180   200   220   240   260   280   300   320   340   360   380   400   420   440   460   480   500
- *      U           P        A  T  P     E        P        A  T  P              P        A  T  P              P     E  A  T P               P        A  T  P  U
+ *      U           P        A  T  P     E        P        A  T  P              P        A  T  P              P     E  A  T  P              P        A  T  P  U
  *                                    
  *      500   520   540   560   580   600   620   640   660   680   700   720   740   760   780   800   820   840   860   880   900   920   940   960   980  1000
  *      U           P        A  T  P     E        P        A  T  P              P        A  T  P              P     E  A  T  P              P        A  T  P  U
