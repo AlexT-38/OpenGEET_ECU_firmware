@@ -64,7 +64,7 @@ void screen_draw_pid_rpm()
   
   
   draw_readout_int(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.MAP[0], S_MAP_MBAR);
-  draw_readout_fixed(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.EGT[0], 2,0, S_EGT1_DEGC, false);
+  draw_readout_fixed(GRID_XR(gx,XN), GRID_YC(gy++,YN), DRO_OPT, Data_Averages.EGT[0], 2,0, S_EGT_DEGC, false);
   draw_datetime(GRID_XR(gx,XN), GRID_YC(gy++,YN), OPT_RIGHTX );
 
   // Mid right column

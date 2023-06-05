@@ -14,18 +14,8 @@
 static uint8_t t_bcd2bin (uint8_t val) { return val - 6 * (val >> 4); }
 static uint8_t t_bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
 
-/* print the date and time to the serial port */
-void serial_print_date_time(const DateTime t_now) 
-{
-  char string[11];
-  date_to_string(t_now, string);
-  Serial.print(string);
-  GET_STRING(S_COMMA);
-  Serial.print(string);
-  time_to_string(t_now, string);
-  Serial.println(string);
-}
-void file_print_date_time(const DateTime t_now, File file) 
+/* print the date and time to the specified stream */
+void stream_print_date_time(const DateTime t_now, Stream &file) 
 {
   char string[11];
   date_to_string(t_now, string);
@@ -145,6 +135,7 @@ void DS1307_adjust(const DateTime dt)
 
 DateTime DS1307_now() 
 {
+  bool success = false;
   DateTime dt = {0};
   if (i2c_start(DS1307_WRITE))
   {
@@ -160,15 +151,21 @@ DateTime DS1307_now()
       dt.day    = t_bcd2bin(i2c_read(false));
       dt.month  = t_bcd2bin(i2c_read(false));
       dt.year   = t_bcd2bin(i2c_read(true));
+      success = true;
     }
   }
   i2c_stop();
+  #ifdef DEBUG_RTC
+  Serial.print(F("RTC d/t: ")); Serial.print(dt.day); Serial.print('/'); Serial.print(dt.month); Serial.print('/'); Serial.print(dt.year); Serial.print(FS(S_COMMA)); Serial.print(dt.hour); Serial.print(':'); Serial.print(dt.minute); Serial.print(':'); Serial.print(dt.second); 
+  Serial.println();
+  #endif
   return dt;
 }
 
 /* incase only date or time are required */
 DateTime DS1307_date() 
 {
+  bool success = false;
   DateTime dt = {0};
   if (i2c_start(DS1307_WRITE))
   {
@@ -177,15 +174,21 @@ DateTime DS1307_date()
     {
       dt.day    = t_bcd2bin(i2c_read(false));
       dt.month  = t_bcd2bin(i2c_read(false));
-      dt.year   = t_bcd2bin(i2c_read(true));  
+      dt.year   = t_bcd2bin(i2c_read(true));
+      success = true;
     }
   }
   i2c_stop();
+  #ifdef DEBUG_RTC
+  Serial.print(F("RTC d: ")); Serial.print(dt.day); Serial.print('/'); Serial.print(dt.month); Serial.print('/'); Serial.print(dt.year); 
+  Serial.println();
+  #endif
   return dt;
 }
 
 DateTime DS1307_time() 
 {
+  bool success = false;
   DateTime dt = {0};
   if (i2c_start(DS1307_WRITE))
   {
@@ -195,9 +198,14 @@ DateTime DS1307_time()
       dt.second = t_bcd2bin(i2c_read(false) & 0x7F);
       dt.minute = t_bcd2bin(i2c_read(false));
       dt.hour   = t_bcd2bin(i2c_read(false));
+      success = true;
     }
   }
   i2c_stop();
+  #ifdef DEBUG_RTC
+  Serial.print(F("RTC t: ")); Serial.print(dt.hour); Serial.print(':'); Serial.print(dt.minute); Serial.print(':'); Serial.print(dt.second); 
+  Serial.println();
+  #endif
   return dt;
 }
 

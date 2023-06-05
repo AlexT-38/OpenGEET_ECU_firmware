@@ -1,7 +1,7 @@
 #ifndef __SCREENS_H__
 #define __SCREENS_H__
 
-#define SCREEN_BUILD_ID  6
+#define SCREEN_BUILD_ID  7
 
 //#define TRACKERS_ENABLED
 //#define TAG_BYPASS        //set defined if tags wont read

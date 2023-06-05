@@ -27,6 +27,21 @@
 
 
 TORQUE_CAL          torque_cal;
+static long         torque_LSB;
+static int          torque_mNm;
+
+void print_torque_cal(Stream &file)
+{
+  file.print(F("Torque Cal (Mn,Mx,Zr): "));
+  file.print(torque_cal.counts_min); file.print(FS(S_COMMA));
+  file.print(torque_cal.counts_max); file.print(FS(S_COMMA));
+  file.print(torque_cal.counts_zero); file.print(FS(S_COMMA));
+  
+  file.print(F("\nTorque (LSB,mNm): "));
+  file.print(torque_LSB); file.print(FS(S_COMMA));
+  file.println(torque_mNm);  
+  
+}
 
 void configure_torque_sensor()
 {
@@ -57,18 +72,15 @@ int torqueRead()
   while(HX711_getDATA() && millis() < timeout_ms);
 #endif
   
-  //round down to int before applying the calibration
-  int torque_mNm = 0;
+  
+  torque_mNm = 0;
 #ifndef DEBUG_TORQUE_NO_TIMEOUT
   if(!HX711_getDATA())
   {
 #endif
-    
-#ifdef SQUEESE_HX711
-    torque_mNm = tq_counts_to_mNm((HX711_read_value()));//+TORQUE_ROUNDING)>>TORQUE_PRESCALE);
-#else //squeeze
-    torque_mNm = tq_counts_to_mNm((HX711_read_value()+TORQUE_ROUNDING)>>TORQUE_PRESCALE);
-#endif //squeeze
+    //round down to int before applying the calibration
+    torque_LSB = (HX711_read_value() + TORQUE_ROUNDING) >> TORQUE_PRESCALE;;
+    torque_mNm = tq_counts_to_mNm(torque_LSB);
 
 #ifdef DEBUG_TORQUE_SENSOR
     Serial.println(torque_mNm,HEX);

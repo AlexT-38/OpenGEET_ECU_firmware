@@ -73,7 +73,7 @@ void generate_file_name()
   {
     //print the header
     dataFile.print(FS(S_RECORD_VER_C));     dataFile.println(DATA_RECORD_VERSION);
-    file_print_date_time(t_now, dataFile);
+    stream_print_date_time(t_now, dataFile);
     dataFile.println();
     dataFile.close();
     
@@ -195,6 +195,28 @@ void finalise_record()
   }
 
 
+
+  //calculate shaft power
+  //power in (W?) product of torque(Nm) and rpm(rad/s); rad/s = 0.10471975511965977461542144610932 per/rpm, Nm = 0.001 mNm
+  //rpm will have range ~150-450rad/s, torque in range +/- ~10Nm, result would be +/- ~4500W
+  //native range 4500(13bit) and 20000(15bit)
+  //native power units range +/- ~45,000,000 (27bits)
+  //convert to W (0.1W) multiply by 0.000105, range +/- ~4,712 (13bit)
+  //multiply by 224,884 (18bit) div by 2^31, intermediate is 45bit
+  //prescale by 8bit, power range now 19bit, intermediate is 37bit
+  //reduce multiplier by 5 bit, 7072 (13bit) div by 2^(26-8=18), intermediate is 32bit, result is 14bit
+  
+  //so max signed value is 45,000,000, >>8 =175,781, *7072 =1,243,123,232, >>18 = 4742W
+  //probably best to split the difference, 19/13 to 16/16
+  //prescale by 11bit, multiplier reduced by 2bit to 56,221, div by 2^(26-11=15) --wrong, out by 3 bits
+  
+  long native_power = Data_Averages.RPM * Data_Averages.TRQ;
+  native_power >>= 11;
+  native_power *= 56221;
+  native_power >>= 15;
+
+  Data_Averages.POW = (int)native_power;
+
   /* hash the data for hex storage*/
   
   data_store.data = (byte*)data_record;
@@ -283,6 +305,7 @@ bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte wri
     case 9: //ser: 540/964
       {
         stream_print_int_array(&dst, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES, NO_IDX);
+        dst.print(FS(S_POW_C));          dst.println(Data_Averages.POW);
         dst.println(FS(S_RECORD_MARKER));
       }
     default:

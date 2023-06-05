@@ -88,7 +88,6 @@
 #include <SD.h>         //sd card library
 #include <SPI.h>        //needed for gameduino
 #include <GD2.h>        //Gameduino (FT810 plus micro sdcard
-#include <GyverMAX6675_SPI.h>    //digital thermocouple interface using SPI port
 
 #include <Servo.h>      //servo control disables analog write on pins 9 and 10
 
@@ -111,14 +110,14 @@
 //#define DEBUG_ANALOG_TIME       //measure how long analog read and processing takes   t:
 //#define DEBUG_DIGITAL_TIME      //measure how long reading from digital sensors takes t:  
 //#define DEBUG_TOUCH_TIME        //measure how long reading and processing touch input t:                125           300
-#define DEBUG_RECORD
+//#define DEBUG_RECORD  // n/a
 //#define DEBUG_ADC
-//#define DEBUG_SERVO
+#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
 //#define DEBUG_EEP_CONTENT
 //#define DEBUG_RPM_COUNTER
 //#define DEBUG_MAP_CAL
-#define DEBUG_MAP
+//#define DEBUG_MAP  // n/a
 //#define DEBUG_TMP_CAL
 //#define DEBUG_SCREEN_RES        //print screen resolution during startup (should be WQVGA: 480 x 272)
 //#define DEBUG_TOUCH_INPUT
@@ -127,10 +126,13 @@
 //#define DEBUG_TORQUE_RAW        //record raw values
 //#define DEBUG_TORQUE_CAL        //print calibration values on set
 //#define DEBUG_TORQUE_NO_TIMEOUT   //no timeout for reading torque sensor - this saves 40 or so bytes of flash, but will hang if comms lost
-#define DEBUG_TORQUE_CAL_NO_TIMEOUT //no timeout reading torque sensor calibration values, saves about 16 bytes of flash with the above, but without the above, saves 40 bytes (or, conversly CONSUMES 56 bytes)
+//#define DEBUG_TORQUE_CAL_NO_TIMEOUT //no timeout reading torque sensor calibration values, saves about 16 bytes of flash with the above, but without the above, saves 40 bytes (or, conversly CONSUMES 56 bytes)
 //#define DEBUG_DISABLE_DIGITAL
 //#define DEBUG_TOUCH_REG_DUMP
 //#define DEBUG_CAL_TOUCH
+//#define DEBUG_RTC
+//#define DEBUG_RTC_FORCE_UPDATE
+
 #endif
 
 //#define OVERWRITE_TOUCH_CAL
@@ -141,7 +143,7 @@
 #define NO_OF_MAP_SENSORS         1     //pressure sensors
 #define NO_OF_TMP_SENSORS         0     // analog low temperature NTC / PTC sensors, manifold inlet temperatures etc
 #define NO_OF_EGT_SENSORS         1     // digital thermocouple sensors, MAX6675
-#define NO_OF_SERVOS              2
+#define NO_OF_SERVOS              3
 
 #include "torque_sensor.h"
 #include "PID.h"
@@ -420,7 +422,7 @@ void setup() {
   
   DateTime t_compile;
   t_compile = CompileDateTime();
-  serial_print_date_time(t_compile);
+  stream_print_date_time(t_compile, Serial);
 //  Serial.println();
 
 
@@ -435,16 +437,20 @@ void setup() {
   else
   {
     DateTime t_now = DS1307_now();
+    #ifndef DEBUG_RTC_FORCE_UPDATE
     if (is_after(t_compile, t_now))
+    #endif
     {
       Serial.println(F("Set RTC"));//Serial.println(F("Updating RTC"));
       DS1307_adjust(t_compile);
     }
+    #ifndef DEBUG_RTC_FORCE_UPDATE
     else
     {
       //Serial.print(F("Time: "));//Serial.print(F("Time now: "));
-      serial_print_date_time(t_now);
+      stream_print_date_time(t_now, Serial);
     }
+    #endif
   }
   
   //set default flags

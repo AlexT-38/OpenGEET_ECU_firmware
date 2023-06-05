@@ -22,7 +22,13 @@ typedef struct data_averages
   int TRQ;
   unsigned int RPM;                          //average rpm over this time period, can be caluclated from number of ticks and update rate
   int SRV[NO_OF_SERVOS];
-
+  int POW;                                  //power in (W?) product of torque(Nm) and rpm(rad/s); rad/s = 0.10471975511965977461542144610932 per/rpm, Nm = 0.001 mNm
+                                            //rpm will have range ~150-450rad/s, torque in range +/- ~10Nm, result would be +/- ~4500W
+                                            //native units are RPM (x0.105), mNm (x0.001)
+                                            //native power units range +/- ~45,000,000 (27bits)
+                                            //to convert to mW, multiply by 0.105, range +/- ~4,712,389 (24bits)
+                                            //convert to dW (0.1W) multiply by 0.00105, range +/- ~47,123 (17bit)
+                                            //convert to W (0.1W) multiply by 0.000105, range +/- ~4,712 (13bit)
 }DATA_AVERAGES;
 
   /* struct for storing sensor samples over the update period */

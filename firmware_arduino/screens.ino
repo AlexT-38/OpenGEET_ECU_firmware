@@ -14,8 +14,8 @@ typedef void(*SCREEN_DRAW_FUNC)(void);
 
 
 /* pointer to the func to use to draw the screen */
-const SCREEN_DRAW_FUNC draw_screen_funcs[NO_OF_SCREENS] = {screen_draw_basic, screen_draw_pid_rpm, NULL, NULL, screen_draw_config};
-const char * const screen_labels[NO_OF_SCREENS] PROGMEM = {S_BASIC, S_PID_RPM, S_NONE,S_NONE, S_CONFIG};
+const SCREEN_DRAW_FUNC draw_screen_funcs[NO_OF_SCREENS] = {screen_draw_basic, screen_draw_pid_rpm, NULL, screen_draw_torque, screen_draw_config};
+const char * const screen_labels[NO_OF_SCREENS] PROGMEM = {S_BASIC, S_PID_RPM, S_NONE, S_TORQUE, S_CONFIG};
 
 
 SCREEN_EN current_screen = SCREEN_1;
@@ -184,19 +184,19 @@ void read_touch()
     switch(touch_tag_old)
     {
       case TAG_SCREEN_1:
-        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_1;
+        if(touch_event == TOUCH_OFF && draw_screen_funcs[SCREEN_1] != NULL)  current_screen = SCREEN_1;
         break;
       case TAG_SCREEN_2:
-        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_2;
+        if(touch_event == TOUCH_OFF && draw_screen_funcs[SCREEN_2] != NULL)  current_screen = SCREEN_2;
         break;
-//      case TAG_SCREEN_3:
-//        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_3;
-//        break;
-//      case TAG_SCREEN_4:
-//        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_4;
-//        break;
+      case TAG_SCREEN_3:
+        if(touch_event == TOUCH_OFF && draw_screen_funcs[SCREEN_3] != NULL)  current_screen = SCREEN_3;
+        break;
+      case TAG_SCREEN_4:
+        if(touch_event == TOUCH_OFF && draw_screen_funcs[SCREEN_4] != NULL)  current_screen = SCREEN_4;
+        break;
       case TAG_SCREEN_5:
-        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_5;
+        if(touch_event == TOUCH_OFF && draw_screen_funcs[SCREEN_5] != NULL)  current_screen = SCREEN_5;
         break;
       case TAG_LOG_TOGGLE:
         if(touch_event == TOUCH_OFF)
@@ -438,9 +438,10 @@ void draw_datetime(int pos_x, int pos_y, unsigned int optx)
   
   GD.cmd_number(pos_x-12,  pos_y+22, 20,  opts, SCREEN_BUILD_ID);
 }
-/* draw an integer value and a label from progmem */
+/* draw an integer value and a label from progmem, using a 4x4 grid size*/
 void draw_readout_int(const int pos_x, const int pos_y, int opts, const int value, const char *label_pgm)
 {
+  byte font = 31;
   char dx = CELL_BORDER, dy =CELL_BORDER;
   if(opts&OPT_RIGHTX)
   {    dx = -dx;  }
@@ -457,7 +458,11 @@ void draw_readout_int(const int pos_x, const int pos_y, int opts, const int valu
   GD.ColorRGB(C_LABEL);
   GD.cmd_text(pos_x+dx, pos_y+20, 28, opts, label_pgm_str);
   GD.ColorRGB(C_VALUE);
-  GD.cmd_number(pos_x+dx, pos_y-8, 31, opts, value);
+  if(labs(value)>9999) { font-=3; }
+  //else if(labs(value)>99999) { font-=2; }
+  //else if(labs(value)>9999) { font-=1; }
+  
+  GD.cmd_number(pos_x+dx, pos_y-8, font, opts, value);
 }
 
 /* draw an integer coded decimal value, with a given number decimal places, and label */

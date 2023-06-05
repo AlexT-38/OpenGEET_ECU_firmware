@@ -38,8 +38,9 @@ const char S_USR_C[] PROGMEM = "USR: ";
 const char S_TMP_C[] PROGMEM = "TMP: ";
 const char S_TRQ_C[] PROGMEM = "TRQ: ";
 const char S_EGT_C[] PROGMEM = "EGT: ";
-
+const char S_POW_C[] PROGMEM = "POW: ";
 const char S_RPM_AVG[] PROGMEM = "RPM avg: ";
+
 const char S_RPM_NO_OF_TICKS[] PROGMEM = "RPM no.: ";
 const char S_RPM_TICK_TIMES[] PROGMEM = "RPM times (ms): ";
 const char S_OUTPUT_FILE_NAME_C[] PROGMEM = "Output File Name: ";
@@ -58,7 +59,7 @@ const char S_EGT_SAMPLES_C[] PROGMEM = "EGT no.: ";
 const char S_DOT_TXT[] PROGMEM = ".txt";
 const char S_DOT_RAW[] PROGMEM = ".raw";
 
-const char S_EGT1_DEGC[] PROGMEM = "EGT1 degC";
+const char S_EGT_DEGC[] PROGMEM = "EGT degC";
 const char S_RPM[] PROGMEM = "RPM";
 const char S_MAP_MBAR[] PROGMEM = "MAP mbar";
 const char S_INPUT_1[] PROGMEM = "Input 1";
@@ -66,6 +67,9 @@ const char S_INPUT_2[] PROGMEM = "Input 2";
 const char S_INPUT_3[] PROGMEM = "Input 3";
 const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
 const char S_TORQUE_MNM[] PROGMEM = "Tq. mN.m";
+const char S_TORQUE[] PROGMEM = "Torque";
+const char S_POWER_W[] PROGMEM = "Power W";
+const char S_TEMP_DEGC[] PROGMEM = "Temp degC";
 
 const char S_TARGET[] PROGMEM = "Target";
 const char S_OUTPUT[] PROGMEM = "Output";
@@ -81,6 +85,11 @@ const char S_HOLD[] PROGMEM = "HOLD";
 const char S_TQ_SET_ZR[] PROGMEM = "TQ SET ZR";
 const char S_TQ_SET_MX[] PROGMEM = "TQ SET MX";
 const char S_TQ_SET_MN[] PROGMEM = "TQ SET MN";
+
+
+const char S_TQ_ZR_LSB[] PROGMEM = "TQ ZR LSB";
+const char S_TQ_MX_LSB[] PROGMEM = "TQ MX LSB";
+const char S_TQ_MN_LSB[] PROGMEM = "TQ MN LSB";
 
 const char S_RECORD_MARKER[] PROGMEM = "----------";
 
