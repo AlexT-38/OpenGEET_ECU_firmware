@@ -23,23 +23,26 @@ Upgrade to an STM10x or 40x device can be made later if required.
 - PID control of reactor vacuum
 - Reactor state monitoring (starting, in spec, out of spec)
 - Replace blocking FATFS library
-- Updated UI: configurable screen, multiple settings pages
 - Additional user input: 4 knobs and 2 push buttons
+- Updated UI: configurable screen, multiple settings pages
 - Updated UI: dynamic labels for physical input
 - Prony brake servo
-- Time/date and RTC trim control
-- Thermistor inputs for air inlet, reactor output, oil temperatures etc.
+- Time/date config (trim not available)
+- Calibration for thermistor inputs (for air inlet, reactor output, oil temperatures etc).
 - Full EEPROM export/import
-- Shaft power readout
+- Separate record/screen/sdcard log/serial log processes
+
 
 ### v0.6
 
 **Objectives:**
 
 - Arduino MEGA update
-- Data records store calibrated data by sensor type
+- Data records store calibrated data by sensor type, including thermistors (raw values)
 - Configurable maximum no of sensors by type
 - Replace 3rd party thermocouple library
+- Shaft power readout
+- Updated UI: better basic screen, torque cal page
 
 ### v0.5
 
