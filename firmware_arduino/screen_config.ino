@@ -15,7 +15,7 @@
 
 //#define DEBUG_SCREEN_CONFIG_DRAW_SLIDERS
 //#define DEBUG_SCREEN_CONFIG_TOUCH_SLIDERS
-//#define DEBUG_EEP_UI
+#define DEBUG_EEP_UI
 
 void screen_draw_config()
 {
@@ -24,29 +24,40 @@ void screen_draw_config()
   MAKE_STRING(S_LOAD);
   draw_button(GRID_XL(4,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_EEPROM_LOAD,S_LOAD_str);
 
+  MAKE_STRING(S_EXPORT);
+  draw_button(GRID_XL(5,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_EEPROM_EXPORT,S_EXPORT_str);
+//  MAKE_STRING(S_IMPORT);
+//  draw_button(GRID_XL(5,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_EEPROM_IMPORT,S_IMPORT_str);
+
   MAKE_STRING(S_SERIAL);
   draw_toggle_button(GRID_XL(1,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_serial_write,S_SERIAL_str);
   MAKE_STRING(S_HEX);
-  draw_toggle_button(GRID_XL(1,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_serial_write_hex,S_HEX_str);
+  draw_toggle_button(GRID_XL(1,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL_HEX,flags_config.do_serial_write_hex,S_HEX_str);
   MAKE_STRING(S_SDCARD);
-  draw_toggle_button(GRID_XL(2,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_sdcard_write,S_SDCARD_str);
+  draw_toggle_button(GRID_XL(2,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SDCARD,flags_config.do_sdcard_write,S_SDCARD_str);
   MAKE_STRING(S_DOT_RAW);
-  draw_toggle_button(GRID_XL(2,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SERIAL,flags_config.do_sdcard_write_hex,S_DOT_RAW_str);
-  
-  char strings[6][10];
+  draw_toggle_button(GRID_XL(2,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SDCARD_HEX,flags_config.do_sdcard_write_hex,S_DOT_RAW_str);
+
+
+  #define NO_OF_SV_CAL (NO_OF_SERVOS*2)
+  char strings[NO_OF_SV_CAL][10];
   READ_STRING(S_SV0_MIN, strings[0]);
   READ_STRING(S_SV0_MAX, strings[1]);
+  #if NO_OF_SERVOS >1
   READ_STRING(S_SV1_MIN, strings[2]);
   READ_STRING(S_SV1_MAX, strings[3]);
+  #endif
+  #if NO_OF_SERVOS >2
   READ_STRING(S_SV2_MIN, strings[4]);
   READ_STRING(S_SV2_MAX, strings[5]);
+  #endif
   int val;
 
   
-  for (byte n = 0; n< 6; n++)
+  for (byte n = 0; n< NO_OF_SV_CAL; n++)
   {
     byte sv = n>>1;
-    val = ((n&1)?(servo_cal[sv].lower):(servo_cal[sv].upper)) - SERVO_MIN;
+    val = ((n&1)?(servo_cal[sv].upper):(servo_cal[sv].lower))- SERVO_MIN;// 
 #ifdef DEBUG_SCREEN_CONFIG_DRAW_SLIDERS
     Serial.print(strings[n]);
     Serial.print(GRID_XL(1,XN));
@@ -59,8 +70,9 @@ void screen_draw_config()
     Serial.print(FS(S_COMMA));
     Serial.print(GRID_SX(XN));
     Serial.println();
+    Serial.println(val);
 #endif
-    draw_slider_horz(GRID_XL(1,XN), GRID_YT(n,YN), GRID_SX(XN)<<2, GRID_SY(YN), GRID_SX(XN), strings[n], TAG_CAL_SV0_MIN+n,val, SERVO_RANGE);
+    draw_slider_horz(GRID_XL(1,XN), GRID_YT(n,YN), GRID_SX(XN)<<2, GRID_SY(YN), GRID_SX(XN), strings[n], TAG_CAL_SV0_MIN+n, val, SERVO_RANGE);
 
   }
 #ifdef DEBUG_SCREEN_CONFIG_DRAW_SLIDERS

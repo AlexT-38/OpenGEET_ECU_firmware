@@ -1,7 +1,7 @@
 #ifndef __SERVOS_H__
 #define __SERVOS_H__
 
-#define NO_OF_SERVOS 3
+
 
 Servo servo[NO_OF_SERVOS];
 

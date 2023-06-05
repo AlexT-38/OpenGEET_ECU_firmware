@@ -9,7 +9,7 @@
 //#define DEBUG_PID
 //#define DEBUG_PID_LOG_FUNC
 //#define DEBUG_PID_EXP_FUNC
-#define DEBUG_PID_FEEDBACK
+//#define DEBUG_PID_FEEDBACK
 #define DEBUG_PID_FEEDBACK_VALUE  RPM_TO_MS((RPM_MIN_SET + RPM_MAX_SET)>>1)
 
 
@@ -249,42 +249,53 @@ void process_pid_loop()
 
   // test initially with rpm control of unmodified engine, direct servo control of throttle
 
-  // buffers for the eeprom min max values
-
   unsigned int sv_targets[NO_OF_SERVOS] = {0};
-
-  // copy the dial inputs to the servo outputs
-  for(byte n=0; n<NO_OF_SERVOS; n++)
+  byte n=0; //input/servo index
+  
+  // copy the dial inputs to the servo outputs - we could take these directly from the user input ADC channels now
+  for(n=0; n<NO_OF_SERVOS; n++)
   {
     sv_targets[n] = KNOB_values[n];
   }
+  n=0; //reset the index
+  
   switch(sys_mode)
   {
     default:
     case MODE_DIRECT:
+      // disable writes to servos if holding inputs
+      if(flags_status.hold_direct_input)
+      {
+        n=NO_OF_SERVOS;
+      }
       break;
     case MODE_PID_RPM_CARB:
       // convert control input to target rpm 
       RPM_control.target = amap(sv_targets[0], RPM_MIN_SET_ms, RPM_MAX_SET_ms);
       // run the PID calculation
       sv_targets[0] = update_PID(&RPM_control, rpm_last_tick_time_ms);
-      // somehow now also log the servo demand value
-      if (CURRENT_RECORD.PID_no_of_samples < PID_LOOPS_PER_UPDATE)
-      {
-        CURRENT_RECORD.PID_SV0[CURRENT_RECORD.PID_no_of_samples] = sv_targets[0];
-        CURRENT_RECORD.PID_SV0_avg += sv_targets[0];
-      }
-      CURRENT_RECORD.PID_no_of_samples++;
+      
       break;
   }
   
 
   
   // go through each servo, and map inputs to outputs
-  for (byte n=0; n<NO_OF_SERVOS; n++)
+  for (; n<NO_OF_SERVOS; n++)
   {
     set_servo_position(n, sv_targets[n]);
   }
+
+  // log the new servo values
+  if (CURRENT_RECORD.SRV_no_of_samples < PID_LOOPS_PER_UPDATE)
+  {
+    for(byte idx = 0; idx<Data_Config.SRV_no; idx++)
+    {
+      CURRENT_RECORD.SRV[idx][CURRENT_RECORD.SRV_no_of_samples] = sv_targets[idx];
+    }
+    CURRENT_RECORD.SRV_no_of_samples++;
+  }
+  
   
 
 

@@ -51,7 +51,7 @@ void set_servo_position(byte n, unsigned int ratio)
     Serial.print(F(" (")); 
     Serial.print(servo_cal[n].lower);
     Serial.print(F("-")); 
-    Serial.print(servo_cal[servo].upper);
+    Serial.print(servo_cal[n].upper);
     Serial.print(F(") -> ")); 
     Serial.print(servo_pos_us);
     Serial.println();

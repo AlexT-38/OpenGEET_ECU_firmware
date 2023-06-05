@@ -25,27 +25,32 @@
 // define them as consts here and delete the original 
 const char S_DATE[] PROGMEM = __DATE__;
 const char S_TIME[] PROGMEM = __TIME__;
-const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller v0.4a";
+const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller (MEGA) v0.6.0";
 const char S_COMMA[] PROGMEM = ", ";
+const char S_COLON[] PROGMEM = ": ";
 const char S_CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or absent"; //if this string is not defined/referenced, or is made shorter than this, an extra 40-60 bytes is consumed for no obvious reason
 //#define S_CARD_FAILED_OR_NOT_PRESENT S_NO_SD_CARD
 const char S_CARD_INITIALISED[] PROGMEM = "SD Card OK";
 const char S_RECORD_VER_C[] PROGMEM = "Record Ver.: ";
 const char S_TIMESTAMP_C[] PROGMEM = "Timestamp: ";
 const char S_MAP_C[] PROGMEM = "MAP: ";
-const char S_A1_C[] PROGMEM = "A1: ";
-const char S_A2_C[] PROGMEM = "A2: ";
-const char S_A3_C[] PROGMEM = "A3: ";
-const char S_EGT1_C[] PROGMEM = "EGT1: ";
+const char S_USR_C[] PROGMEM = "USR: ";
+const char S_TMP_C[] PROGMEM = "TMP: ";
+const char S_TRQ_C[] PROGMEM = "TRQ: ";
+const char S_EGT_C[] PROGMEM = "EGT: ";
+const char S_POW_C[] PROGMEM = "POW: ";
 const char S_RPM_AVG[] PROGMEM = "RPM avg: ";
+
 const char S_RPM_NO_OF_TICKS[] PROGMEM = "RPM no.: ";
 const char S_RPM_TICK_TIMES[] PROGMEM = "RPM times (ms): ";
 const char S_OUTPUT_FILE_NAME_C[] PROGMEM = "Output File Name: ";
 
+
+
+
+
 const char S_MAP_AVG_C[] PROGMEM = "MAP avg: ";
-const char S_A1_AVG_C[] PROGMEM = "A1 avg: ";
-const char S_A2_AVG_C[] PROGMEM = "A2 avg: ";
-const char S_A3_AVG_C[] PROGMEM = "A3 avg: ";
+
 const char S_ANA_SAMPLES_C[] PROGMEM = "ANA no.: ";
 
 const char S_EGT_AVG_C[] PROGMEM = "EGT avg: ";
@@ -54,13 +59,17 @@ const char S_EGT_SAMPLES_C[] PROGMEM = "EGT no.: ";
 const char S_DOT_TXT[] PROGMEM = ".txt";
 const char S_DOT_RAW[] PROGMEM = ".raw";
 
-const char S_EGT1_DEGC[] PROGMEM = "EGT1 degC";
+const char S_EGT_DEGC[] PROGMEM = "EGT degC";
 const char S_RPM[] PROGMEM = "RPM";
 const char S_MAP_MBAR[] PROGMEM = "MAP mbar";
 const char S_INPUT_1[] PROGMEM = "Input 1";
 const char S_INPUT_2[] PROGMEM = "Input 2";
 const char S_INPUT_3[] PROGMEM = "Input 3";
 const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
+const char S_TORQUE_MNM[] PROGMEM = "Tq. mN.m";
+const char S_TORQUE[] PROGMEM = "Torque";
+const char S_POWER_W[] PROGMEM = "Power W";
+const char S_TEMP_DEGC[] PROGMEM = "Temp degC";
 
 const char S_TARGET[] PROGMEM = "Target";
 const char S_OUTPUT[] PROGMEM = "Output";
@@ -71,7 +80,16 @@ const char S_PID_SV0_AVG_C[] PROGMEM = "PID SV0 avg: ";
 const char S_PID_SAMPLES_C[] PROGMEM = "PID no.: ";
 
 const char S_ACTIVE[] PROGMEM = "ACTIVE";
+const char S_HOLD[] PROGMEM = "HOLD";
 
+const char S_TQ_SET_ZR[] PROGMEM = "TQ SET ZR";
+const char S_TQ_SET_MX[] PROGMEM = "TQ SET MX";
+const char S_TQ_SET_MN[] PROGMEM = "TQ SET MN";
+
+
+const char S_TQ_ZR_LSB[] PROGMEM = "TQ ZR LSB";
+const char S_TQ_MX_LSB[] PROGMEM = "TQ MX LSB";
+const char S_TQ_MN_LSB[] PROGMEM = "TQ MN LSB";
 
 const char S_RECORD_MARKER[] PROGMEM = "----------";
 
@@ -86,6 +104,11 @@ const char S_NO_SD_CARD[] PROGMEM = "No SD Card";
 
 const char S_SAVE[] PROGMEM = "SAVE";
 const char S_LOAD[] PROGMEM = "LOAD";
+
+
+const char S_EXPORT[] PROGMEM = "EXPORT";
+const char S_IMPORT[] PROGMEM = "IMPORT";
+
 
 const char S_BASIC[] PROGMEM = "Basic";
 const char S_PID_RPM[] PROGMEM = "PID RPM";

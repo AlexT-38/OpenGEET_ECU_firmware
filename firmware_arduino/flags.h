@@ -32,6 +32,11 @@ typedef struct {
     byte do_sdcard_write_hex:1;
 }FLAGS_CONFIG;
 
+typedef union flags_config_union{
+  FLAGS_CONFIG flags;
+  byte data;
+}FLAGS_CONFIG_UNION;
+
 //these flags indicate the state of the system
 typedef struct {
     byte update_eeprom:1;
@@ -46,6 +51,7 @@ typedef struct {
     byte reactor_fault:1;     //true if any reactor parameter is out of spec
     byte generator_running:1; //true when motor is being set for regenerative braking
     byte generator_fault:1;    //true if anypart of the generation system is not working, eg battery full, unbalanced, overloaded
+    byte hold_direct_input:1;  //if true, user inputs will be collected, but not passed to the servos
     
 }FLAGS_STATUS;
 

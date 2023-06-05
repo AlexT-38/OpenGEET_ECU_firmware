@@ -24,12 +24,14 @@ char load_eeprom()
   SV_CAL servo_cal_t[NO_OF_SERVOS];
   FLAGS_CONFIG flags_config_t;
   PID_K pid_k_rpm_t, pid_k_vac_t;
+  TORQUE_CAL torque_cal_t;
   
   EEP_GET(servo_cal,servo_cal_t);
   EEP_GET(flags_config,flags_config_t);
   EEP_GET(flags_config,flags_config_t);
   EEP_GET(pid_k_rpm,pid_k_rpm_t);
   EEP_GET(pid_k_vac,pid_k_vac_t);
+  EEP_GET(torque_cal,torque_cal_t);
 
   byte crc = 0xFF; 
   //crc = get_crc(crc,servo_cal_t,sizeof(servo_cal_t));
@@ -42,12 +44,17 @@ char load_eeprom()
     flags_config = flags_config_t;
     RPM_control.k = pid_k_rpm_t;
     VAC_control.k = pid_k_vac_t;
+    torque_cal = torque_cal_t;
     return true;
   }
+  #ifdef DEBUG_EEPROM_SYSTEM
   Serial.print(F("eep CRC fail: "));
   Serial.print(eep_crc);
   Serial.print(' ');
   Serial.println(crc);
+  #else
+  Serial.println(F("eep CRC fail"));
+  #endif
   return false;
 }
 
@@ -67,7 +74,9 @@ void save_eeprom()
   EEP_PUT(flags_config,flags_config);
   EEP_PUT(pid_k_rpm,RPM_control.k);
   EEP_PUT(pid_k_vac,VAC_control.k);
+  EEP_PUT(torque_cal,torque_cal);
   EEP_PUT(eep_crc,eep_crc);
+
 }
 
 /* check for the update flag to be set, write eeprom only once 1 second has passed since the last write */
@@ -108,6 +117,17 @@ void update_eeprom()
   flags_status.update_eeprom = true;
 }
 
+void dump_touch_transform(Stream *dst)
+{
+  long int transform;
+  for(byte n=0; n< 6; n++)
+  {
+    EEP_GET_N(touch_transform, n, transform);
+    dst->print((char)('A'+n));
+    dst->print(FS(S_COLON));
+    dst->println(transform,HEX);
+  }
+}
 /* at startup, check if the eeprom version has changed.
  *  if so, we cannot load configuration values
  *  instead, we write the defualt config to eeprom
@@ -116,6 +136,12 @@ void update_eeprom()
  */
 void initialise_eeprom()
 {
+  #ifdef OVERWRITE_TOUCH_CAL
+  EEPROM.put(0, 0xFF);                  //reset the calibration flag
+  EEP_PUT_N(touch_transform, 4, 0x4F2B); //write a value to touch transform e
+  EEP_PUT_N(touch_transform, 5, 0x03ED3A88); //write a value to touch transform f
+  #endif  
+  
   #if defined DEBUG_TOUCH_INPUT || defined DEBUG_TOUCH_CAL
   //print the calibration values
   Serial.println(F("Touch Calibration:"));
@@ -135,23 +161,13 @@ void initialise_eeprom()
    * F 0x FFE9 3A88 - should be 0x 03ED 3A88
    * 
    */
-  long int transform;
-  for(byte n=0; n< 6; n++)
-  {
-    EEP_GET_N(touch_transform, n, transform);
-    Serial.print((char)('A'+n));
-    Serial.print(F(": "));
-    Serial.println(transform,HEX);
-   
-  }
+  dump_touch_transform(&Serial);
+
   /* transform F was 1024 higher than it was supposed to be.
    *  corrected here, but this has had no effect on #issue 1 (tag always zero)
    *  on rerunning the calibration process, the value came out 1028 too low
    */
-//  EEPROM.put(0, 0xFF);                  //reset the calibration flag
-//  EEP_PUT_N(touch_transform, 4, 0x4F2B); //write a value to touch transform e
-//  EEP_PUT_N(touch_transform, 5, 0x03ED3A88); //write a value to touch transform f
-  
+
   delay(1000);
   #endif
 
@@ -200,4 +216,59 @@ void initialise_eeprom()
     }
   }
   eeprom_timestamp_ms = millis();
+}
+
+/*dump basic eeprom config to the specified stream
+ * UNO doesn't have enough flash left for a full descriptive dump
+ * so only servo cal, rpm pid and torque cal are dumped, and without per-field descriptors
+ */
+void export_eeprom(Stream *dst)
+{
+  /* 
+   *      byte                touch_calibrated; //is set to 0x7C when calibrated. we can force recalibration by setting this byte to anything else
+   *      long int            touch_transform[6];  //GD library uses the start of eeprom to store touch calibration.
+   *      byte                eep_version;
+   *      byte                eep_crc;
+   *      SV_CAL              servo_cal[NO_OF_SERVOS];
+   *      FLAGS_CONFIG        flags_config;
+   *      PID_K               pid_k_rpm, pid_k_vac;
+   *      TORQUE_CAL          torque_cal;
+   */
+
+  dump_touch_transform(&Serial);
+
+  //dump servo cal
+  dst->print('s');
+  for(byte n = 0; n < NO_OF_SERVOS; n++)
+  {
+    dst->println(servo_cal[n].upper);
+    dst->println(servo_cal[n].lower);
+  }
+  
+  //dump config flags
+//  FLAGS_CONFIG_UNION config_flags;
+//  config_flags.flags = flags_config;
+//  dst->print('f'); dst->println(config_flags.data,HEX);
+  
+  //dump rpm pid cooefs
+  dst->print('p'); //dst->println('r');
+  dst->println(RPM_control.k.p);
+  dst->println(RPM_control.k.i);
+  dst->println(RPM_control.k.d);
+  
+  //dump vac pid cooefs
+//  dst->print('p'); dst->print('v');
+//  dst->print(VAC_control.k.p);  dst->print(' '); dst->print(VAC_control.k.i); dst->print(' '); dst->println(VAC_control.k.d);
+  
+  //dump torqe load cell cal
+  dst->print('t');
+  dst->println(torque_cal.counts_max);  
+  dst->println(torque_cal.counts_min); 
+  dst->println(torque_cal.counts_zero);
+  
+}
+
+
+void import_eeprom(Stream *dst)
+{
 }

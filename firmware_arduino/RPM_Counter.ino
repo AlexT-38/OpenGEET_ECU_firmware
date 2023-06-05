@@ -1,8 +1,8 @@
 /* rpm counter functions */
-
+static unsigned int RPM_elapsed;
 
 /* time of last tick, stored as microseconds for the benefit of PID */
-static unsigned int rpm_last_tick_time_ms = 0;
+unsigned int rpm_last_tick_time_ms = 0;
 
 //#define RPM_CALC_SIMPLE
 #define RPM_SCALE_BITS 2
@@ -53,15 +53,15 @@ unsigned int get_rpm(DATA_RECORD * data_record)
   #ifdef RPM_CALC_SIMPLE
   val = (60000 / UPDATE_INTERVAL_ms) * data_record->RPM_no_of_ticks;
   #else
-  if (data_record->RPM_avg > 0)
+  if (RPM_elapsed > 0)
   {
-    val = 60000 / ((data_record->RPM_avg + RPM_SCALE_ROUNDING) >> RPM_SCALE_BITS);
+    val = 60000 / ((RPM_elapsed + RPM_SCALE_ROUNDING) >> RPM_SCALE_BITS);
     val = ((data_record->RPM_no_of_ticks * val) + RPM_SCALE_ROUNDING) >> RPM_SCALE_BITS;
   }
   #endif
   #ifdef DEBUG_RPM_COUNTER
   Serial.print(F("RPM Debug: "));
-  Serial.print(data_record->RPM_avg);
+  Serial.print(RPM_elapsed);
   Serial.print(F(", "));
   Serial.print(data_record->RPM_no_of_ticks);
   Serial.print(F(" -> "));
@@ -108,9 +108,7 @@ void rpm_count(void)
       if(elapsed_time > RPM_MAX_TICK_INTERVAL_ms) elapsed_time = RPM_MAX_TICK_INTERVAL_ms;
       
       /* increment total time for final average */
-      CURRENT_RECORD.RPM_avg += elapsed_time;
-      /* clamp time to fit storage datatype */
-      if (elapsed_time > 255) elapsed_time = 255;  
+      RPM_elapsed += elapsed_time;
       /* record the tick time */
       CURRENT_RECORD.RPM_tick_times_ms[CURRENT_RECORD.RPM_no_of_ticks++] = elapsed_time;
     }

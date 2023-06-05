@@ -14,8 +14,8 @@ typedef void(*SCREEN_DRAW_FUNC)(void);
 
 
 /* pointer to the func to use to draw the screen */
-const SCREEN_DRAW_FUNC draw_screen_funcs[NO_OF_SCREENS] = {screen_draw_basic, screen_draw_pid_rpm, NULL, NULL, screen_draw_config};
-const char * const screen_labels[NO_OF_SCREENS] PROGMEM = {S_BASIC, S_PID_RPM, S_NONE,S_NONE, S_CONFIG};
+const SCREEN_DRAW_FUNC draw_screen_funcs[NO_OF_SCREENS] = {screen_draw_basic, screen_draw_pid_rpm, NULL, screen_draw_torque, screen_draw_config};
+const char * const screen_labels[NO_OF_SCREENS] PROGMEM = {S_BASIC, S_PID_RPM, S_NONE, S_TORQUE, S_CONFIG};
 
 
 SCREEN_EN current_screen = SCREEN_1;
@@ -133,14 +133,11 @@ void read_touch()
   byte touch_tag_old = GD.inputs.tag;
 
   //fetch coords
-#if defined(DEBUG_TOUCH_INPUT) || defined(TAG_BYPASS)
   long int val = GD.rd32(REG_TOUCH_SCREEN_XY);
   xy *coord = (xy*) &val;
   GD.inputs.xytouch.x = coord->y;
-  GD.inputs.xytouch.y = coord->x - 0x400;
-#else
-  GD.inputs.xytouch.x = GD.rd16(REG_TOUCH_SCREEN_XY);
-#endif
+  GD.inputs.xytouch.y = coord->x;
+
 
   //check if a touch is registered
   if(GD.inputs.xytouch.x != 0x8000)
@@ -152,7 +149,7 @@ void read_touch()
     GD.inputs.tag = fetch_tag();
     #else
     // get the tag, and optionally get the tracker tag and value
-    GD.inputs.tag = GD.rd(REG_TAG);
+    GD.inputs.tag = GD.rd(REG_TOUCH_TAG);
     #endif
     
 #ifdef TRACKERS_ENABLED
@@ -187,19 +184,19 @@ void read_touch()
     switch(touch_tag_old)
     {
       case TAG_SCREEN_1:
-        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_1;
+        if(touch_event == TOUCH_OFF && draw_screen_funcs[SCREEN_1] != NULL)  current_screen = SCREEN_1;
         break;
       case TAG_SCREEN_2:
-        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_2;
+        if(touch_event == TOUCH_OFF && draw_screen_funcs[SCREEN_2] != NULL)  current_screen = SCREEN_2;
         break;
-//      case TAG_SCREEN_3:
-//        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_3;
-//        break;
-//      case TAG_SCREEN_4:
-//        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_4;
-//        break;
+      case TAG_SCREEN_3:
+        if(touch_event == TOUCH_OFF && draw_screen_funcs[SCREEN_3] != NULL)  current_screen = SCREEN_3;
+        break;
+      case TAG_SCREEN_4:
+        if(touch_event == TOUCH_OFF && draw_screen_funcs[SCREEN_4] != NULL)  current_screen = SCREEN_4;
+        break;
       case TAG_SCREEN_5:
-        if(touch_event == TOUCH_OFF)  current_screen = SCREEN_5;
+        if(touch_event == TOUCH_OFF && draw_screen_funcs[SCREEN_5] != NULL)  current_screen = SCREEN_5;
         break;
       case TAG_LOG_TOGGLE:
         if(touch_event == TOUCH_OFF)
@@ -263,6 +260,18 @@ void read_touch()
           load_eeprom();
         }
         break;
+      case TAG_EEPROM_EXPORT:
+        if(touch_event == TOUCH_OFF)
+        {
+          export_eeprom(&Serial);
+        }
+        break;
+//      case TAG_EEPROM_IMPORT:
+//        if(touch_event == TOUCH_OFF)
+//        {
+//          import_eeprom(&Serial);
+//        }
+//        break;
       case TAG_LOG_TOGGLE_SDCARD:
         if(touch_event == TOUCH_ON && !flags_status.logging_active) { flags_config.do_sdcard_write ^=1; }
         break;
@@ -315,6 +324,34 @@ void read_touch()
       case TAG_ENGINE_START:
         break;
       case TAG_ENGINE_STOP:
+        break;
+      case TAG_CAL_TORQUE_ZERO:
+        if(touch_event == TOUCH_OFF)
+        {
+          tq_set_zero();
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_CAL_TORQUE_MAX:
+        if(touch_event == TOUCH_OFF)
+        {
+          tq_set_high();
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_CAL_TORQUE_MIN:
+        if(touch_event == TOUCH_OFF)
+        {
+          tq_set_low();
+          flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_HOLD_INPUT:
+        if(touch_event == TOUCH_OFF)
+        {
+          flags_status.hold_direct_input ^= 1;
+          flags_status.redraw_pending = true;
+        }
         break;
       default:
 //        flags_status.redraw_pending = true;
@@ -374,8 +411,8 @@ void draw_box(int px, int py, int sx, int sy, char w, int opt)
   }
   GD.LineWidth(PTSP(w));
   GD.Begin(RECTS);
-  GD.Vertex2ii(px+BORDER,py+BORDER,0,0);
-  GD.Vertex2ii(sx-BORDER,sy-BORDER,0,0);
+  GD.Vertex2ii(px+CELL_BORDER,py+CELL_BORDER,0,0);
+  GD.Vertex2ii(sx-CELL_BORDER,sy-CELL_BORDER,0,0);
 }
 
 /* screen selection */
@@ -401,10 +438,11 @@ void draw_datetime(int pos_x, int pos_y, unsigned int optx)
   
   GD.cmd_number(pos_x-12,  pos_y+22, 20,  opts, SCREEN_BUILD_ID);
 }
-/* draw an integer value and a label from progmem */
+/* draw an integer value and a label from progmem, using a 4x4 grid size*/
 void draw_readout_int(const int pos_x, const int pos_y, int opts, const int value, const char *label_pgm)
 {
-  char dx = BORDER, dy =BORDER;
+  byte font = 31;
+  char dx = CELL_BORDER, dy =CELL_BORDER;
   if(opts&OPT_RIGHTX)
   {    dx = -dx;  }
   else if(opts&OPT_CENTERX)
@@ -420,7 +458,11 @@ void draw_readout_int(const int pos_x, const int pos_y, int opts, const int valu
   GD.ColorRGB(C_LABEL);
   GD.cmd_text(pos_x+dx, pos_y+20, 28, opts, label_pgm_str);
   GD.ColorRGB(C_VALUE);
-  GD.cmd_number(pos_x+dx, pos_y-8, 31, opts, value);
+  if(labs(value)>9999) { font-=3; }
+  //else if(labs(value)>99999) { font-=2; }
+  //else if(labs(value)>9999) { font-=1; }
+  
+  GD.cmd_number(pos_x+dx, pos_y-8, font, opts, value);
 }
 
 /* draw an integer coded decimal value, with a given number decimal places, and label */
@@ -435,7 +477,7 @@ void draw_readout_decimal(const int pos_x, const int pos_y, int opts, const int 
 /* draw a fixed point integer value, with the given number of fractional bits and significant digits */
 void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int value, const byte frac_bits, byte extra_sf, const char *label_pgm, bool small)
 {
-  int  dx = BORDER*2, dy = -8;
+  int  dx = CELL_BORDER*2, dy = -8;
   if(opts&OPT_RIGHTX)
   {    dx = -dx;  }
   else if(opts&OPT_CENTERX)
@@ -543,8 +585,8 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
 
 void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *label_str, byte tag, int value, int val_max)
 {
-  int x2 = x + (BORDER<<1);
-  int sx2 = sx - (label_size + (BORDER<<1) + SLIDER_HEIGHT);
+  int x2 = x + (CELL_BORDER<<1);
+  int sx2 = sx - (label_size + (CELL_BORDER<<1) + SLIDER_HEIGHT);
   int y2 = y + (sy>>1);
   int opt = (tag==GD.inputs.tag)? OPT_FLAT:0;
   
@@ -598,8 +640,8 @@ void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *
 int get_slider_value_horz(int px_min, int px_max, int param_min, int param_max)
 {
 
-  px_min += SLIDER_HEIGHT+BORDER;
-  px_max -= SLIDER_HEIGHT+BORDER;
+  px_min += SLIDER_HEIGHT+CELL_BORDER;
+  px_max -= SLIDER_HEIGHT+CELL_BORDER;
   //clamp the x coordinate to the active range
   int x_coord = constrain(GD.inputs.xytouch.x,px_min,px_max);
   //map the active range to servo range
@@ -620,7 +662,7 @@ int get_slider_value_horz(int px_min, int px_max, int param_min, int param_max)
 void draw_slider_vert(int x, int y, int sx, int sy, int label_size, const char *label_str, byte tag, int value, int val_max)
 {
   int y2 = y + label_size/2;
-  int sy2 = sy - (label_size + (BORDER<<1) + SLIDER_WIDTH);
+  int sy2 = sy - (label_size + (CELL_BORDER<<1) + SLIDER_WIDTH);
   int x2 = x + (sx>>1);
   int opt = (tag==GD.inputs.tag)? OPT_FLAT:0;
   
@@ -673,8 +715,8 @@ void draw_slider_vert(int x, int y, int sx, int sy, int label_size, const char *
 int get_slider_value_vert(int py_min, int py_max, int param_min, int param_max)
 {
 
-  py_min += SLIDER_WIDTH+BORDER;
-  py_max -= SLIDER_WIDTH+BORDER;
+  py_min += SLIDER_WIDTH+CELL_BORDER;
+  py_max -= SLIDER_WIDTH+CELL_BORDER;
   //clamp the x coordinate to the active range
   int y_coord = constrain(GD.inputs.xytouch.y, py_min, py_max);
   //map the active range to servo range
@@ -704,8 +746,8 @@ int get_slider_value_vert(int py_min, int py_max, int param_min, int param_max)
  */
 int get_slider_value_vert_px(int py_min, int py_range)
 {
-//  py_min += SLIDER_WIDTH+BORDER;
-//  py_range -= SLIDER_WIDTH+BORDER;
+//  py_min += SLIDER_WIDTH+CELL_BORDER;
+//  py_range -= SLIDER_WIDTH+CELL_BORDER;
   //clamp the x coordinate to the active range
   int y_coord = constrain(GD.inputs.xytouch.y - py_min, 0, py_range);
   y_coord = py_range - y_coord;
@@ -723,14 +765,14 @@ void draw_button(int x, int y, byte sx, byte sy, byte tag, const char * string)
 {
   GD.Tag(tag);
   int opt = (GD.inputs.tag == tag)? OPT_FLAT : 0;
-  GD.cmd_button(x+BORDER,y+BORDER,sx-(BORDER<<1),sy-(BORDER<<1), 26, opt, string);
+  GD.cmd_button(x+CELL_BORDER,y+CELL_BORDER,sx-(CELL_BORDER<<1),sy-(CELL_BORDER<<1), 26, opt, string);
 }
 
 void draw_toggle_button(int x, int y, byte sx, byte sy, byte tag, byte state, const char * string)
 {
   GD.Tag(tag);
   int opt = state ? OPT_FLAT : 0;
-  GD.cmd_button(x+BORDER,y+BORDER,sx-(BORDER<<1),sy-(BORDER<<1), 26, opt, string);
+  GD.cmd_button(x+CELL_BORDER,y+CELL_BORDER,sx-(CELL_BORDER<<1),sy-(CELL_BORDER<<1), 26, opt, string);
 }
 
 void draw_log_toggle_button(int x, int y, byte sx, byte sy)
@@ -748,7 +790,7 @@ void draw_log_toggle_button(int x, int y, byte sx, byte sy)
     GD.cmd_fgcolor(C_BUTTON_FG);
   }
   MAKE_STRING(S_REC);
-  GD.cmd_button(x+BORDER,y+BORDER,sx-(BORDER<<1),sy-(BORDER<<1), 26, opt, S_REC_str);
+  GD.cmd_button(x+CELL_BORDER,y+CELL_BORDER,sx-(CELL_BORDER<<1),sy-(CELL_BORDER<<1), 26, opt, S_REC_str);
 
   x+=sx>>1;
   y+=sy>>1;
@@ -805,21 +847,21 @@ void draw_screen_selector()
     GD.Tag(TAG_SCREEN_1 + n);                                                                         //set the touch tag
     opt = ( (current_screen == (SCREEN_1 + n)) || (GD.inputs.tag == (TAG_SCREEN_1 + n)) ) * OPT_FLAT;     //draw flat if currently selected, or button is touched
     READ_STRING_FROM(screen_labels, n, label);
-    GD.cmd_button(GRID_XL(0,SCREEN_BUTTON_XN)+BORDER, GRID_YT(n,NO_OF_SCREENS)+BORDER, GRID_SX(SCREEN_BUTTON_XN)-(BORDER<<1), GRID_SY(NO_OF_SCREENS)-(BORDER<<1), SCREEN_BUTTON_FONT, opt, label);
+    GD.cmd_button(GRID_XL(0,SCREEN_BUTTON_XN)+CELL_BORDER, GRID_YT(n,NO_OF_SCREENS)+CELL_BORDER, GRID_SX(SCREEN_BUTTON_XN)-(CELL_BORDER<<1), GRID_SY(NO_OF_SCREENS)-(CELL_BORDER<<1), SCREEN_BUTTON_FONT, opt, label);
   }
 }
 
 void draw_screen_background()
 {
     /* data record to read */
-  DATA_RECORD *data_record = &Data_Record[1-Data_Record_write_idx];
+  DATA_RECORD *data_record = &LAST_RECORD;
 
-  int colour_bg = C_BKG_NORMAL;
+  long colour_bg = C_BKG_NORMAL;
   /* simple background colour setting by rpm range
      this should be changed to read from system status flags */
-  if (data_record->RPM_avg == 0)
+  if (Data_Averages.RPM == 0)
   {    colour_bg = C_BKG_STOPPED;  }
-  else if (data_record->RPM_avg < 1300 || data_record->RPM_avg > 3800)
+  else if (Data_Averages.RPM < 1300 || Data_Averages.RPM > 3800)
   {    colour_bg = C_BKG_WARNING;  }
   else
   {    colour_bg = C_BKG_RUNNING;  }

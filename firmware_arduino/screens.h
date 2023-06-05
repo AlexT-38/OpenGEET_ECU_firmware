@@ -1,15 +1,15 @@
 #ifndef __SCREENS_H__
 #define __SCREENS_H__
 
-#define SCREEN_BUILD_ID  6
+#define SCREEN_BUILD_ID  7
 
 //#define TRACKERS_ENABLED
-#define TAG_BYPASS        //set true if tags wont read
+//#define TAG_BYPASS        //set defined if tags wont read
 
 #define SCREEN_W          480
 #define SCREEN_H          272
 
-#define BORDER            4
+#define CELL_BORDER            4
 #define BOX_WIDTH         2
 
 #define GRID_SX(N)            (int)(SCREEN_W/(N))
@@ -20,6 +20,8 @@
 #define GRID_YC(n,N)         (int)(GRID_YT(n,N)+(GRID_SY(N)>>1))
 #define GRID_XR(n,N)         (int)((n+1)*GRID_SX(N))
 #define GRID_YB(n,N)         (int)((n+1)*GRID_SY(N))
+
+#define DRO_OPT  (OPT_RIGHTX | OPT_CENTERY | OPT_SIGNED)
 
 #define SUBPIXEL_BITS    4
 
@@ -55,9 +57,9 @@
 
 
 //touch and tracker registers
-#define REG_TOUCH_TAG   0x30212C
-#define REG_TOUCH_XY    0x302124
-#define REG_TRACKER     0x307000
+//#define REG_TOUCH_TAG   0x30212C //this is already defined by GD2.h
+//#define REG_TOUCH_XY    0x302124  //this is already defined by GD2.h, and is different! Maybe this is why reading tags were wrong!
+//#define REG_TRACKER     0x307000 //this is already defined by GD2.h, and is different!
 
 //touch event types
 #define TOUCH_OFF       0
@@ -102,6 +104,9 @@ typedef enum tags
   TAG_EEPROM_SAVE,
   TAG_EEPROM_LOAD,
 
+  TAG_EEPROM_EXPORT,
+  TAG_EEPROM_IMPORT,
+
   TAG_MODE_SET_PID_RPM,
 
   TAG_CAL_PID_RPM_P,
@@ -110,6 +115,11 @@ typedef enum tags
 
   TAG_ENGINE_START,
   TAG_ENGINE_STOP,
+
+  TAG_HOLD_INPUT,
+  TAG_CAL_TORQUE_ZERO,
+  TAG_CAL_TORQUE_MIN,
+  TAG_CAL_TORQUE_MAX,
 
   NO_OF_TAGS,
   
