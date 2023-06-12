@@ -1,4 +1,4 @@
-/*
+ /*
  * OpenGEET Engine Control Unit firmware (Arduino)
  * Created by A Timiney, 13/08/2022
  * GNU GPL v3
@@ -29,6 +29,12 @@
  *  
  *  cut tracks between breakout pad for pins 4 & 5 and the adjacent SDA and SCL breakout pads
  *  connect the SDA and SCL pads to the SDA and SCL pads adjecent to AREF pin
+ *  
+ *  run a 1 ohm resistor and a ferrite bead (eg BLM18HG102SN1, 100mA 1000ohm @100MHz) from 5V to AREF
+ *  add 47uF 6.3v MLCC to GND at each end and power all analog inputs from AREF
+ *  to eliminate noise from the supply when using a buck convertor to provide sufficient current for 
+ *  the servos from a 12-15v 1A supply
+ *  MAP sensor draws ~7.5mA, and each pot draws 0.5mA
  */
 /* MEGA PIN MAP / Circuit description:
  *  MEGA Pin    I/O     Function/name
@@ -112,7 +118,7 @@
 //#define DEBUG_TOUCH_TIME        //measure how long reading and processing touch input t:                125           300
 //#define DEBUG_RECORD  // n/a
 //#define DEBUG_ADC
-#define DEBUG_SERVO
+//#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
 //#define DEBUG_EEP_CONTENT
 //#define DEBUG_RPM_COUNTER
@@ -132,6 +138,8 @@
 //#define DEBUG_CAL_TOUCH
 //#define DEBUG_RTC
 //#define DEBUG_RTC_FORCE_UPDATE
+//#define DEBUG_SDCARD_TEST_FILE_OPEN
+//#define DEBUG_SDCARD_TEST_FILE_NAME "23061200.txt"
 
 #endif
 
@@ -139,7 +147,7 @@
 
 
 // I/O counts by type
-#define NO_OF_USER_INPUTS         2     //physical knobs
+#define NO_OF_USER_INPUTS         4     //physical knobs
 #define NO_OF_MAP_SENSORS         1     //pressure sensors
 #define NO_OF_TMP_SENSORS         0     // analog low temperature NTC / PTC sensors, manifold inlet temperatures etc
 #define NO_OF_EGT_SENSORS         1     // digital thermocouple sensors, MAX6675
@@ -153,6 +161,13 @@
 #include "servos.h"
 #include "flags.h"
 #include "eeprom.h"
+
+
+//front panel status LED
+#define PIN_LED 22
+#define LED_ON LOW
+#define LED_OFF HIGH
+
 
 //datalogger SD card CS pin
 #define PIN_LOG_SDCARD_CS         10
@@ -391,6 +406,11 @@ void test_map_implementations()
 
 void setup() {
 
+  //configure front panel LED
+  pinMode(PIN_LED, OUTPUT);
+  digitalWrite(PIN_LED, LED_ON);
+  
+
   //set datalogger SDCard CS pin high, 
   pinMode(PIN_LOG_SDCARD_CS, OUTPUT);
   digitalWrite(PIN_LOG_SDCARD_CS, HIGH);
@@ -471,11 +491,29 @@ void setup() {
   if (!SD.begin(PIN_LOG_SDCARD_CS)) {
     GET_STRING(S_CARD_FAILED_OR_NOT_PRESENT);
     flags_status.sdcard_available = false;
+    Serial.println(F("SD Card failed to init."));
   }
   else
   {
     GET_STRING(S_CARD_INITIALISED); //S_NO_SD_CARD);//
     flags_status.sdcard_available = true;
+    Serial.println(F("SD Card init'ed succesfully."));
+#ifdef DEBUG_SDCARD_TEST_FILE_OPEN
+    File dataFile = SD.open(DEBUG_SDCARD_TEST_FILE_NAME, FILE_WRITE);
+    if(dataFile)
+    {
+      //print the header
+      dataFile.println(F("Test data"));
+      dataFile.close();
+      
+      Serial.println(F("Test file opened OK"));
+    }
+    else
+    {
+      //open failed on first attempt, do not attempt to save to this file
+      Serial.println(F("Test file open FAILED"));
+    }
+#endif
   }
 //  Serial.println(string);
   screen_draw_splash(S_FIRMWARE_NAME_str, string);
@@ -526,6 +564,7 @@ void setup() {
   Serial.println(F("Init Complete"));
   // wait for MAX chip to stabilize, and to see the splash screen
   delay(4000);
+
 
 #ifdef DEBUG_TOUCH_REG_DUMP
 //302104h REG_TOUCH_MODE : 2
@@ -620,6 +659,8 @@ void process_digital_inputs()
   Serial.print(F("t_dig us: "));
   Serial.println(timestamp_us);
   #endif
+
+    
 }
 
 
@@ -673,7 +714,25 @@ void loop() {
   int elapsed_time;
   int timenow = millis();
 
-  
+  #ifdef DEBUG_SDCARD_TEST_FILE_OPEN
+  static unsigned int sd_count = 0;
+  File dataFile = SD.open(DEBUG_SDCARD_TEST_FILE_NAME, FILE_WRITE);
+  if(dataFile)
+  {
+    //print the header
+    //dataFile.println(F("Test data"));
+    dataFile.close();
+    
+    Serial.print(F("SD OK   ")); Serial.println(sd_count);
+  }
+  else
+  {
+    //open failed on first attempt, do not attempt to save to this file
+    Serial.print(F("SD FAIL ")); Serial.println(sd_count);
+  }
+  sd_count++;
+  timenow = millis();
+  #endif  
 
   /* get time left till next update */
   elapsed_time = update_timestamp - timenow;

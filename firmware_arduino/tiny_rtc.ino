@@ -5,6 +5,9 @@
  * DS1307 runs at 100kHz, which means each byte takes 0.1ms
  * a single write is 0.3ms
  * a single read is 0.4ms
+ * 
+ * DS1307 is sensitive to temperature and noise, and does not run accurately.
+ * Consider replacing with DS3231 when the time comes to make a custom sheild.
  */
  
 #define DS1307_ADDRESS        0x68                  //7bit address

@@ -10,7 +10,7 @@
 
 //configuration
 
-#define ADC_CHANNELS                  16//(ADC_CHN_TMP_END+1)        // number of ADC inputs to scan
+#define ADC_CHANNELS              (ADC_CHN_TMP_END+1)        // number of ADC inputs to scan
 #define ADC_MAP                   // enable remapping of inputs - only required if using a sheild that blocks access to some ADC pins, or not using an R3 board with dedicated SDA/SCL pins
 #define ADC_MULTISAMPLE           //enable sampling the ADC multiple times and taking the average. 
                                   //this feature needs some thought, as it may be better to sample over time using a timer to trigger a sampling run
@@ -36,13 +36,13 @@ byte ADC_channel;
 volatile bool ADC_complete;
 
 #ifdef ADC_MULTISAMPLE 
-#define ADC_EXTRA_BITS  1
+#define ADC_EXTRA_BITS  2
 #define ADC_SAMPLES _BV(ADC_EXTRA_BITS)
 byte ADC_sample;
 #endif
 
 #ifdef ADC_MAP
-static byte ADC_channel_map[ADC_CHANNELS] = {1,2,0};
+static byte ADC_channel_map[ADC_CHANNELS] = {1,2,3,7,0};
 #define ADC_SELECT  ADC_channel_map[chn]
 #else
 #define ADC_SELECT  chn
@@ -57,7 +57,7 @@ void configureADC()
   PORTK=0x0;
   DDRF=0;
   DDRK=0;
-
+  analogReference(EXTERNAL);
   analogRead(A0);
 }
 

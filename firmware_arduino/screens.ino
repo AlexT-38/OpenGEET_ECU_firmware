@@ -133,6 +133,7 @@ void read_touch()
   byte touch_tag_old = GD.inputs.tag;
 
   //fetch coords
+  GD.resume();
   long int val = GD.rd32(REG_TOUCH_SCREEN_XY);
   xy *coord = (xy*) &val;
   GD.inputs.xytouch.x = coord->y;
@@ -164,7 +165,9 @@ void read_touch()
 #ifdef TRACKERS_ENABLED
 #endif    
   }
-  
+
+  //finish with the SPI bus
+  GD.__end();
   
   //check for event (change in tag)
   if (touch_tag_old != GD.inputs.tag)
