@@ -143,9 +143,12 @@ void finalise_record()
   
   
   /* calculate averages */
+
+  /* analog samples */
   if(data_record->ANA_no_of_samples > 0)
   {
     int rounding = data_record->ANA_no_of_samples>>1;
+    /* User input */
     for(byte idx = 0; idx<Data_Config.USR_no; idx++)
     {
       Data_Averages.USR[idx] = rounding;
@@ -154,19 +157,27 @@ void finalise_record()
       Data_Averages.USR[idx] /= data_record->ANA_no_of_samples;
 
     }
+    /* MAP sensors */
     for(byte idx = 0; idx<Data_Config.MAP_no; idx++)
     {
       Data_Averages.MAP[idx] = rounding;
       for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.MAP[idx] += data_record->MAP[idx][sample];}
       Data_Averages.MAP[idx] /= data_record->ANA_no_of_samples;
     }
+    /* Thermistors */
     for(byte idx = 0; idx<Data_Config.TMP_no; idx++)
     {
       Data_Averages.TMP[idx] = rounding;
       for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.TMP[idx] += data_record->TMP[idx][sample];}
       Data_Averages.TMP[idx] /= data_record->ANA_no_of_samples;
     }
+    /* Torque loadcell */
+    Data_Averages.TRQ = rounding;
+    for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.TRQ += data_record->TRQ[sample];}
+    Data_Averages.TRQ /= data_record->ANA_no_of_samples;
+  
   }
+  /* Thermocouples */
   if(data_record->EGT_no_of_samples > 0)
   {
     unsigned int rounding = data_record->EGT_no_of_samples>>1;
@@ -177,11 +188,13 @@ void finalise_record()
       Data_Averages.EGT[idx] /= data_record->EGT_no_of_samples;
     }
   }
+  /* RPM counter */
   //keep elapsed time in a sensible range to avoid overflows
   rpm_clip_time();
   // get the average rpm for this record 
   Data_Averages.RPM = get_rpm(data_record);
 
+  /* Servos */
   // calculate the average servo demand from the pid
   if(data_record->SRV_no_of_samples > 0)
   {
@@ -194,7 +207,7 @@ void finalise_record()
     }
   }
 
-
+  /* Shaft Power */
 
   //calculate shaft power
   //power in (W?) product of torque(Nm) and rpm(rad/s); rad/s = 0.10471975511965977461542144610932 per/rpm, Nm = 0.001 mNm

@@ -129,6 +129,7 @@
 //#define DEBUG_TOUCH_INPUT
 //#define DEBUG_TOUCH_CAL
 //#define DEBUG_TORQUE_SENSOR
+//#define DEBUG_HX711
 //#define DEBUG_TORQUE_RAW        //record raw values
 //#define DEBUG_TORQUE_CAL        //print calibration values on set
 //#define DEBUG_TORQUE_NO_TIMEOUT   //no timeout for reading torque sensor - this saves 40 or so bytes of flash, but will hang if comms lost

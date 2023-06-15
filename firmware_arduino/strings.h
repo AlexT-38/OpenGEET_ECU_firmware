@@ -67,6 +67,7 @@ const char S_INPUT_2[] PROGMEM = "Input 2";
 const char S_INPUT_3[] PROGMEM = "Input 3";
 const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
 const char S_TORQUE_MNM[] PROGMEM = "Tq. mN.m";
+const char S_TORQUE_LSB[] PROGMEM = "Tq. LSB";
 const char S_TORQUE[] PROGMEM = "Torque";
 const char S_POWER_W[] PROGMEM = "Power W";
 const char S_TEMP_DEGC[] PROGMEM = "Temp degC";
