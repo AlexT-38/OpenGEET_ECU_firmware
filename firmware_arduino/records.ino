@@ -128,7 +128,7 @@ void stream_print_byte_array(Stream *file, byte *array_data, unsigned int array_
 void reset_record()
 {
   LAST_RECORD = (DATA_RECORD){0};
-  LAST_RECORD.timestamp = 0;//millis();//
+  LAST_RECORD.timestamp = millis();
 }
 
 
@@ -140,8 +140,7 @@ void finalise_record()
   
   /* data record to read */
   DATA_RECORD *data_record = &LAST_RECORD;
-  
-  
+
   /* calculate averages */
 
   /* analog samples */
@@ -190,7 +189,7 @@ void finalise_record()
   }
   /* RPM counter */
   //keep elapsed time in a sensible range to avoid overflows
-  rpm_clip_time();
+  //rpm_clip_time();
   // get the average rpm for this record 
   Data_Averages.RPM = get_rpm(data_record);
 
@@ -249,7 +248,6 @@ bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte wri
     case 0: //ser: 712/1128
         {
           dst.println(FS(S_RECORD_MARKER));
-          dst.print(FS(S_RECORD_VER_C));      dst.println(DATA_RECORD_VERSION);
           dst.print(FS(S_TIMESTAMP_C));     dst.println(data_record->timestamp);
         }
         break;
@@ -313,6 +311,7 @@ bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte wri
       {
         dst.print(FS(S_RPM_AVG));          dst.println(Data_Averages.RPM);
         dst.print(FS(S_RPM_NO_OF_TICKS));  dst.println(data_record->RPM_no_of_ticks);
+        dst.print(FS(S_RPM_TICK_OFFSET));  dst.println(data_record->RPM_tick_offset_ms);
         break;
       }
     case 9: //ser: 540/964

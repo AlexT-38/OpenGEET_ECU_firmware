@@ -1,8 +1,6 @@
-/* rpm counter functions */
-static unsigned int RPM_elapsed;
 
 /* time of last tick, stored as microseconds for the benefit of PID */
-unsigned int rpm_last_tick_time_ms = 0;
+volatile unsigned long rpm_last_tick_time_ms = 0;
 
 //#define RPM_CALC_SIMPLE
 #define RPM_SCALE_BITS 2
@@ -50,15 +48,34 @@ unsigned int get_rpm(DATA_RECORD * data_record)
        * 
        */
   unsigned int val = 0;
+  unsigned int RPM_elapsed = 0;
   #ifdef RPM_CALC_SIMPLE
   val = (60000 / UPDATE_INTERVAL_ms) * data_record->RPM_no_of_ticks;
   #else
-  if (RPM_elapsed > 0)
+  if (data_record->RPM_no_of_ticks > 0)
   {
-    val = 60000 / ((RPM_elapsed + RPM_SCALE_ROUNDING) >> RPM_SCALE_BITS);
-    val = ((data_record->RPM_no_of_ticks * val) + RPM_SCALE_ROUNDING) >> RPM_SCALE_BITS;
+    //sum the tick times
+    for(byte n=0; n<data_record->RPM_no_of_ticks; n++)
+    {
+      RPM_elapsed += data_record->RPM_tick_times_ms[n];
+    }
+    if(RPM_elapsed > 0)
+    {
+      val = 60000 / ((RPM_elapsed + RPM_SCALE_ROUNDING) >> RPM_SCALE_BITS);
+      val = ((data_record->RPM_no_of_ticks * val) + RPM_SCALE_ROUNDING) >> RPM_SCALE_BITS;
+    }
+    else
+    {
+      //shouldn't occur, but just in case, use the previous RPM avg - this will hopefully smooth over any glitches
+      val = Data_Averages.RPM;
+    }
   }
-  #endif
+  else
+  {
+    //decay average rpm, 25% decay rate
+    val = (Data_Averages.RPM*3)>>2;
+  }
+  
   #ifdef DEBUG_RPM_COUNTER
   Serial.print(F("RPM Debug: "));
   Serial.print(RPM_elapsed);
@@ -67,7 +84,8 @@ unsigned int get_rpm(DATA_RECORD * data_record)
   Serial.print(F(" -> "));
   Serial.print(val);
   Serial.println();
-  #endif
+  #endif //DEBUG_RPM_COUNTER
+  #endif //RPM_CALC_SIMPLE
   return val;
 }
 
@@ -96,19 +114,25 @@ void rpm_count(void)
 {
   if (CURRENT_RECORD.RPM_no_of_ticks < RPM_MAX_TICKS_PER_UPDATE)
   {
+  
     /* get time now and time elapsed since last tick */
-    unsigned int timenow_ms = millis();
+    unsigned long timenow_ms = millis();
     unsigned int elapsed_time = timenow_ms - rpm_last_tick_time_ms;
+    
     /* update last tick time to current tick */
     rpm_last_tick_time_ms = timenow_ms;
+
+    /* record timestamp of first tick each record */
+    if (CURRENT_RECORD.RPM_no_of_ticks == 0)
+    {
+      CURRENT_RECORD.RPM_tick_offset_ms = timenow_ms - CURRENT_RECORD.timestamp;
+    }
 
     /* only count ticks if last tick time was not zero or elapsed time is reasonable */
     if (/*rpm_last_tick_time_ms != 0 || */(elapsed_time > RPM_MIN_TICK_INTERVAL_ms))
     {
       if(elapsed_time > RPM_MAX_TICK_INTERVAL_ms) elapsed_time = RPM_MAX_TICK_INTERVAL_ms;
       
-      /* increment total time for final average */
-      RPM_elapsed += elapsed_time;
       /* record the tick time */
       CURRENT_RECORD.RPM_tick_times_ms[CURRENT_RECORD.RPM_no_of_ticks++] = elapsed_time;
     }

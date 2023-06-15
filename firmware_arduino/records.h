@@ -34,7 +34,7 @@ typedef struct data_averages
   /* struct for storing sensor samples over the update period */
 typedef struct data_record
 {
-  long int timestamp;
+  unsigned long timestamp;
 
 //sensors using the internal ADC, or HX771 at 10Hz
   byte ANA_no_of_samples;
@@ -49,6 +49,7 @@ typedef struct data_record
   
 //rpm from flywheel magnet pickup  
   byte RPM_no_of_ticks;
+  unsigned int RPM_tick_offset_ms;
   unsigned int RPM_tick_times_ms[RPM_MAX_TICKS_PER_UPDATE];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
 
 //servo outputs

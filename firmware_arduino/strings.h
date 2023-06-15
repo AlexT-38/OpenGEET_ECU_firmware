@@ -43,6 +43,8 @@ const char S_RPM_AVG[] PROGMEM = "RPM avg: ";
 
 const char S_RPM_NO_OF_TICKS[] PROGMEM = "RPM no.: ";
 const char S_RPM_TICK_TIMES[] PROGMEM = "RPM times (ms): ";
+const char S_RPM_TICK_OFFSET[] PROGMEM = "RPM tick offset (ms): ";
+
 const char S_OUTPUT_FILE_NAME_C[] PROGMEM = "Output File Name: ";
 
 

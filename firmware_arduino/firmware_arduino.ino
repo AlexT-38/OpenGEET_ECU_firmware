@@ -122,6 +122,7 @@
 //#define DEBUG_EEP_RESET
 //#define DEBUG_EEP_CONTENT
 //#define DEBUG_RPM_COUNTER
+#define DEBUG_RPM_FAKE 1500
 //#define DEBUG_MAP_CAL
 //#define DEBUG_MAP  // n/a
 //#define DEBUG_TMP_CAL
@@ -235,20 +236,9 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
 #define ANALOG_UPDATE_START_ms        70
 
 //rpm counter params
-#define RPM_TO_MS(rpm)                (60000/(rpm))
-#define MS_TO_RPM(ms)                 RPM_TO_MS(ms)   //same formula, included for clarity
-
-#define RPM_MAX                       4500
-#define RPM_MIN_TICK_INTERVAL_ms      RPM_TO_MS(RPM_MAX)
-#define RPM_MAX_TICKS_PER_UPDATE      (UPDATE_INTERVAL_ms/RPM_MIN_TICK_INTERVAL_ms)
-#define RPM_MIN                       1
-#define RPM_MAX_TICK_INTERVAL_ms      RPM_TO_MS(RPM_MIN)
 
 
-#define RPM_MIN_SET                   1500
-#define RPM_MAX_SET                   4500
-#define RPM_MIN_SET_ms                RPM_TO_MS(RPM_MIN_SET)
-#define RPM_MAX_SET_ms                RPM_TO_MS(RPM_MAX_SET)
+
 
 #define PID_UPDATE_INTERVAL_ms        50
 #define PID_UPDATE_START_ms           40  
@@ -532,7 +522,10 @@ void setup() {
   // test the map functions
 //  test_map_implementations();
 
-
+  #ifdef DEBUG_RPM_FAKE
+  pinMode(PIN_RPM_COUNTER_INPUT, OUTPUT);
+    
+  #endif
 
 #ifdef DEBUG_MAP_CAL
 // SENSOR_CAL_LIMIT_out(in_limit, in_low, in_high, out_low, out_high)   ( ( ((in_limit-in_low) * (out_high-out_low)) / (in_high-in_low)  ) + out_low + 0.5)
@@ -714,6 +707,18 @@ void loop() {
 
   int elapsed_time;
   int timenow = millis();
+
+  #ifdef DEBUG_RPM_FAKE
+  static int next_fake_RPM = millis() + RPM_TO_MS(DEBUG_RPM_FAKE);
+  int fake_RPM_interval = timenow - next_fake_RPM;
+
+  if(fake_RPM_interval >= 0)
+  {
+    next_fake_RPM += RPM_TO_MS((Data_Averages.USR[0]*4)+1450);
+    digitalWrite(PIN_RPM_COUNTER_INPUT, HIGH);
+    digitalWrite(PIN_RPM_COUNTER_INPUT, LOW);
+  }
+  #endif //DEBUG_RPM_FAKE
 
   #ifdef DEBUG_SDCARD_TEST_FILE_OPEN
   static unsigned int sd_count = 0;
