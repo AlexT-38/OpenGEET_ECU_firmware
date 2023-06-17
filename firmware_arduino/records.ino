@@ -209,6 +209,10 @@ void finalise_record()
   /* Shaft Power */
 
   //calculate shaft power
+
+  //this calculation is wrong
+  //the correct formula is Power (kW) = Torque (N.m) x Speed (RPM) / 9.5488
+  
   //power in (W?) product of torque(Nm) and rpm(rad/s); rad/s = 0.10471975511965977461542144610932 per/rpm, Nm = 0.001 mNm
   //rpm will have range ~150-450rad/s, torque in range +/- ~10Nm, result would be +/- ~4500W
   //native range 4500(13bit) and 20000(15bit)
@@ -221,11 +225,34 @@ void finalise_record()
   //so max signed value is 45,000,000, >>8 =175,781, *7072 =1,243,123,232, >>18 = 4742W
   //probably best to split the difference, 19/13 to 16/16
   //prescale by 11bit, multiplier reduced by 2bit to 56,221, div by 2^(26-11=15) --wrong, out by 3 bits
+
+  #define POW_CALC_PRESCALE 10
+  #define POW_CALC_POSTSCALE 15
+  //this define doesn't seem to evaluate at compile time
+  //#define POW_CALC_CONSTANT (long)(1.0471975511965977461542144610932e-4 * (float)_BV(POW_CALC_PRESCALE + POW_CALC_POSTSCALE))
+  #define POW_CALC_CONSTANT 3514
   
-  long native_power = Data_Averages.RPM * Data_Averages.TRQ;
-  native_power >>= 11;
-  native_power *= 56221;
-  native_power >>= 15;
+  long native_power = (long)Data_Averages.RPM * Data_Averages.TRQ;
+
+  #ifndef DEBUG_POWER_CALC
+  native_power += _BV(POW_CALC_PRESCALE-1);
+  native_power >>= POW_CALC_PRESCALE;
+  native_power *= POW_CALC_CONSTANT;
+  native_power += _BV(POW_CALC_POSTSCALE-1);
+  native_power >>= POW_CALC_POSTSCALE;
+
+  #else //DEBUG_POWER_CALC
+  Serial.println("power calc (no rounding)");
+  Serial.print(F("RPM:  ")); Serial.println(Data_Averages.RPM);
+  Serial.print(F("TRQ:  ")); Serial.println(Data_Averages.TRQ);
+  Serial.print(F("RxT:  ")); Serial.println(native_power);
+  native_power >>= POW_CALC_PRESCALE;
+  Serial.print(F(">>10: ")); Serial.println(native_power);
+  native_power *= POW_CALC_CONSTANT;
+  Serial.print(F("*CON: ")); Serial.println(native_power);
+  native_power >>= POW_CALC_POSTSCALE;
+  Serial.print(F(">>15: ")); Serial.println(native_power);
+  #endif //DEBUG_POWER_CALC
 
   Data_Averages.POW = (int)native_power;
 

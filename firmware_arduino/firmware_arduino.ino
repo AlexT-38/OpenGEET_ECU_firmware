@@ -122,7 +122,7 @@
 //#define DEBUG_EEP_RESET
 //#define DEBUG_EEP_CONTENT
 //#define DEBUG_RPM_COUNTER
-#define DEBUG_RPM_FAKE
+//#define DEBUG_RPM_FAKE
 //#define DEBUG_MAX6675
 //#define DEBUG_MAP_CAL
 //#define DEBUG_MAP  // n/a
@@ -143,6 +143,8 @@
 //#define DEBUG_RTC_FORCE_UPDATE
 //#define DEBUG_SDCARD_TEST_FILE_OPEN
 //#define DEBUG_SDCARD_TEST_FILE_NAME "23061200.txt"
+//#define DEBUG_POWER_CALC
+
 
 #endif
 
