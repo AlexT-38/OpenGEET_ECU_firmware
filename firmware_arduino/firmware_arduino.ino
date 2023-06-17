@@ -122,7 +122,8 @@
 //#define DEBUG_EEP_RESET
 //#define DEBUG_EEP_CONTENT
 //#define DEBUG_RPM_COUNTER
-#define DEBUG_RPM_FAKE 1500
+#define DEBUG_RPM_FAKE
+//#define DEBUG_MAX6675
 //#define DEBUG_MAP_CAL
 //#define DEBUG_MAP  // n/a
 //#define DEBUG_TMP_CAL
@@ -709,7 +710,7 @@ void loop() {
   int timenow = millis();
 
   #ifdef DEBUG_RPM_FAKE
-  static int next_fake_RPM = millis() + RPM_TO_MS(DEBUG_RPM_FAKE);
+  static int next_fake_RPM = millis() + RPM_TO_MS(1000);
   int fake_RPM_interval = timenow - next_fake_RPM;
 
   if(fake_RPM_interval >= 0)
