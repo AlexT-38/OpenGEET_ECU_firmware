@@ -267,19 +267,12 @@ void finalise_record()
 /* writes the current data record to serial port and SD card as required */
 static byte write_data_step = 0;
 
-bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte write_data_step)
+void write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst)//, byte write_data_step)
 {
-  bool keep_going = true;
-  switch(write_data_step)
-  {
-    case 0: //ser: 712/1128
-        {
+
           dst.println(FS(S_RECORD_MARKER));
           dst.print(FS(S_TIMESTAMP_C));     dst.println(data_record->timestamp);
-        }
-        break;
-        
-    case 1: //ser: 
+
         for(byte idx = 0; idx < Data_Config.USR_no; idx++)
         {
           dst.print(idx); dst.print(FS(S_USR_C));     dst.println(Data_Averages.USR[idx]);
@@ -294,76 +287,58 @@ bool write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst, byte wri
         }
         dst.print(FS(S_TRQ_C));     dst.println(Data_Averages.TRQ);
         dst.print(FS(S_ANA_SAMPLES_C)); dst.println(data_record->ANA_no_of_samples);
-        break;
-        
-    case 2: //ser: 
+
         for(byte idx = 0; idx < Data_Config.USR_no; idx++)
         {
           stream_print_int_array(&dst, data_record->USR[idx], data_record->ANA_no_of_samples, S_USR_C, idx);
         }
-        break;
-        
-    case 3: //ser: 
+
         for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
         {
           stream_print_int_array(&dst, data_record->MAP[idx], data_record->ANA_no_of_samples, S_MAP_C, idx);
         }
-        break;
-        
-    case 4: //ser: 
+
         for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
         {
           stream_print_int_array(&dst, data_record->TMP[idx], data_record->ANA_no_of_samples, S_TMP_C, idx);
         }
-        break;
-        
-    case 5: //ser: 
+
         stream_print_int_array(&dst, data_record->TRQ, data_record->ANA_no_of_samples, S_TRQ_C, NO_IDX);
 
-        break;
-    case 6: //ser: 
+
         for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
         {
           dst.print(idx); dst.print(FS(S_EGT_AVG_C));       dst.println(Data_Averages.EGT[idx]);
         }
-        break;
+
         dst.print(FS(S_EGT_SAMPLES_C)); dst.println(data_record->EGT_no_of_samples);
-    case 7: //ser: 
+
         for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
         {
           stream_print_int_array(&dst, data_record->EGT[idx], data_record->EGT_no_of_samples, S_EGT_C, idx);
         }
-        break;
-    case 8: //ser: 588/1008
-      {
+
         dst.print(FS(S_RPM_AVG));          dst.println(Data_Averages.RPM);
         dst.print(FS(S_RPM_NO_OF_TICKS));  dst.println(data_record->RPM_no_of_ticks);
         dst.print(FS(S_RPM_TICK_OFFSET));  dst.println(data_record->RPM_tick_offset_ms);
-        break;
-      }
-    case 9: //ser: 540/964
-      {
+
         stream_print_int_array(&dst, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES, NO_IDX);
         dst.print(FS(S_POW_C));          dst.println(Data_Averages.POW);
         dst.println(FS(S_RECORD_MARKER));
-      }
-    default:
-      keep_going = false;
-      break;
-      
-  }
+
   
-  return keep_going;
+  return;
 }
-bool write_serial_data_record()
+
+
+void write_serial_data_record()
 {
   /* send the data to the serial port */
   if(flags_status.logging_active && flags_config.do_serial_write)
   {
-    #ifdef DEBUG_SERIAL_TIME    
-    unsigned int timestamp_us = micros();
-    Serial.print(F("ser_stp: ")); Serial.println(write_data_step);
-    #endif
+//    #ifdef DEBUG_SERIAL_TIME    
+//    unsigned int timestamp_us = micros();
+//    #endif
 
     /* data record to read */
     DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;//&LAST_RECORD;//
@@ -377,18 +352,15 @@ bool write_serial_data_record()
     }
     else
     {
-      if (!write_data_record_to_stream(data_record, Serial, write_data_step++))
-      {
-        write_data_step = 0;
-      }
+      write_data_record_to_stream(data_record, Serial);
     }
-    #ifdef DEBUG_SERIAL_TIME
-    timestamp_us = micros() - timestamp_us;
-    Serial.print(F("t_ser us: "));
-    Serial.println(timestamp_us);
-    #endif
+//    #ifdef DEBUG_SERIAL_TIME
+//    timestamp_us = micros() - timestamp_us;
+//    Serial.print(F("t_ser us: "));
+//    Serial.println(timestamp_us);
+//    #endif
   }
-  return write_data_step == 0;
+  return;
 }
 
 char output_filename[13] = ""; //8+3 format
@@ -399,16 +371,16 @@ char output_filename[13] = ""; //8+3 format
  * we might be able to optimise here by checking for elapsed time,
  * and if time has exceeded some threshold, the file will close
  */
-bool write_sdcard_data_record()
+void write_sdcard_data_record()
 {
   File log_data_file;
   
   /* send the data to the SD card, if available */
   if(flags_status.logging_active && flags_config.do_sdcard_write && flags_status.sdcard_available && flags_status.file_openable)
   {
-    #ifdef DEBUG_SDCARD_TIME    
-    unsigned int timestamp_us = micros();
-    #endif
+//    #ifdef DEBUG_SDCARD_TIME    
+//    unsigned int timestamp_us = micros();
+//    #endif
 
     /* data record to read */
     DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;
@@ -429,7 +401,6 @@ bool write_sdcard_data_record()
       }
       else
       {
-//        flags_status.file_openable = false;
         Serial.print(F("failed to open: "));
         Serial.println(output_filename);
       }
@@ -448,17 +419,16 @@ bool write_sdcard_data_record()
       }
       else
       {
-        while (write_data_record_to_stream(data_record, log_data_file, write_data_step++));
-        write_data_step = 0;
+        write_data_record_to_stream(data_record, log_data_file);
         log_data_file.close();
       }
     }
 
-    #ifdef DEBUG_SDCARD_TIME
-    timestamp_us = micros() - timestamp_us;
-    Serial.print(F("t_sdc us: "));
-    Serial.println(timestamp_us);
-    #endif
+//    #ifdef DEBUG_SDCARD_TIME
+//    timestamp_us = micros() - timestamp_us;
+//    Serial.print(F("t_sdc us: "));
+//    Serial.println(timestamp_us);
+//    #endif
   }
   else if(log_data_file)
   {
@@ -466,7 +436,7 @@ bool write_sdcard_data_record()
     log_data_file.close();
   }
 
-  return write_data_step == 0;
+  return;
 }
 
 void stop_logging()

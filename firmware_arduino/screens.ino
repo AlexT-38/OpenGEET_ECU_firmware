@@ -64,15 +64,15 @@ byte fetch_tag()
 
 /* opens comms to display chip and calls the current screen's draw function */
 
-byte draw_screen()
+void draw_screen()
 {
-  flags_status.redraw_pending = true;
+  //flags_status.redraw_pending = true;
   
   // check if enough time has passed since the last redraw
-  int time_now = millis();
-  if ((time_now - display_timestamp) > 0)
+  //int time_now = millis();
+  //if ((time_now - display_timestamp) > 0)
   {
-    display_timestamp = time_now + SCREEN_REDRAW_INTERVAL_MIN_ms;
+    //display_timestamp = time_now + SCREEN_REDRAW_INTERVAL_MIN_ms;
     flags_status.redraw_pending = false;
     
     if (draw_screen_funcs[current_screen] != NULL)
@@ -115,7 +115,7 @@ byte draw_screen()
     }
 
   }
-  return flags_status.redraw_pending;
+  return;// flags_status.redraw_pending;
 }
 
 /* touch handling - avoid heavy lifting in this funtion */
