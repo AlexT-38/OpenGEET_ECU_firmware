@@ -1,0 +1,1278 @@
+data_logger_begin_test
+ok
+Output file name:test0008.txt
+Opened OK
+op/wr/cl bytes: 358; bytes(tot): 358; time (us): 62692
+op/wr/cl bytes: 380; bytes(tot): 738; time (us): 22004
+op/wr/cl bytes: 388; bytes(tot): 1126; time (us): 23232
+op/wr/cl bytes: 409; bytes(tot): 1535; time (us): 22036
+op/wr/cl bytes: 441; bytes(tot): 1976; time (us): 23284
+op/wr/cl bytes: 473; bytes(tot): 2449; time (us): 22152
+op/wr/cl bytes: 329; bytes(tot): 2778; time (us): 15116
+op/wr/cl bytes: 387; bytes(tot): 3165; time (us): 15156
+op/wr/cl bytes: 433; bytes(tot): 3598; time (us): 15192
+op/wr/cl bytes: 374; bytes(tot): 3972; time (us): 15136
+t avg (us): 23600
+
+op/wr/cl bytes: 486; bytes(tot): 4458; time (us): 23336
+op/wr/cl bytes: 339; bytes(tot): 4797; time (us): 15116
+op/wr/cl bytes: 365; bytes(tot): 5162; time (us): 15160
+op/wr/cl bytes: 367; bytes(tot): 5529; time (us): 15156
+op/wr/cl bytes: 432; bytes(tot): 5961; time (us): 15200
+op/wr/cl bytes: 410; bytes(tot): 6371; time (us): 15184
+op/wr/cl bytes: 369; bytes(tot): 6740; time (us): 15164
+op/wr/cl bytes: 460; bytes(tot): 7200; time (us): 15232
+op/wr/cl bytes: 440; bytes(tot): 7640; time (us): 15216
+op/wr/cl bytes: 401; bytes(tot): 8041; time (us): 15168
+t avg (us): 15993
+
+op/wr/cl bytes: 316; bytes(tot): 8357; time (us): 15104
+op/wr/cl bytes: 375; bytes(tot): 8732; time (us): 15140
+op/wr/cl bytes: 432; bytes(tot): 9164; time (us): 15212
+op/wr/cl bytes: 284; bytes(tot): 9448; time (us): 15068
+op/wr/cl bytes: 265; bytes(tot): 9713; time (us): 15072
+op/wr/cl bytes: 446; bytes(tot): 10159; time (us): 15216
+op/wr/cl bytes: 420; bytes(tot): 10579; time (us): 15220
+op/wr/cl bytes: 409; bytes(tot): 10988; time (us): 15180
+op/wr/cl bytes: 283; bytes(tot): 11271; time (us): 15032
+op/wr/cl bytes: 466; bytes(tot): 11737; time (us): 15236
+t avg (us): 15148
+
+op/wr/cl bytes: 326; bytes(tot): 12063; time (us): 72896
+op/wr/cl bytes: 268; bytes(tot): 12331; time (us): 15056
+op/wr/cl bytes: 432; bytes(tot): 12763; time (us): 15224
+op/wr/cl bytes: 496; bytes(tot): 13259; time (us): 22176
+op/wr/cl bytes: 334; bytes(tot): 13593; time (us): 15116
+op/wr/cl bytes: 391; bytes(tot): 13984; time (us): 15164
+op/wr/cl bytes: 336; bytes(tot): 14320; time (us): 15124
+op/wr/cl bytes: 368; bytes(tot): 14688; time (us): 15140
+op/wr/cl bytes: 303; bytes(tot): 14991; time (us): 15104
+op/wr/cl bytes: 271; bytes(tot): 15262; time (us): 15060
+t avg (us): 21606
+
+op/wr/cl bytes: 487; bytes(tot): 15749; time (us): 15260
+op/wr/cl bytes: 322; bytes(tot): 16071; time (us): 15112
+op/wr/cl bytes: 467; bytes(tot): 16538; time (us): 15240
+op/wr/cl bytes: 480; bytes(tot): 17018; time (us): 15256
+op/wr/cl bytes: 265; bytes(tot): 17283; time (us): 15068
+op/wr/cl bytes: 481; bytes(tot): 17764; time (us): 15240
+op/wr/cl bytes: 301; bytes(tot): 18065; time (us): 15092
+op/wr/cl bytes: 259; bytes(tot): 18324; time (us): 15052
+op/wr/cl bytes: 415; bytes(tot): 18739; time (us): 15192
+op/wr/cl bytes: 390; bytes(tot): 19129; time (us): 15160
+t avg (us): 15167
+
+op/wr/cl bytes: 372; bytes(tot): 19501; time (us): 15156
+op/wr/cl bytes: 282; bytes(tot): 19783; time (us): 15068
+op/wr/cl bytes: 369; bytes(tot): 20152; time (us): 15160
+op/wr/cl bytes: 416; bytes(tot): 20568; time (us): 15188
+op/wr/cl bytes: 382; bytes(tot): 20950; time (us): 15192
+op/wr/cl bytes: 450; bytes(tot): 21400; time (us): 15212
+op/wr/cl bytes: 369; bytes(tot): 21769; time (us): 15160
+op/wr/cl bytes: 450; bytes(tot): 22219; time (us): 15208
+op/wr/cl bytes: 345; bytes(tot): 22564; time (us): 15132
+op/wr/cl bytes: 398; bytes(tot): 22962; time (us): 15164
+t avg (us): 15164
+
+op/wr/cl bytes: 471; bytes(tot): 23433; time (us): 15244
+op/wr/cl bytes: 490; bytes(tot): 23923; time (us): 15256
+op/wr/cl bytes: 479; bytes(tot): 24402; time (us): 15248
+op/wr/cl bytes: 484; bytes(tot): 24886; time (us): 15236
+op/wr/cl bytes: 364; bytes(tot): 25250; time (us): 15144
+op/wr/cl bytes: 288; bytes(tot): 25538; time (us): 15092
+op/wr/cl bytes: 475; bytes(tot): 26013; time (us): 15248
+op/wr/cl bytes: 287; bytes(tot): 26300; time (us): 15080
+op/wr/cl bytes: 325; bytes(tot): 26625; time (us): 15116
+op/wr/cl bytes: 481; bytes(tot): 27106; time (us): 15240
+t avg (us): 15190
+
+op/wr/cl bytes: 310; bytes(tot): 27416; time (us): 15120
+op/wr/cl bytes: 334; bytes(tot): 27750; time (us): 15116
+op/wr/cl bytes: 389; bytes(tot): 28139; time (us): 15176
+op/wr/cl bytes: 473; bytes(tot): 28612; time (us): 15232
+op/wr/cl bytes: 257; bytes(tot): 28869; time (us): 15052
+op/wr/cl bytes: 312; bytes(tot): 29181; time (us): 15092
+op/wr/cl bytes: 490; bytes(tot): 29671; time (us): 15260
+op/wr/cl bytes: 292; bytes(tot): 29963; time (us): 15068
+op/wr/cl bytes: 365; bytes(tot): 30328; time (us): 15148
+op/wr/cl bytes: 297; bytes(tot): 30625; time (us): 15076
+t avg (us): 15134
+
+op/wr/cl bytes: 373; bytes(tot): 30998; time (us): 15156
+op/wr/cl bytes: 257; bytes(tot): 31255; time (us): 15048
+op/wr/cl bytes: 512; bytes(tot): 31767; time (us): 15980
+op/wr/cl bytes: 287; bytes(tot): 32054; time (us): 15084
+op/wr/cl bytes: 465; bytes(tot): 32519; time (us): 15268
+op/wr/cl bytes: 343; bytes(tot): 32862; time (us): 15132
+op/wr/cl bytes: 285; bytes(tot): 33147; time (us): 15084
+op/wr/cl bytes: 277; bytes(tot): 33424; time (us): 15076
+op/wr/cl bytes: 398; bytes(tot): 33822; time (us): 15188
+op/wr/cl bytes: 394; bytes(tot): 34216; time (us): 15188
+t avg (us): 15220
+
+op/wr/cl bytes: 468; bytes(tot): 34684; time (us): 15264
+op/wr/cl bytes: 324; bytes(tot): 35008; time (us): 15132
+op/wr/cl bytes: 257; bytes(tot): 35265; time (us): 15064
+op/wr/cl bytes: 352; bytes(tot): 35617; time (us): 15136
+op/wr/cl bytes: 483; bytes(tot): 36100; time (us): 15292
+op/wr/cl bytes: 364; bytes(tot): 36464; time (us): 15156
+op/wr/cl bytes: 391; bytes(tot): 36855; time (us): 15184
+op/wr/cl bytes: 398; bytes(tot): 37253; time (us): 15200
+op/wr/cl bytes: 352; bytes(tot): 37605; time (us): 15152
+op/wr/cl bytes: 489; bytes(tot): 38094; time (us): 15256
+t avg (us): 15183
+
+op/wr/cl bytes: 399; bytes(tot): 38493; time (us): 15204
+op/wr/cl bytes: 339; bytes(tot): 38832; time (us): 15128
+op/wr/cl bytes: 318; bytes(tot): 39150; time (us): 15120
+op/wr/cl bytes: 384; bytes(tot): 39534; time (us): 15164
+op/wr/cl bytes: 290; bytes(tot): 39824; time (us): 15096
+op/wr/cl bytes: 261; bytes(tot): 40085; time (us): 15064
+op/wr/cl bytes: 301; bytes(tot): 40386; time (us): 15096
+op/wr/cl bytes: 281; bytes(tot): 40667; time (us): 15076
+op/wr/cl bytes: 385; bytes(tot): 41052; time (us): 15180
+op/wr/cl bytes: 429; bytes(tot): 41481; time (us): 15208
+t avg (us): 15133
+
+op/wr/cl bytes: 374; bytes(tot): 41855; time (us): 15172
+op/wr/cl bytes: 274; bytes(tot): 42129; time (us): 15072
+op/wr/cl bytes: 413; bytes(tot): 42542; time (us): 15204
+op/wr/cl bytes: 370; bytes(tot): 42912; time (us): 15152
+op/wr/cl bytes: 351; bytes(tot): 43263; time (us): 15148
+op/wr/cl bytes: 419; bytes(tot): 43682; time (us): 15196
+op/wr/cl bytes: 314; bytes(tot): 43996; time (us): 15120
+op/wr/cl bytes: 447; bytes(tot): 44443; time (us): 15232
+op/wr/cl bytes: 323; bytes(tot): 44766; time (us): 15144
+op/wr/cl bytes: 503; bytes(tot): 45269; time (us): 15268
+t avg (us): 15170
+
+op/wr/cl bytes: 332; bytes(tot): 45601; time (us): 15148
+op/wr/cl bytes: 420; bytes(tot): 46021; time (us): 15220
+op/wr/cl bytes: 402; bytes(tot): 46423; time (us): 15204
+op/wr/cl bytes: 267; bytes(tot): 46690; time (us): 15072
+op/wr/cl bytes: 362; bytes(tot): 47052; time (us): 15100
+op/wr/cl bytes: 371; bytes(tot): 47423; time (us): 15160
+op/wr/cl bytes: 346; bytes(tot): 47769; time (us): 73264
+op/wr/cl bytes: 484; bytes(tot): 48253; time (us): 15252
+op/wr/cl bytes: 342; bytes(tot): 48595; time (us): 15140
+op/wr/cl bytes: 268; bytes(tot): 48863; time (us): 15064
+t avg (us): 20962
+
+op/wr/cl bytes: 293; bytes(tot): 49156; time (us): 15096
+op/wr/cl bytes: 304; bytes(tot): 49460; time (us): 15088
+op/wr/cl bytes: 480; bytes(tot): 49940; time (us): 15256
+op/wr/cl bytes: 466; bytes(tot): 50406; time (us): 15236
+op/wr/cl bytes: 288; bytes(tot): 50694; time (us): 15088
+op/wr/cl bytes: 337; bytes(tot): 51031; time (us): 15124
+op/wr/cl bytes: 468; bytes(tot): 51499; time (us): 15252
+op/wr/cl bytes: 508; bytes(tot): 52007; time (us): 15272
+op/wr/cl bytes: 343; bytes(tot): 52350; time (us): 15140
+op/wr/cl bytes: 443; bytes(tot): 52793; time (us): 15212
+t avg (us): 15176
+
+op/wr/cl bytes: 350; bytes(tot): 53143; time (us): 15164
+op/wr/cl bytes: 282; bytes(tot): 53425; time (us): 15076
+op/wr/cl bytes: 271; bytes(tot): 53696; time (us): 15080
+op/wr/cl bytes: 420; bytes(tot): 54116; time (us): 15196
+op/wr/cl bytes: 367; bytes(tot): 54483; time (us): 15160
+op/wr/cl bytes: 309; bytes(tot): 54792; time (us): 15104
+op/wr/cl bytes: 359; bytes(tot): 55151; time (us): 15144
+op/wr/cl bytes: 260; bytes(tot): 55411; time (us): 15056
+op/wr/cl bytes: 271; bytes(tot): 55682; time (us): 15076
+op/wr/cl bytes: 435; bytes(tot): 56117; time (us): 15204
+t avg (us): 15126
+
+op/wr/cl bytes: 260; bytes(tot): 56377; time (us): 15068
+op/wr/cl bytes: 451; bytes(tot): 56828; time (us): 15216
+op/wr/cl bytes: 338; bytes(tot): 57166; time (us): 15132
+op/wr/cl bytes: 427; bytes(tot): 57593; time (us): 15204
+op/wr/cl bytes: 487; bytes(tot): 58080; time (us): 15268
+op/wr/cl bytes: 415; bytes(tot): 58495; time (us): 15196
+op/wr/cl bytes: 431; bytes(tot): 58926; time (us): 15224
+op/wr/cl bytes: 281; bytes(tot): 59207; time (us): 15080
+op/wr/cl bytes: 440; bytes(tot): 59647; time (us): 15224
+op/wr/cl bytes: 475; bytes(tot): 60122; time (us): 15240
+t avg (us): 15185
+
+op/wr/cl bytes: 430; bytes(tot): 60552; time (us): 15212
+op/wr/cl bytes: 426; bytes(tot): 60978; time (us): 15204
+op/wr/cl bytes: 397; bytes(tot): 61375; time (us): 15188
+op/wr/cl bytes: 305; bytes(tot): 61680; time (us): 15116
+op/wr/cl bytes: 280; bytes(tot): 61960; time (us): 15084
+op/wr/cl bytes: 372; bytes(tot): 62332; time (us): 15168
+op/wr/cl bytes: 390; bytes(tot): 62722; time (us): 15188
+op/wr/cl bytes: 289; bytes(tot): 63011; time (us): 15076
+op/wr/cl bytes: 446; bytes(tot): 63457; time (us): 15232
+op/wr/cl bytes: 356; bytes(tot): 63813; time (us): 15140
+t avg (us): 15160
+
+op/wr/cl bytes: 283; bytes(tot): 64096; time (us): 15092
+op/wr/cl bytes: 257; bytes(tot): 64353; time (us): 15056
+op/wr/cl bytes: 476; bytes(tot): 64829; time (us): 15260
+op/wr/cl bytes: 469; bytes(tot): 65298; time (us): 15240
+op/wr/cl bytes: 472; bytes(tot): 65770; time (us): 15256
+op/wr/cl bytes: 269; bytes(tot): 66039; time (us): 15056
+op/wr/cl bytes: 283; bytes(tot): 66322; time (us): 15100
+op/wr/cl bytes: 382; bytes(tot): 66704; time (us): 15164
+op/wr/cl bytes: 365; bytes(tot): 67069; time (us): 15164
+op/wr/cl bytes: 479; bytes(tot): 67548; time (us): 15256
+t avg (us): 15164
+
+op/wr/cl bytes: 357; bytes(tot): 67905; time (us): 15152
+op/wr/cl bytes: 388; bytes(tot): 68293; time (us): 15196
+op/wr/cl bytes: 430; bytes(tot): 68723; time (us): 15212
+op/wr/cl bytes: 258; bytes(tot): 68981; time (us): 15048
+op/wr/cl bytes: 322; bytes(tot): 69303; time (us): 15116
+op/wr/cl bytes: 385; bytes(tot): 69688; time (us): 15168
+op/wr/cl bytes: 445; bytes(tot): 70133; time (us): 15232
+op/wr/cl bytes: 444; bytes(tot): 70577; time (us): 15216
+op/wr/cl bytes: 342; bytes(tot): 70919; time (us): 15128
+op/wr/cl bytes: 464; bytes(tot): 71383; time (us): 15252
+t avg (us): 15172
+
+op/wr/cl bytes: 436; bytes(tot): 71819; time (us): 15216
+op/wr/cl bytes: 474; bytes(tot): 72293; time (us): 15244
+op/wr/cl bytes: 401; bytes(tot): 72694; time (us): 15200
+op/wr/cl bytes: 302; bytes(tot): 72996; time (us): 15088
+op/wr/cl bytes: 510; bytes(tot): 73506; time (us): 15288
+op/wr/cl bytes: 262; bytes(tot): 73768; time (us): 15056
+op/wr/cl bytes: 383; bytes(tot): 74151; time (us): 15176
+op/wr/cl bytes: 259; bytes(tot): 74410; time (us): 15052
+op/wr/cl bytes: 482; bytes(tot): 74892; time (us): 15264
+op/wr/cl bytes: 400; bytes(tot): 75292; time (us): 15180
+t avg (us): 15176
+
+op/wr/cl bytes: 286; bytes(tot): 75578; time (us): 15088
+op/wr/cl bytes: 496; bytes(tot): 76074; time (us): 15268
+op/wr/cl bytes: 439; bytes(tot): 76513; time (us): 15224
+op/wr/cl bytes: 489; bytes(tot): 77002; time (us): 15260
+op/wr/cl bytes: 431; bytes(tot): 77433; time (us): 15220
+op/wr/cl bytes: 459; bytes(tot): 77892; time (us): 15232
+op/wr/cl bytes: 263; bytes(tot): 78155; time (us): 15072
+op/wr/cl bytes: 346; bytes(tot): 78501; time (us): 15124
+op/wr/cl bytes: 395; bytes(tot): 78896; time (us): 15200
+op/wr/cl bytes: 397; bytes(tot): 79293; time (us): 15188
+t avg (us): 15187
+
+op/wr/cl bytes: 384; bytes(tot): 79677; time (us): 15172
+op/wr/cl bytes: 425; bytes(tot): 80102; time (us): 15208
+op/wr/cl bytes: 445; bytes(tot): 80547; time (us): 15228
+op/wr/cl bytes: 487; bytes(tot): 81034; time (us): 15256
+op/wr/cl bytes: 395; bytes(tot): 81429; time (us): 15184
+op/wr/cl bytes: 279; bytes(tot): 81708; time (us): 15228
+op/wr/cl bytes: 263; bytes(tot): 81971; time (us): 15088
+op/wr/cl bytes: 374; bytes(tot): 82345; time (us): 15168
+op/wr/cl bytes: 496; bytes(tot): 82841; time (us): 15284
+op/wr/cl bytes: 386; bytes(tot): 83227; time (us): 15172
+t avg (us): 15198
+
+op/wr/cl bytes: 312; bytes(tot): 83539; time (us): 15064
+op/wr/cl bytes: 435; bytes(tot): 83974; time (us): 15212
+op/wr/cl bytes: 438; bytes(tot): 84412; time (us): 73212
+op/wr/cl bytes: 483; bytes(tot): 84895; time (us): 15244
+op/wr/cl bytes: 442; bytes(tot): 85337; time (us): 15244
+op/wr/cl bytes: 294; bytes(tot): 85631; time (us): 15076
+op/wr/cl bytes: 402; bytes(tot): 86033; time (us): 15196
+op/wr/cl bytes: 327; bytes(tot): 86360; time (us): 15132
+op/wr/cl bytes: 508; bytes(tot): 86868; time (us): 15284
+op/wr/cl bytes: 266; bytes(tot): 87134; time (us): 15076
+t avg (us): 20974
+
+op/wr/cl bytes: 369; bytes(tot): 87503; time (us): 15160
+op/wr/cl bytes: 297; bytes(tot): 87800; time (us): 15092
+op/wr/cl bytes: 352; bytes(tot): 88152; time (us): 15144
+op/wr/cl bytes: 484; bytes(tot): 88636; time (us): 15260
+op/wr/cl bytes: 395; bytes(tot): 89031; time (us): 15196
+op/wr/cl bytes: 485; bytes(tot): 89516; time (us): 15256
+op/wr/cl bytes: 317; bytes(tot): 89833; time (us): 15120
+op/wr/cl bytes: 322; bytes(tot): 90155; time (us): 15120
+op/wr/cl bytes: 456; bytes(tot): 90611; time (us): 15404
+op/wr/cl bytes: 436; bytes(tot): 91047; time (us): 15212
+t avg (us): 15196
+
+op/wr/cl bytes: 453; bytes(tot): 91500; time (us): 15236
+op/wr/cl bytes: 387; bytes(tot): 91887; time (us): 15172
+op/wr/cl bytes: 351; bytes(tot): 92238; time (us): 15148
+op/wr/cl bytes: 382; bytes(tot): 92620; time (us): 15164
+op/wr/cl bytes: 483; bytes(tot): 93103; time (us): 15268
+op/wr/cl bytes: 393; bytes(tot): 93496; time (us): 15176
+op/wr/cl bytes: 330; bytes(tot): 93826; time (us): 15136
+op/wr/cl bytes: 266; bytes(tot): 94092; time (us): 15064
+op/wr/cl bytes: 382; bytes(tot): 94474; time (us): 15184
+op/wr/cl bytes: 416; bytes(tot): 94890; time (us): 15196
+t avg (us): 15174
+
+op/wr/cl bytes: 296; bytes(tot): 95186; time (us): 15100
+op/wr/cl bytes: 486; bytes(tot): 95672; time (us): 15252
+op/wr/cl bytes: 336; bytes(tot): 96008; time (us): 15140
+op/wr/cl bytes: 394; bytes(tot): 96402; time (us): 15176
+op/wr/cl bytes: 398; bytes(tot): 96800; time (us): 15196
+op/wr/cl bytes: 460; bytes(tot): 97260; time (us): 15232
+op/wr/cl bytes: 416; bytes(tot): 97676; time (us): 15216
+op/wr/cl bytes: 466; bytes(tot): 98142; time (us): 15240
+op/wr/cl bytes: 410; bytes(tot): 98552; time (us): 15204
+op/wr/cl bytes: 341; bytes(tot): 98893; time (us): 15124
+t avg (us): 15188
+
+op/wr/cl bytes: 406; bytes(tot): 99299; time (us): 15200
+op/wr/cl bytes: 439; bytes(tot): 99738; time (us): 15208
+op/wr/cl bytes: 443; bytes(tot): 100181; time (us): 15228
+op/wr/cl bytes: 464; bytes(tot): 100645; time (us): 15232
+op/wr/cl bytes: 442; bytes(tot): 101087; time (us): 15232
+op/wr/cl bytes: 462; bytes(tot): 101549; time (us): 15248
+op/wr/cl bytes: 473; bytes(tot): 102022; time (us): 15260
+op/wr/cl bytes: 286; bytes(tot): 102308; time (us): 15088
+op/wr/cl bytes: 356; bytes(tot): 102664; time (us): 15168
+op/wr/cl bytes: 343; bytes(tot): 103007; time (us): 15132
+t avg (us): 15199
+
+op/wr/cl bytes: 318; bytes(tot): 103325; time (us): 15116
+op/wr/cl bytes: 446; bytes(tot): 103771; time (us): 15232
+op/wr/cl bytes: 485; bytes(tot): 104256; time (us): 15268
+op/wr/cl bytes: 419; bytes(tot): 104675; time (us): 15196
+op/wr/cl bytes: 383; bytes(tot): 105058; time (us): 15180
+op/wr/cl bytes: 394; bytes(tot): 105452; time (us): 15176
+op/wr/cl bytes: 399; bytes(tot): 105851; time (us): 15188
+op/wr/cl bytes: 296; bytes(tot): 106147; time (us): 15084
+op/wr/cl bytes: 386; bytes(tot): 106533; time (us): 15176
+op/wr/cl bytes: 361; bytes(tot): 106894; time (us): 15152
+t avg (us): 15176
+
+op/wr/cl bytes: 487; bytes(tot): 107381; time (us): 15268
+op/wr/cl bytes: 262; bytes(tot): 107643; time (us): 15068
+op/wr/cl bytes: 449; bytes(tot): 108092; time (us): 15240
+op/wr/cl bytes: 351; bytes(tot): 108443; time (us): 15144
+op/wr/cl bytes: 347; bytes(tot): 108790; time (us): 15152
+op/wr/cl bytes: 409; bytes(tot): 109199; time (us): 15188
+op/wr/cl bytes: 263; bytes(tot): 109462; time (us): 15088
+op/wr/cl bytes: 446; bytes(tot): 109908; time (us): 15216
+op/wr/cl bytes: 494; bytes(tot): 110402; time (us): 15272
+op/wr/cl bytes: 413; bytes(tot): 110815; time (us): 15204
+t avg (us): 15184
+
+op/wr/cl bytes: 280; bytes(tot): 111095; time (us): 15100
+op/wr/cl bytes: 413; bytes(tot): 111508; time (us): 15192
+op/wr/cl bytes: 376; bytes(tot): 111884; time (us): 15176
+op/wr/cl bytes: 495; bytes(tot): 112379; time (us): 15260
+op/wr/cl bytes: 324; bytes(tot): 112703; time (us): 15120
+op/wr/cl bytes: 417; bytes(tot): 113120; time (us): 15196
+op/wr/cl bytes: 313; bytes(tot): 113433; time (us): 15120
+op/wr/cl bytes: 332; bytes(tot): 113765; time (us): 15116
+op/wr/cl bytes: 363; bytes(tot): 114128; time (us): 15156
+op/wr/cl bytes: 442; bytes(tot): 114570; time (us): 15240
+t avg (us): 15167
+
+op/wr/cl bytes: 335; bytes(tot): 114905; time (us): 15148
+op/wr/cl bytes: 415; bytes(tot): 115320; time (us): 15192
+op/wr/cl bytes: 442; bytes(tot): 115762; time (us): 15228
+op/wr/cl bytes: 439; bytes(tot): 116201; time (us): 15212
+op/wr/cl bytes: 344; bytes(tot): 116545; time (us): 15140
+op/wr/cl bytes: 454; bytes(tot): 116999; time (us): 15224
+op/wr/cl bytes: 293; bytes(tot): 117292; time (us): 15112
+op/wr/cl bytes: 412; bytes(tot): 117704; time (us): 15180
+op/wr/cl bytes: 471; bytes(tot): 118175; time (us): 15264
+op/wr/cl bytes: 311; bytes(tot): 118486; time (us): 15120
+t avg (us): 15182
+
+op/wr/cl bytes: 299; bytes(tot): 118785; time (us): 15100
+op/wr/cl bytes: 256; bytes(tot): 119041; time (us): 15060
+op/wr/cl bytes: 308; bytes(tot): 119349; time (us): 15132
+op/wr/cl bytes: 320; bytes(tot): 119669; time (us): 15128
+op/wr/cl bytes: 417; bytes(tot): 120086; time (us): 15220
+op/wr/cl bytes: 430; bytes(tot): 120516; time (us): 15228
+op/wr/cl bytes: 396; bytes(tot): 120912; time (us): 15124
+op/wr/cl bytes: 318; bytes(tot): 121230; time (us): 15120
+op/wr/cl bytes: 357; bytes(tot): 121587; time (us): 73216
+op/wr/cl bytes: 501; bytes(tot): 122088; time (us): 15268
+t avg (us): 20959
+
+op/wr/cl bytes: 478; bytes(tot): 122566; time (us): 15276
+op/wr/cl bytes: 436; bytes(tot): 123002; time (us): 15228
+op/wr/cl bytes: 422; bytes(tot): 123424; time (us): 15208
+op/wr/cl bytes: 268; bytes(tot): 123692; time (us): 15064
+op/wr/cl bytes: 409; bytes(tot): 124101; time (us): 15200
+op/wr/cl bytes: 294; bytes(tot): 124395; time (us): 15104
+op/wr/cl bytes: 478; bytes(tot): 124873; time (us): 15252
+op/wr/cl bytes: 325; bytes(tot): 125198; time (us): 15108
+op/wr/cl bytes: 414; bytes(tot): 125612; time (us): 15204
+op/wr/cl bytes: 294; bytes(tot): 125906; time (us): 15088
+t avg (us): 15173
+
+op/wr/cl bytes: 428; bytes(tot): 126334; time (us): 15220
+op/wr/cl bytes: 443; bytes(tot): 126777; time (us): 15212
+op/wr/cl bytes: 339; bytes(tot): 127116; time (us): 15148
+op/wr/cl bytes: 331; bytes(tot): 127447; time (us): 15116
+op/wr/cl bytes: 353; bytes(tot): 127800; time (us): 15148
+op/wr/cl bytes: 271; bytes(tot): 128071; time (us): 15080
+op/wr/cl bytes: 419; bytes(tot): 128490; time (us): 15220
+op/wr/cl bytes: 468; bytes(tot): 128958; time (us): 15232
+op/wr/cl bytes: 307; bytes(tot): 129265; time (us): 15104
+op/wr/cl bytes: 341; bytes(tot): 129606; time (us): 15132
+t avg (us): 15161
+
+op/wr/cl bytes: 394; bytes(tot): 130000; time (us): 15192
+op/wr/cl bytes: 445; bytes(tot): 130445; time (us): 15220
+op/wr/cl bytes: 416; bytes(tot): 130861; time (us): 15216
+op/wr/cl bytes: 463; bytes(tot): 131324; time (us): 15248
+op/wr/cl bytes: 379; bytes(tot): 131703; time (us): 15176
+op/wr/cl bytes: 483; bytes(tot): 132186; time (us): 15264
+op/wr/cl bytes: 509; bytes(tot): 132695; time (us): 15288
+op/wr/cl bytes: 378; bytes(tot): 133073; time (us): 15164
+op/wr/cl bytes: 426; bytes(tot): 133499; time (us): 15228
+op/wr/cl bytes: 509; bytes(tot): 134008; time (us): 15276
+t avg (us): 15227
+
+op/wr/cl bytes: 376; bytes(tot): 134384; time (us): 15164
+op/wr/cl bytes: 265; bytes(tot): 134649; time (us): 15072
+op/wr/cl bytes: 435; bytes(tot): 135084; time (us): 15220
+op/wr/cl bytes: 431; bytes(tot): 135515; time (us): 15228
+op/wr/cl bytes: 322; bytes(tot): 135837; time (us): 15124
+op/wr/cl bytes: 372; bytes(tot): 136209; time (us): 15168
+op/wr/cl bytes: 373; bytes(tot): 136582; time (us): 15164
+op/wr/cl bytes: 345; bytes(tot): 136927; time (us): 15124
+op/wr/cl bytes: 401; bytes(tot): 137328; time (us): 15184
+op/wr/cl bytes: 323; bytes(tot): 137651; time (us): 15112
+t avg (us): 15156
+
+op/wr/cl bytes: 432; bytes(tot): 138083; time (us): 15212
+op/wr/cl bytes: 376; bytes(tot): 138459; time (us): 15172
+op/wr/cl bytes: 414; bytes(tot): 138873; time (us): 15220
+op/wr/cl bytes: 429; bytes(tot): 139302; time (us): 15208
+op/wr/cl bytes: 432; bytes(tot): 139734; time (us): 15216
+op/wr/cl bytes: 438; bytes(tot): 140172; time (us): 15216
+op/wr/cl bytes: 319; bytes(tot): 140491; time (us): 15120
+op/wr/cl bytes: 441; bytes(tot): 140932; time (us): 15232
+op/wr/cl bytes: 293; bytes(tot): 141225; time (us): 15096
+op/wr/cl bytes: 449; bytes(tot): 141674; time (us): 15236
+t avg (us): 15192
+
+op/wr/cl bytes: 306; bytes(tot): 141980; time (us): 15108
+op/wr/cl bytes: 394; bytes(tot): 142374; time (us): 15180
+op/wr/cl bytes: 300; bytes(tot): 142674; time (us): 15108
+op/wr/cl bytes: 431; bytes(tot): 143105; time (us): 15204
+op/wr/cl bytes: 430; bytes(tot): 143535; time (us): 15208
+op/wr/cl bytes: 465; bytes(tot): 144000; time (us): 15240
+op/wr/cl bytes: 401; bytes(tot): 144401; time (us): 15204
+op/wr/cl bytes: 434; bytes(tot): 144835; time (us): 15216
+op/wr/cl bytes: 493; bytes(tot): 145328; time (us): 15280
+op/wr/cl bytes: 283; bytes(tot): 145611; time (us): 15076
+t avg (us): 15182
+
+op/wr/cl bytes: 460; bytes(tot): 146071; time (us): 15236
+op/wr/cl bytes: 355; bytes(tot): 146426; time (us): 15136
+op/wr/cl bytes: 266; bytes(tot): 146692; time (us): 15072
+op/wr/cl bytes: 412; bytes(tot): 147104; time (us): 15192
+op/wr/cl bytes: 401; bytes(tot): 147505; time (us): 15188
+op/wr/cl bytes: 422; bytes(tot): 147927; time (us): 15196
+op/wr/cl bytes: 390; bytes(tot): 148317; time (us): 15184
+op/wr/cl bytes: 485; bytes(tot): 148802; time (us): 15256
+op/wr/cl bytes: 256; bytes(tot): 149058; time (us): 15060
+op/wr/cl bytes: 341; bytes(tot): 149399; time (us): 15132
+t avg (us): 15165
+
+op/wr/cl bytes: 454; bytes(tot): 149853; time (us): 15236
+op/wr/cl bytes: 432; bytes(tot): 150285; time (us): 15220
+op/wr/cl bytes: 453; bytes(tot): 150738; time (us): 15244
+op/wr/cl bytes: 502; bytes(tot): 151240; time (us): 15268
+op/wr/cl bytes: 472; bytes(tot): 151712; time (us): 15248
+op/wr/cl bytes: 474; bytes(tot): 152186; time (us): 15244
+op/wr/cl bytes: 378; bytes(tot): 152564; time (us): 15168
+op/wr/cl bytes: 283; bytes(tot): 152847; time (us): 15088
+op/wr/cl bytes: 257; bytes(tot): 153104; time (us): 15076
+op/wr/cl bytes: 292; bytes(tot): 153396; time (us): 15080
+t avg (us): 15187
+
+op/wr/cl bytes: 473; bytes(tot): 153869; time (us): 15264
+op/wr/cl bytes: 317; bytes(tot): 154186; time (us): 15108
+op/wr/cl bytes: 309; bytes(tot): 154495; time (us): 15112
+op/wr/cl bytes: 406; bytes(tot): 154901; time (us): 15184
+op/wr/cl bytes: 314; bytes(tot): 155215; time (us): 15116
+op/wr/cl bytes: 290; bytes(tot): 155505; time (us): 15080
+op/wr/cl bytes: 425; bytes(tot): 155930; time (us): 15216
+op/wr/cl bytes: 321; bytes(tot): 156251; time (us): 15108
+op/wr/cl bytes: 502; bytes(tot): 156753; time (us): 15292
+op/wr/cl bytes: 402; bytes(tot): 157155; time (us): 15180
+t avg (us): 15166
+
+op/wr/cl bytes: 407; bytes(tot): 157562; time (us): 15212
+op/wr/cl bytes: 445; bytes(tot): 158007; time (us): 15240
+op/wr/cl bytes: 360; bytes(tot): 158367; time (us): 15092
+op/wr/cl bytes: 464; bytes(tot): 158831; time (us): 15236
+op/wr/cl bytes: 493; bytes(tot): 159324; time (us): 73028
+op/wr/cl bytes: 456; bytes(tot): 159780; time (us): 15224
+op/wr/cl bytes: 432; bytes(tot): 160212; time (us): 15232
+op/wr/cl bytes: 426; bytes(tot): 160638; time (us): 15204
+op/wr/cl bytes: 310; bytes(tot): 160948; time (us): 15120
+op/wr/cl bytes: 281; bytes(tot): 161229; time (us): 15088
+t avg (us): 20967
+
+op/wr/cl bytes: 419; bytes(tot): 161648; time (us): 15212
+op/wr/cl bytes: 345; bytes(tot): 161993; time (us): 15132
+op/wr/cl bytes: 499; bytes(tot): 162492; time (us): 15292
+op/wr/cl bytes: 485; bytes(tot): 162977; time (us): 15256
+op/wr/cl bytes: 356; bytes(tot): 163333; time (us): 15160
+op/wr/cl bytes: 330; bytes(tot): 163663; time (us): 15116
+op/wr/cl bytes: 329; bytes(tot): 163992; time (us): 15136
+op/wr/cl bytes: 467; bytes(tot): 164459; time (us): 15240
+op/wr/cl bytes: 385; bytes(tot): 164844; time (us): 15188
+op/wr/cl bytes: 370; bytes(tot): 165214; time (us): 15152
+t avg (us): 15188
+
+op/wr/cl bytes: 291; bytes(tot): 165505; time (us): 15092
+op/wr/cl bytes: 298; bytes(tot): 165803; time (us): 15088
+op/wr/cl bytes: 384; bytes(tot): 166187; time (us): 15176
+op/wr/cl bytes: 302; bytes(tot): 166489; time (us): 15092
+op/wr/cl bytes: 391; bytes(tot): 166880; time (us): 15184
+op/wr/cl bytes: 337; bytes(tot): 167217; time (us): 15128
+op/wr/cl bytes: 436; bytes(tot): 167653; time (us): 15216
+op/wr/cl bytes: 368; bytes(tot): 168021; time (us): 15140
+op/wr/cl bytes: 490; bytes(tot): 168511; time (us): 15264
+op/wr/cl bytes: 440; bytes(tot): 168951; time (us): 15208
+t avg (us): 15158
+
+op/wr/cl bytes: 394; bytes(tot): 169345; time (us): 15184
+op/wr/cl bytes: 284; bytes(tot): 169629; time (us): 15076
+op/wr/cl bytes: 455; bytes(tot): 170084; time (us): 15232
+op/wr/cl bytes: 434; bytes(tot): 170518; time (us): 15220
+op/wr/cl bytes: 431; bytes(tot): 170949; time (us): 15232
+op/wr/cl bytes: 415; bytes(tot): 171364; time (us): 15188
+op/wr/cl bytes: 284; bytes(tot): 171648; time (us): 15104
+op/wr/cl bytes: 369; bytes(tot): 172017; time (us): 15160
+op/wr/cl bytes: 257; bytes(tot): 172274; time (us): 15068
+op/wr/cl bytes: 483; bytes(tot): 172757; time (us): 15252
+t avg (us): 15171
+
+op/wr/cl bytes: 429; bytes(tot): 173186; time (us): 15216
+op/wr/cl bytes: 392; bytes(tot): 173578; time (us): 15184
+op/wr/cl bytes: 280; bytes(tot): 173858; time (us): 15084
+op/wr/cl bytes: 282; bytes(tot): 174140; time (us): 15064
+op/wr/cl bytes: 388; bytes(tot): 174528; time (us): 15172
+op/wr/cl bytes: 271; bytes(tot): 174799; time (us): 15068
+op/wr/cl bytes: 476; bytes(tot): 175275; time (us): 15256
+op/wr/cl bytes: 300; bytes(tot): 175575; time (us): 15096
+op/wr/cl bytes: 367; bytes(tot): 175942; time (us): 15168
+op/wr/cl bytes: 456; bytes(tot): 176398; time (us): 15244
+t avg (us): 15155
+
+op/wr/cl bytes: 449; bytes(tot): 176847; time (us): 15232
+op/wr/cl bytes: 303; bytes(tot): 177150; time (us): 15100
+op/wr/cl bytes: 388; bytes(tot): 177538; time (us): 15176
+op/wr/cl bytes: 355; bytes(tot): 177893; time (us): 15136
+op/wr/cl bytes: 426; bytes(tot): 178319; time (us): 15204
+op/wr/cl bytes: 305; bytes(tot): 178624; time (us): 15104
+op/wr/cl bytes: 313; bytes(tot): 178937; time (us): 15116
+op/wr/cl bytes: 318; bytes(tot): 179255; time (us): 15104
+op/wr/cl bytes: 479; bytes(tot): 179734; time (us): 15260
+op/wr/cl bytes: 466; bytes(tot): 180200; time (us): 15248
+t avg (us): 15168
+
+op/wr/cl bytes: 307; bytes(tot): 180507; time (us): 15124
+op/wr/cl bytes: 502; bytes(tot): 181009; time (us): 15272
+op/wr/cl bytes: 261; bytes(tot): 181270; time (us): 15072
+op/wr/cl bytes: 303; bytes(tot): 181573; time (us): 15100
+op/wr/cl bytes: 489; bytes(tot): 182062; time (us): 15272
+op/wr/cl bytes: 403; bytes(tot): 182465; time (us): 15184
+op/wr/cl bytes: 504; bytes(tot): 182969; time (us): 15272
+op/wr/cl bytes: 288; bytes(tot): 183257; time (us): 15072
+op/wr/cl bytes: 430; bytes(tot): 183687; time (us): 15224
+op/wr/cl bytes: 469; bytes(tot): 184156; time (us): 15244
+t avg (us): 15183
+
+op/wr/cl bytes: 482; bytes(tot): 184638; time (us): 15260
+op/wr/cl bytes: 317; bytes(tot): 184955; time (us): 15100
+op/wr/cl bytes: 394; bytes(tot): 185349; time (us): 15192
+op/wr/cl bytes: 446; bytes(tot): 185795; time (us): 15232
+op/wr/cl bytes: 265; bytes(tot): 186060; time (us): 15076
+op/wr/cl bytes: 444; bytes(tot): 186504; time (us): 15220
+op/wr/cl bytes: 326; bytes(tot): 186830; time (us): 15124
+op/wr/cl bytes: 339; bytes(tot): 187169; time (us): 15124
+op/wr/cl bytes: 287; bytes(tot): 187456; time (us): 15084
+op/wr/cl bytes: 272; bytes(tot): 187728; time (us): 15072
+t avg (us): 15148
+
+op/wr/cl bytes: 384; bytes(tot): 188112; time (us): 15180
+op/wr/cl bytes: 294; bytes(tot): 188406; time (us): 15080
+op/wr/cl bytes: 405; bytes(tot): 188811; time (us): 15196
+op/wr/cl bytes: 283; bytes(tot): 189094; time (us): 15076
+op/wr/cl bytes: 257; bytes(tot): 189351; time (us): 15080
+op/wr/cl bytes: 421; bytes(tot): 189772; time (us): 15196
+op/wr/cl bytes: 301; bytes(tot): 190073; time (us): 15092
+op/wr/cl bytes: 487; bytes(tot): 190560; time (us): 15264
+op/wr/cl bytes: 366; bytes(tot): 190926; time (us): 15168
+op/wr/cl bytes: 398; bytes(tot): 191324; time (us): 15176
+t avg (us): 15150
+
+op/wr/cl bytes: 435; bytes(tot): 191759; time (us): 15220
+op/wr/cl bytes: 437; bytes(tot): 192196; time (us): 15220
+op/wr/cl bytes: 380; bytes(tot): 192576; time (us): 15168
+op/wr/cl bytes: 401; bytes(tot): 192977; time (us): 15184
+op/wr/cl bytes: 433; bytes(tot): 193410; time (us): 15224
+op/wr/cl bytes: 282; bytes(tot): 193692; time (us): 15076
+op/wr/cl bytes: 447; bytes(tot): 194139; time (us): 15232
+op/wr/cl bytes: 291; bytes(tot): 194430; time (us): 15088
+op/wr/cl bytes: 414; bytes(tot): 194844; time (us): 15156
+op/wr/cl bytes: 324; bytes(tot): 195168; time (us): 15120
+t avg (us): 15168
+
+op/wr/cl bytes: 419; bytes(tot): 195587; time (us): 73096
+op/wr/cl bytes: 327; bytes(tot): 195914; time (us): 15116
+op/wr/cl bytes: 311; bytes(tot): 196225; time (us): 15116
+op/wr/cl bytes: 297; bytes(tot): 196522; time (us): 15108
+op/wr/cl bytes: 276; bytes(tot): 196798; time (us): 15088
+op/wr/cl bytes: 468; bytes(tot): 197266; time (us): 15248
+op/wr/cl bytes: 314; bytes(tot): 197580; time (us): 15124
+op/wr/cl bytes: 494; bytes(tot): 198074; time (us): 15264
+op/wr/cl bytes: 272; bytes(tot): 198346; time (us): 15088
+op/wr/cl bytes: 407; bytes(tot): 198753; time (us): 15188
+t avg (us): 20943
+
+op/wr/cl bytes: 432; bytes(tot): 199185; time (us): 15220
+op/wr/cl bytes: 331; bytes(tot): 199516; time (us): 15132
+op/wr/cl bytes: 318; bytes(tot): 199834; time (us): 15120
+op/wr/cl bytes: 474; bytes(tot): 200308; time (us): 15256
+op/wr/cl bytes: 425; bytes(tot): 200733; time (us): 15232
+op/wr/cl bytes: 269; bytes(tot): 201002; time (us): 15072
+op/wr/cl bytes: 413; bytes(tot): 201415; time (us): 15196
+op/wr/cl bytes: 283; bytes(tot): 201698; time (us): 15080
+op/wr/cl bytes: 378; bytes(tot): 202076; time (us): 15172
+op/wr/cl bytes: 256; bytes(tot): 202332; time (us): 15052
+t avg (us): 15153
+
+op/wr/cl bytes: 334; bytes(tot): 202666; time (us): 15132
+op/wr/cl bytes: 300; bytes(tot): 202966; time (us): 15088
+op/wr/cl bytes: 273; bytes(tot): 203239; time (us): 15080
+op/wr/cl bytes: 494; bytes(tot): 203733; time (us): 15252
+op/wr/cl bytes: 432; bytes(tot): 204165; time (us): 15208
+op/wr/cl bytes: 359; bytes(tot): 204524; time (us): 15148
+op/wr/cl bytes: 440; bytes(tot): 204964; time (us): 15240
+op/wr/cl bytes: 340; bytes(tot): 205304; time (us): 15128
+op/wr/cl bytes: 484; bytes(tot): 205788; time (us): 15264
+op/wr/cl bytes: 436; bytes(tot): 206224; time (us): 15224
+t avg (us): 15176
+
+op/wr/cl bytes: 429; bytes(tot): 206653; time (us): 15216
+op/wr/cl bytes: 279; bytes(tot): 206932; time (us): 15076
+op/wr/cl bytes: 273; bytes(tot): 207205; time (us): 15096
+op/wr/cl bytes: 324; bytes(tot): 207529; time (us): 15116
+op/wr/cl bytes: 266; bytes(tot): 207795; time (us): 15068
+op/wr/cl bytes: 469; bytes(tot): 208264; time (us): 15240
+op/wr/cl bytes: 445; bytes(tot): 208709; time (us): 15232
+op/wr/cl bytes: 344; bytes(tot): 209053; time (us): 15136
+op/wr/cl bytes: 329; bytes(tot): 209382; time (us): 15128
+op/wr/cl bytes: 508; bytes(tot): 209890; time (us): 15276
+t avg (us): 15158
+
+op/wr/cl bytes: 335; bytes(tot): 210225; time (us): 15128
+op/wr/cl bytes: 438; bytes(tot): 210663; time (us): 15220
+op/wr/cl bytes: 414; bytes(tot): 211077; time (us): 15216
+op/wr/cl bytes: 366; bytes(tot): 211443; time (us): 15164
+op/wr/cl bytes: 317; bytes(tot): 211760; time (us): 15116
+op/wr/cl bytes: 259; bytes(tot): 212019; time (us): 15064
+op/wr/cl bytes: 392; bytes(tot): 212411; time (us): 15176
+op/wr/cl bytes: 286; bytes(tot): 212697; time (us): 15080
+op/wr/cl bytes: 458; bytes(tot): 213155; time (us): 15244
+op/wr/cl bytes: 463; bytes(tot): 213618; time (us): 15236
+t avg (us): 15164
+
+op/wr/cl bytes: 389; bytes(tot): 214007; time (us): 15180
+op/wr/cl bytes: 385; bytes(tot): 214392; time (us): 15176
+op/wr/cl bytes: 380; bytes(tot): 214772; time (us): 15192
+op/wr/cl bytes: 297; bytes(tot): 215069; time (us): 15092
+op/wr/cl bytes: 448; bytes(tot): 215517; time (us): 15228
+op/wr/cl bytes: 419; bytes(tot): 215936; time (us): 15196
+op/wr/cl bytes: 453; bytes(tot): 216389; time (us): 15232
+op/wr/cl bytes: 490; bytes(tot): 216879; time (us): 15260
+op/wr/cl bytes: 286; bytes(tot): 217165; time (us): 15096
+op/wr/cl bytes: 455; bytes(tot): 217620; time (us): 15228
+t avg (us): 15188
+
+op/wr/cl bytes: 441; bytes(tot): 218061; time (us): 15228
+op/wr/cl bytes: 357; bytes(tot): 218418; time (us): 15140
+op/wr/cl bytes: 475; bytes(tot): 218893; time (us): 15268
+op/wr/cl bytes: 266; bytes(tot): 219159; time (us): 15064
+op/wr/cl bytes: 381; bytes(tot): 219540; time (us): 15172
+op/wr/cl bytes: 451; bytes(tot): 219991; time (us): 15232
+op/wr/cl bytes: 494; bytes(tot): 220485; time (us): 15276
+op/wr/cl bytes: 403; bytes(tot): 220888; time (us): 15176
+op/wr/cl bytes: 474; bytes(tot): 221362; time (us): 15252
+op/wr/cl bytes: 407; bytes(tot): 221769; time (us): 15184
+t avg (us): 15199
+
+op/wr/cl bytes: 265; bytes(tot): 222034; time (us): 15072
+op/wr/cl bytes: 326; bytes(tot): 222360; time (us): 15104
+op/wr/cl bytes: 260; bytes(tot): 222620; time (us): 15080
+op/wr/cl bytes: 382; bytes(tot): 223002; time (us): 15176
+op/wr/cl bytes: 414; bytes(tot): 223416; time (us): 15220
+op/wr/cl bytes: 439; bytes(tot): 223855; time (us): 15228
+op/wr/cl bytes: 259; bytes(tot): 224114; time (us): 15072
+op/wr/cl bytes: 439; bytes(tot): 224553; time (us): 15220
+op/wr/cl bytes: 401; bytes(tot): 224954; time (us): 15184
+op/wr/cl bytes: 293; bytes(tot): 225247; time (us): 15108
+t avg (us): 15146
+
+op/wr/cl bytes: 256; bytes(tot): 225503; time (us): 15052
+op/wr/cl bytes: 278; bytes(tot): 225781; time (us): 15072
+op/wr/cl bytes: 280; bytes(tot): 226061; time (us): 15084
+op/wr/cl bytes: 407; bytes(tot): 226468; time (us): 15196
+op/wr/cl bytes: 280; bytes(tot): 226748; time (us): 15080
+op/wr/cl bytes: 263; bytes(tot): 227011; time (us): 15084
+op/wr/cl bytes: 271; bytes(tot): 227282; time (us): 15076
+op/wr/cl bytes: 309; bytes(tot): 227591; time (us): 15100
+op/wr/cl bytes: 463; bytes(tot): 228054; time (us): 15244
+op/wr/cl bytes: 354; bytes(tot): 228408; time (us): 15136
+t avg (us): 15112
+
+op/wr/cl bytes: 398; bytes(tot): 228806; time (us): 15192
+op/wr/cl bytes: 472; bytes(tot): 229278; time (us): 15248
+op/wr/cl bytes: 277; bytes(tot): 229555; time (us): 15084
+op/wr/cl bytes: 345; bytes(tot): 229900; time (us): 15120
+op/wr/cl bytes: 360; bytes(tot): 230260; time (us): 15092
+op/wr/cl bytes: 460; bytes(tot): 230720; time (us): 15232
+op/wr/cl bytes: 370; bytes(tot): 231090; time (us): 73380
+op/wr/cl bytes: 417; bytes(tot): 231507; time (us): 15196
+op/wr/cl bytes: 284; bytes(tot): 231791; time (us): 15100
+op/wr/cl bytes: 462; bytes(tot): 232253; time (us): 15232
+t avg (us): 20987
+
+op/wr/cl bytes: 299; bytes(tot): 232552; time (us): 15120
+op/wr/cl bytes: 370; bytes(tot): 232922; time (us): 15156
+op/wr/cl bytes: 473; bytes(tot): 233395; time (us): 15256
+op/wr/cl bytes: 461; bytes(tot): 233856; time (us): 15228
+op/wr/cl bytes: 364; bytes(tot): 234220; time (us): 15164
+op/wr/cl bytes: 418; bytes(tot): 234638; time (us): 15184
+op/wr/cl bytes: 299; bytes(tot): 234937; time (us): 15112
+op/wr/cl bytes: 417; bytes(tot): 235354; time (us): 15196
+op/wr/cl bytes: 257; bytes(tot): 235611; time (us): 15064
+op/wr/cl bytes: 296; bytes(tot): 235907; time (us): 15088
+t avg (us): 15156
+
+op/wr/cl bytes: 314; bytes(tot): 236221; time (us): 15124
+op/wr/cl bytes: 430; bytes(tot): 236651; time (us): 15208
+op/wr/cl bytes: 259; bytes(tot): 236910; time (us): 15064
+op/wr/cl bytes: 314; bytes(tot): 237224; time (us): 15100
+op/wr/cl bytes: 420; bytes(tot): 237644; time (us): 15216
+op/wr/cl bytes: 440; bytes(tot): 238084; time (us): 15216
+op/wr/cl bytes: 400; bytes(tot): 238484; time (us): 15200
+op/wr/cl bytes: 456; bytes(tot): 238940; time (us): 15232
+op/wr/cl bytes: 441; bytes(tot): 239381; time (us): 15236
+op/wr/cl bytes: 341; bytes(tot): 239722; time (us): 15156
+t avg (us): 15175
+
+op/wr/cl bytes: 259; bytes(tot): 239981; time (us): 15072
+op/wr/cl bytes: 456; bytes(tot): 240437; time (us): 15228
+op/wr/cl bytes: 364; bytes(tot): 240801; time (us): 15160
+op/wr/cl bytes: 370; bytes(tot): 241171; time (us): 15160
+op/wr/cl bytes: 369; bytes(tot): 241540; time (us): 15164
+op/wr/cl bytes: 418; bytes(tot): 241958; time (us): 15188
+op/wr/cl bytes: 490; bytes(tot): 242448; time (us): 15276
+op/wr/cl bytes: 431; bytes(tot): 242879; time (us): 15208
+op/wr/cl bytes: 467; bytes(tot): 243346; time (us): 15248
+op/wr/cl bytes: 367; bytes(tot): 243713; time (us): 15144
+t avg (us): 15184
+
+op/wr/cl bytes: 360; bytes(tot): 244073; time (us): 15176
+op/wr/cl bytes: 486; bytes(tot): 244559; time (us): 15256
+op/wr/cl bytes: 306; bytes(tot): 244865; time (us): 15100
+op/wr/cl bytes: 294; bytes(tot): 245159; time (us): 15080
+op/wr/cl bytes: 398; bytes(tot): 245557; time (us): 15188
+op/wr/cl bytes: 370; bytes(tot): 245927; time (us): 15168
+op/wr/cl bytes: 489; bytes(tot): 246416; time (us): 15268
+op/wr/cl bytes: 431; bytes(tot): 246847; time (us): 15208
+op/wr/cl bytes: 432; bytes(tot): 247279; time (us): 15220
+op/wr/cl bytes: 399; bytes(tot): 247678; time (us): 15176
+t avg (us): 15184
+
+op/wr/cl bytes: 426; bytes(tot): 248104; time (us): 15216
+op/wr/cl bytes: 340; bytes(tot): 248444; time (us): 15128
+op/wr/cl bytes: 364; bytes(tot): 248808; time (us): 15160
+op/wr/cl bytes: 309; bytes(tot): 249117; time (us): 15100
+op/wr/cl bytes: 454; bytes(tot): 249571; time (us): 15228
+op/wr/cl bytes: 431; bytes(tot): 250002; time (us): 15212
+op/wr/cl bytes: 413; bytes(tot): 250415; time (us): 15212
+op/wr/cl bytes: 455; bytes(tot): 250870; time (us): 15228
+op/wr/cl bytes: 439; bytes(tot): 251309; time (us): 15232
+op/wr/cl bytes: 510; bytes(tot): 251819; time (us): 15268
+t avg (us): 15198
+
+op/wr/cl bytes: 340; bytes(tot): 252159; time (us): 15304
+op/wr/cl bytes: 446; bytes(tot): 252605; time (us): 15224
+op/wr/cl bytes: 375; bytes(tot): 252980; time (us): 15168
+op/wr/cl bytes: 470; bytes(tot): 253450; time (us): 15252
+op/wr/cl bytes: 326; bytes(tot): 253776; time (us): 15144
+op/wr/cl bytes: 263; bytes(tot): 254039; time (us): 15072
+op/wr/cl bytes: 270; bytes(tot): 254309; time (us): 15076
+op/wr/cl bytes: 512; bytes(tot): 254821; time (us): 12724
+op/wr/cl bytes: 362; bytes(tot): 255183; time (us): 15140
+op/wr/cl bytes: 317; bytes(tot): 255500; time (us): 15116
+t avg (us): 14922
+
+op/wr/cl bytes: 464; bytes(tot): 255964; time (us): 15244
+op/wr/cl bytes: 300; bytes(tot): 256264; time (us): 15084
+op/wr/cl bytes: 310; bytes(tot): 256574; time (us): 15116
+op/wr/cl bytes: 477; bytes(tot): 257051; time (us): 15248
+op/wr/cl bytes: 352; bytes(tot): 257403; time (us): 15148
+op/wr/cl bytes: 403; bytes(tot): 257806; time (us): 15180
+op/wr/cl bytes: 308; bytes(tot): 258114; time (us): 15112
+op/wr/cl bytes: 445; bytes(tot): 258559; time (us): 15220
+op/wr/cl bytes: 497; bytes(tot): 259056; time (us): 15292
+op/wr/cl bytes: 381; bytes(tot): 259437; time (us): 15160
+t avg (us): 15180
+
+op/wr/cl bytes: 420; bytes(tot): 259857; time (us): 15208
+op/wr/cl bytes: 352; bytes(tot): 260209; time (us): 15140
+op/wr/cl bytes: 349; bytes(tot): 260558; time (us): 15148
+op/wr/cl bytes: 464; bytes(tot): 261022; time (us): 15236
+op/wr/cl bytes: 417; bytes(tot): 261439; time (us): 15196
+op/wr/cl bytes: 498; bytes(tot): 261937; time (us): 15264
+op/wr/cl bytes: 314; bytes(tot): 262251; time (us): 15104
+op/wr/cl bytes: 404; bytes(tot): 262655; time (us): 15184
+op/wr/cl bytes: 490; bytes(tot): 263145; time (us): 15276
+op/wr/cl bytes: 266; bytes(tot): 263411; time (us): 15060
+t avg (us): 15181
+
+op/wr/cl bytes: 500; bytes(tot): 263911; time (us): 15276
+op/wr/cl bytes: 356; bytes(tot): 264267; time (us): 15144
+op/wr/cl bytes: 504; bytes(tot): 264771; time (us): 15276
+op/wr/cl bytes: 473; bytes(tot): 265244; time (us): 15244
+op/wr/cl bytes: 360; bytes(tot): 265604; time (us): 15172
+op/wr/cl bytes: 310; bytes(tot): 265914; time (us): 15116
+op/wr/cl bytes: 335; bytes(tot): 266249; time (us): 15132
+op/wr/cl bytes: 306; bytes(tot): 266555; time (us): 15096
+op/wr/cl bytes: 296; bytes(tot): 266851; time (us): 15108
+op/wr/cl bytes: 400; bytes(tot): 267251; time (us): 15176
+t avg (us): 15174
+
+op/wr/cl bytes: 280; bytes(tot): 267531; time (us): 15016
+op/wr/cl bytes: 383; bytes(tot): 267914; time (us): 15160
+op/wr/cl bytes: 319; bytes(tot): 268233; time (us): 73116
+op/wr/cl bytes: 434; bytes(tot): 268667; time (us): 15208
+op/wr/cl bytes: 342; bytes(tot): 269009; time (us): 15140
+op/wr/cl bytes: 484; bytes(tot): 269493; time (us): 15248
+op/wr/cl bytes: 364; bytes(tot): 269857; time (us): 15152
+op/wr/cl bytes: 335; bytes(tot): 270192; time (us): 15128
+op/wr/cl bytes: 327; bytes(tot): 270519; time (us): 15140
+op/wr/cl bytes: 280; bytes(tot): 270799; time (us): 15072
+t avg (us): 20938
+
+op/wr/cl bytes: 400; bytes(tot): 271199; time (us): 15188
+op/wr/cl bytes: 343; bytes(tot): 271542; time (us): 15132
+op/wr/cl bytes: 410; bytes(tot): 271952; time (us): 15200
+op/wr/cl bytes: 283; bytes(tot): 272235; time (us): 15100
+op/wr/cl bytes: 349; bytes(tot): 272584; time (us): 15132
+op/wr/cl bytes: 494; bytes(tot): 273078; time (us): 15260
+op/wr/cl bytes: 375; bytes(tot): 273453; time (us): 15176
+op/wr/cl bytes: 449; bytes(tot): 273902; time (us): 15228
+op/wr/cl bytes: 421; bytes(tot): 274323; time (us): 15212
+op/wr/cl bytes: 259; bytes(tot): 274582; time (us): 15056
+t avg (us): 15168
+
+op/wr/cl bytes: 300; bytes(tot): 274882; time (us): 15128
+op/wr/cl bytes: 267; bytes(tot): 275149; time (us): 15068
+op/wr/cl bytes: 284; bytes(tot): 275433; time (us): 15088
+op/wr/cl bytes: 485; bytes(tot): 275918; time (us): 15252
+op/wr/cl bytes: 333; bytes(tot): 276251; time (us): 15136
+op/wr/cl bytes: 466; bytes(tot): 276717; time (us): 15244
+op/wr/cl bytes: 291; bytes(tot): 277008; time (us): 15108
+op/wr/cl bytes: 440; bytes(tot): 277448; time (us): 15224
+op/wr/cl bytes: 499; bytes(tot): 277947; time (us): 15296
+op/wr/cl bytes: 418; bytes(tot): 278365; time (us): 15200
+t avg (us): 15174
+
+op/wr/cl bytes: 391; bytes(tot): 278756; time (us): 15184
+op/wr/cl bytes: 268; bytes(tot): 279024; time (us): 15060
+op/wr/cl bytes: 335; bytes(tot): 279359; time (us): 15132
+op/wr/cl bytes: 424; bytes(tot): 279783; time (us): 15200
+op/wr/cl bytes: 342; bytes(tot): 280125; time (us): 15140
+op/wr/cl bytes: 418; bytes(tot): 280543; time (us): 15196
+op/wr/cl bytes: 292; bytes(tot): 280835; time (us): 15100
+op/wr/cl bytes: 376; bytes(tot): 281211; time (us): 15152
+op/wr/cl bytes: 339; bytes(tot): 281550; time (us): 15152
+op/wr/cl bytes: 503; bytes(tot): 282053; time (us): 15276
+t avg (us): 15159
+
+op/wr/cl bytes: 273; bytes(tot): 282326; time (us): 15076
+op/wr/cl bytes: 474; bytes(tot): 282800; time (us): 15244
+op/wr/cl bytes: 413; bytes(tot): 283213; time (us): 15200
+op/wr/cl bytes: 280; bytes(tot): 283493; time (us): 15080
+op/wr/cl bytes: 481; bytes(tot): 283974; time (us): 15264
+op/wr/cl bytes: 396; bytes(tot): 284370; time (us): 15176
+op/wr/cl bytes: 280; bytes(tot): 284650; time (us): 15088
+op/wr/cl bytes: 313; bytes(tot): 284963; time (us): 15120
+op/wr/cl bytes: 265; bytes(tot): 285228; time (us): 15080
+op/wr/cl bytes: 331; bytes(tot): 285559; time (us): 15120
+t avg (us): 15144
+
+op/wr/cl bytes: 274; bytes(tot): 285833; time (us): 15080
+op/wr/cl bytes: 333; bytes(tot): 286166; time (us): 15120
+op/wr/cl bytes: 298; bytes(tot): 286464; time (us): 15112
+op/wr/cl bytes: 300; bytes(tot): 286764; time (us): 15096
+op/wr/cl bytes: 267; bytes(tot): 287031; time (us): 15064
+op/wr/cl bytes: 509; bytes(tot): 287540; time (us): 15284
+op/wr/cl bytes: 270; bytes(tot): 287810; time (us): 15084
+op/wr/cl bytes: 289; bytes(tot): 288099; time (us): 15084
+op/wr/cl bytes: 286; bytes(tot): 288385; time (us): 15096
+op/wr/cl bytes: 262; bytes(tot): 288647; time (us): 15044
+t avg (us): 15106
+
+op/wr/cl bytes: 346; bytes(tot): 288993; time (us): 15172
+op/wr/cl bytes: 511; bytes(tot): 289504; time (us): 15292
+op/wr/cl bytes: 443; bytes(tot): 289947; time (us): 15240
+op/wr/cl bytes: 454; bytes(tot): 290401; time (us): 15228
+op/wr/cl bytes: 474; bytes(tot): 290875; time (us): 15256
+op/wr/cl bytes: 500; bytes(tot): 291375; time (us): 15264
+op/wr/cl bytes: 412; bytes(tot): 291787; time (us): 15216
+op/wr/cl bytes: 417; bytes(tot): 292204; time (us): 15192
+op/wr/cl bytes: 300; bytes(tot): 292504; time (us): 15100
+op/wr/cl bytes: 264; bytes(tot): 292768; time (us): 15064
+t avg (us): 15202
+
+op/wr/cl bytes: 382; bytes(tot): 293150; time (us): 15168
+op/wr/cl bytes: 468; bytes(tot): 293618; time (us): 15244
+op/wr/cl bytes: 354; bytes(tot): 293972; time (us): 15160
+op/wr/cl bytes: 452; bytes(tot): 294424; time (us): 15240
+op/wr/cl bytes: 490; bytes(tot): 294914; time (us): 15272
+op/wr/cl bytes: 285; bytes(tot): 295199; time (us): 15080
+op/wr/cl bytes: 479; bytes(tot): 295678; time (us): 15276
+op/wr/cl bytes: 327; bytes(tot): 296005; time (us): 15116
+op/wr/cl bytes: 323; bytes(tot): 296328; time (us): 15132
+op/wr/cl bytes: 411; bytes(tot): 296739; time (us): 15192
+t avg (us): 15188
+
+op/wr/cl bytes: 471; bytes(tot): 297210; time (us): 15252
+op/wr/cl bytes: 419; bytes(tot): 297629; time (us): 15196
+op/wr/cl bytes: 490; bytes(tot): 298119; time (us): 15272
+op/wr/cl bytes: 451; bytes(tot): 298570; time (us): 15224
+op/wr/cl bytes: 326; bytes(tot): 298896; time (us): 15124
+op/wr/cl bytes: 407; bytes(tot): 299303; time (us): 15188
+op/wr/cl bytes: 352; bytes(tot): 299655; time (us): 15160
+op/wr/cl bytes: 512; bytes(tot): 300167; time (us): 12724
+op/wr/cl bytes: 377; bytes(tot): 300544; time (us): 15176
+op/wr/cl bytes: 385; bytes(tot): 300929; time (us): 15172
+t avg (us): 14948
+
+op/wr/cl bytes: 383; bytes(tot): 301312; time (us): 15196
+op/wr/cl bytes: 381; bytes(tot): 301693; time (us): 15168
+op/wr/cl bytes: 404; bytes(tot): 302097; time (us): 15200
+op/wr/cl bytes: 479; bytes(tot): 302576; time (us): 15248
+op/wr/cl bytes: 476; bytes(tot): 303052; time (us): 15260
+op/wr/cl bytes: 482; bytes(tot): 303534; time (us): 15252
+op/wr/cl bytes: 298; bytes(tot): 303832; time (us): 15048
+op/wr/cl bytes: 474; bytes(tot): 304306; time (us): 15244
+op/wr/cl bytes: 283; bytes(tot): 304589; time (us): 72828
+op/wr/cl bytes: 496; bytes(tot): 305085; time (us): 15260
+t avg (us): 20970
+
+op/wr/cl bytes: 456; bytes(tot): 305541; time (us): 15244
+op/wr/cl bytes: 421; bytes(tot): 305962; time (us): 15212
+op/wr/cl bytes: 400; bytes(tot): 306362; time (us): 15204
+op/wr/cl bytes: 468; bytes(tot): 306830; time (us): 15240
+op/wr/cl bytes: 308; bytes(tot): 307138; time (us): 15104
+op/wr/cl bytes: 402; bytes(tot): 307540; time (us): 15184
+op/wr/cl bytes: 419; bytes(tot): 307959; time (us): 15216
+op/wr/cl bytes: 363; bytes(tot): 308322; time (us): 15156
+op/wr/cl bytes: 388; bytes(tot): 308710; time (us): 15172
+op/wr/cl bytes: 404; bytes(tot): 309114; time (us): 15172
+t avg (us): 15190
+
+op/wr/cl bytes: 377; bytes(tot): 309491; time (us): 15168
+op/wr/cl bytes: 322; bytes(tot): 309813; time (us): 15100
+op/wr/cl bytes: 424; bytes(tot): 310237; time (us): 15204
+op/wr/cl bytes: 300; bytes(tot): 310537; time (us): 15108
+op/wr/cl bytes: 452; bytes(tot): 310989; time (us): 15232
+op/wr/cl bytes: 473; bytes(tot): 311462; time (us): 15244
+op/wr/cl bytes: 467; bytes(tot): 311929; time (us): 15248
+op/wr/cl bytes: 395; bytes(tot): 312324; time (us): 15180
+op/wr/cl bytes: 429; bytes(tot): 312753; time (us): 15232
+op/wr/cl bytes: 361; bytes(tot): 313114; time (us): 15144
+t avg (us): 15186
+
+op/wr/cl bytes: 270; bytes(tot): 313384; time (us): 15076
+op/wr/cl bytes: 455; bytes(tot): 313839; time (us): 15244
+op/wr/cl bytes: 442; bytes(tot): 314281; time (us): 15228
+op/wr/cl bytes: 403; bytes(tot): 314684; time (us): 15184
+op/wr/cl bytes: 328; bytes(tot): 315012; time (us): 15140
+op/wr/cl bytes: 472; bytes(tot): 315484; time (us): 15244
+op/wr/cl bytes: 476; bytes(tot): 315960; time (us): 15252
+op/wr/cl bytes: 376; bytes(tot): 316336; time (us): 15156
+op/wr/cl bytes: 304; bytes(tot): 316640; time (us): 15116
+op/wr/cl bytes: 499; bytes(tot): 317139; time (us): 15272
+t avg (us): 15191
+
+op/wr/cl bytes: 263; bytes(tot): 317402; time (us): 15064
+op/wr/cl bytes: 511; bytes(tot): 317913; time (us): 15272
+op/wr/cl bytes: 349; bytes(tot): 318262; time (us): 15140
+op/wr/cl bytes: 302; bytes(tot): 318564; time (us): 15108
+op/wr/cl bytes: 274; bytes(tot): 318838; time (us): 15096
+op/wr/cl bytes: 350; bytes(tot): 319188; time (us): 15132
+op/wr/cl bytes: 311; bytes(tot): 319499; time (us): 15112
+op/wr/cl bytes: 391; bytes(tot): 319890; time (us): 15176
+op/wr/cl bytes: 493; bytes(tot): 320383; time (us): 15272
+op/wr/cl bytes: 403; bytes(tot): 320786; time (us): 15180
+t avg (us): 15155
+
+op/wr/cl bytes: 468; bytes(tot): 321254; time (us): 15272
+op/wr/cl bytes: 287; bytes(tot): 321541; time (us): 15076
+op/wr/cl bytes: 337; bytes(tot): 321878; time (us): 15136
+op/wr/cl bytes: 470; bytes(tot): 322348; time (us): 15248
+op/wr/cl bytes: 269; bytes(tot): 322617; time (us): 15088
+op/wr/cl bytes: 469; bytes(tot): 323086; time (us): 15240
+op/wr/cl bytes: 338; bytes(tot): 323424; time (us): 15136
+op/wr/cl bytes: 340; bytes(tot): 323764; time (us): 15128
+op/wr/cl bytes: 448; bytes(tot): 324212; time (us): 15228
+op/wr/cl bytes: 323; bytes(tot): 324535; time (us): 15116
+t avg (us): 15166
+
+op/wr/cl bytes: 478; bytes(tot): 325013; time (us): 15260
+op/wr/cl bytes: 467; bytes(tot): 325480; time (us): 15240
+op/wr/cl bytes: 408; bytes(tot): 325888; time (us): 15200
+op/wr/cl bytes: 364; bytes(tot): 326252; time (us): 15152
+op/wr/cl bytes: 342; bytes(tot): 326594; time (us): 15136
+op/wr/cl bytes: 296; bytes(tot): 326890; time (us): 15084
+op/wr/cl bytes: 456; bytes(tot): 327346; time (us): 15244
+op/wr/cl bytes: 431; bytes(tot): 327777; time (us): 15208
+op/wr/cl bytes: 327; bytes(tot): 328104; time (us): 15136
+op/wr/cl bytes: 363; bytes(tot): 328467; time (us): 15148
+t avg (us): 15180
+
+op/wr/cl bytes: 334; bytes(tot): 328801; time (us): 15136
+op/wr/cl bytes: 430; bytes(tot): 329231; time (us): 15208
+op/wr/cl bytes: 400; bytes(tot): 329631; time (us): 15204
+op/wr/cl bytes: 504; bytes(tot): 330135; time (us): 15272
+op/wr/cl bytes: 438; bytes(tot): 330573; time (us): 15224
+op/wr/cl bytes: 341; bytes(tot): 330914; time (us): 15128
+op/wr/cl bytes: 477; bytes(tot): 331391; time (us): 15260
+op/wr/cl bytes: 387; bytes(tot): 331778; time (us): 15176
+op/wr/cl bytes: 343; bytes(tot): 332121; time (us): 15132
+op/wr/cl bytes: 339; bytes(tot): 332460; time (us): 15120
+t avg (us): 15186
+
+op/wr/cl bytes: 496; bytes(tot): 332956; time (us): 15280
+op/wr/cl bytes: 386; bytes(tot): 333342; time (us): 15176
+op/wr/cl bytes: 403; bytes(tot): 333745; time (us): 15192
+op/wr/cl bytes: 404; bytes(tot): 334149; time (us): 15176
+op/wr/cl bytes: 425; bytes(tot): 334574; time (us): 15204
+op/wr/cl bytes: 426; bytes(tot): 335000; time (us): 15208
+op/wr/cl bytes: 460; bytes(tot): 335460; time (us): 15260
+op/wr/cl bytes: 477; bytes(tot): 335937; time (us): 15256
+op/wr/cl bytes: 349; bytes(tot): 336286; time (us): 15152
+op/wr/cl bytes: 401; bytes(tot): 336687; time (us): 15192
+t avg (us): 15209
+
+op/wr/cl bytes: 407; bytes(tot): 337094; time (us): 15208
+op/wr/cl bytes: 495; bytes(tot): 337589; time (us): 15264
+op/wr/cl bytes: 379; bytes(tot): 337968; time (us): 15164
+op/wr/cl bytes: 477; bytes(tot): 338445; time (us): 15248
+op/wr/cl bytes: 404; bytes(tot): 338849; time (us): 15196
+op/wr/cl bytes: 295; bytes(tot): 339144; time (us): 15100
+op/wr/cl bytes: 391; bytes(tot): 339535; time (us): 15200
+op/wr/cl bytes: 360; bytes(tot): 339895; time (us): 15144
+op/wr/cl bytes: 370; bytes(tot): 340265; time (us): 15168
+op/wr/cl bytes: 388; bytes(tot): 340653; time (us): 15168
+t avg (us): 15186
+
+op/wr/cl bytes: 432; bytes(tot): 341085; time (us): 15216
+op/wr/cl bytes: 460; bytes(tot): 341545; time (us): 15236
+op/wr/cl bytes: 308; bytes(tot): 341853; time (us): 15048
+op/wr/cl bytes: 372; bytes(tot): 342225; time (us): 15160
+op/wr/cl bytes: 314; bytes(tot): 342539; time (us): 73100
+op/wr/cl bytes: 491; bytes(tot): 343030; time (us): 15264
+op/wr/cl bytes: 489; bytes(tot): 343519; time (us): 15276
+op/wr/cl bytes: 400; bytes(tot): 343919; time (us): 15196
+op/wr/cl bytes: 456; bytes(tot): 344375; time (us): 15252
+op/wr/cl bytes: 440; bytes(tot): 344815; time (us): 15216
+t avg (us): 20996
+
+op/wr/cl bytes: 313; bytes(tot): 345128; time (us): 15112
+op/wr/cl bytes: 348; bytes(tot): 345476; time (us): 15136
+op/wr/cl bytes: 370; bytes(tot): 345846; time (us): 15176
+op/wr/cl bytes: 365; bytes(tot): 346211; time (us): 15144
+op/wr/cl bytes: 384; bytes(tot): 346595; time (us): 15172
+op/wr/cl bytes: 470; bytes(tot): 347065; time (us): 15256
+op/wr/cl bytes: 317; bytes(tot): 347382; time (us): 15124
+op/wr/cl bytes: 422; bytes(tot): 347804; time (us): 15220
+op/wr/cl bytes: 429; bytes(tot): 348233; time (us): 15212
+op/wr/cl bytes: 352; bytes(tot): 348585; time (us): 15136
+t avg (us): 15168
+
+op/wr/cl bytes: 460; bytes(tot): 349045; time (us): 15236
+op/wr/cl bytes: 422; bytes(tot): 349467; time (us): 15200
+op/wr/cl bytes: 511; bytes(tot): 349978; time (us): 15288
+op/wr/cl bytes: 306; bytes(tot): 350284; time (us): 15092
+op/wr/cl bytes: 316; bytes(tot): 350600; time (us): 15128
+op/wr/cl bytes: 404; bytes(tot): 351004; time (us): 15180
+op/wr/cl bytes: 481; bytes(tot): 351485; time (us): 15276
+op/wr/cl bytes: 465; bytes(tot): 351950; time (us): 15236
+op/wr/cl bytes: 438; bytes(tot): 352388; time (us): 15236
+op/wr/cl bytes: 333; bytes(tot): 352721; time (us): 15120
+t avg (us): 15199
+
+op/wr/cl bytes: 336; bytes(tot): 353057; time (us): 15140
+op/wr/cl bytes: 344; bytes(tot): 353401; time (us): 15144
+op/wr/cl bytes: 488; bytes(tot): 353889; time (us): 15268
+op/wr/cl bytes: 487; bytes(tot): 354376; time (us): 15268
+op/wr/cl bytes: 327; bytes(tot): 354703; time (us): 15124
+op/wr/cl bytes: 357; bytes(tot): 355060; time (us): 15140
+op/wr/cl bytes: 349; bytes(tot): 355409; time (us): 15164
+op/wr/cl bytes: 458; bytes(tot): 355867; time (us): 15228
+op/wr/cl bytes: 426; bytes(tot): 356293; time (us): 15232
+op/wr/cl bytes: 336; bytes(tot): 356629; time (us): 15144
+t avg (us): 15185
+
+op/wr/cl bytes: 433; bytes(tot): 357062; time (us): 15232
+op/wr/cl bytes: 471; bytes(tot): 357533; time (us): 15260
+op/wr/cl bytes: 465; bytes(tot): 357998; time (us): 15248
+op/wr/cl bytes: 455; bytes(tot): 358453; time (us): 15224
+op/wr/cl bytes: 383; bytes(tot): 358836; time (us): 15172
+op/wr/cl bytes: 497; bytes(tot): 359333; time (us): 15252
+op/wr/cl bytes: 444; bytes(tot): 359777; time (us): 15232
+op/wr/cl bytes: 338; bytes(tot): 360115; time (us): 15128
+op/wr/cl bytes: 321; bytes(tot): 360436; time (us): 15124
+op/wr/cl bytes: 496; bytes(tot): 360932; time (us): 15276
+t avg (us): 15214
+
+op/wr/cl bytes: 299; bytes(tot): 361231; time (us): 15116
+op/wr/cl bytes: 432; bytes(tot): 361663; time (us): 15212
+op/wr/cl bytes: 478; bytes(tot): 362141; time (us): 15260
+op/wr/cl bytes: 461; bytes(tot): 362602; time (us): 15248
+op/wr/cl bytes: 430; bytes(tot): 363032; time (us): 15216
+op/wr/cl bytes: 387; bytes(tot): 363419; time (us): 15168
+op/wr/cl bytes: 275; bytes(tot): 363694; time (us): 15092
+op/wr/cl bytes: 504; bytes(tot): 364198; time (us): 15272
+op/wr/cl bytes: 286; bytes(tot): 364484; time (us): 15256
+op/wr/cl bytes: 500; bytes(tot): 364984; time (us): 15268
+t avg (us): 15210
+
+op/wr/cl bytes: 285; bytes(tot): 365269; time (us): 15088
+op/wr/cl bytes: 404; bytes(tot): 365673; time (us): 15180
+op/wr/cl bytes: 482; bytes(tot): 366155; time (us): 15260
+op/wr/cl bytes: 442; bytes(tot): 366597; time (us): 15216
+op/wr/cl bytes: 308; bytes(tot): 366905; time (us): 15120
+op/wr/cl bytes: 489; bytes(tot): 367394; time (us): 15272
+op/wr/cl bytes: 288; bytes(tot): 367682; time (us): 15080
+op/wr/cl bytes: 319; bytes(tot): 368001; time (us): 15108
+op/wr/cl bytes: 510; bytes(tot): 368511; time (us): 15296
+op/wr/cl bytes: 327; bytes(tot): 368838; time (us): 15120
+t avg (us): 15174
+
+...
+
+
+op/wr/cl bytes: 455; bytes(tot): 1734877; time (us): 15176
+op/wr/cl bytes: 277; bytes(tot): 1735154; time (us): 15084
+op/wr/cl bytes: 266; bytes(tot): 1735420; time (us): 73440
+op/wr/cl bytes: 286; bytes(tot): 1735706; time (us): 15076
+op/wr/cl bytes: 323; bytes(tot): 1736029; time (us): 15124
+op/wr/cl bytes: 496; bytes(tot): 1736525; time (us): 15284
+op/wr/cl bytes: 347; bytes(tot): 1736872; time (us): 15152
+op/wr/cl bytes: 486; bytes(tot): 1737358; time (us): 15260
+op/wr/cl bytes: 357; bytes(tot): 1737715; time (us): 15176
+op/wr/cl bytes: 282; bytes(tot): 1737997; time (us): 15076
+t avg (us): 20984
+
+op/wr/cl bytes: 398; bytes(tot): 1738395; time (us): 15200
+op/wr/cl bytes: 424; bytes(tot): 1738819; time (us): 15196
+op/wr/cl bytes: 444; bytes(tot): 1739263; time (us): 15224
+op/wr/cl bytes: 464; bytes(tot): 1739727; time (us): 15236
+op/wr/cl bytes: 502; bytes(tot): 1740229; time (us): 15296
+op/wr/cl bytes: 262; bytes(tot): 1740491; time (us): 15052
+op/wr/cl bytes: 396; bytes(tot): 1740887; time (us): 15188
+op/wr/cl bytes: 328; bytes(tot): 1741215; time (us): 15116
+op/wr/cl bytes: 453; bytes(tot): 1741668; time (us): 15236
+op/wr/cl bytes: 294; bytes(tot): 1741962; time (us): 15088
+t avg (us): 15183
+
+op/wr/cl bytes: 366; bytes(tot): 1742328; time (us): 15168
+op/wr/cl bytes: 486; bytes(tot): 1742814; time (us): 15256
+op/wr/cl bytes: 512; bytes(tot): 1743326; time (us): 12748
+op/wr/cl bytes: 425; bytes(tot): 1743751; time (us): 15204
+op/wr/cl bytes: 290; bytes(tot): 1744041; time (us): 15116
+op/wr/cl bytes: 277; bytes(tot): 1744318; time (us): 15064
+op/wr/cl bytes: 265; bytes(tot): 1744583; time (us): 15084
+op/wr/cl bytes: 351; bytes(tot): 1744934; time (us): 15140
+op/wr/cl bytes: 417; bytes(tot): 1745351; time (us): 15208
+op/wr/cl bytes: 313; bytes(tot): 1745664; time (us): 15112
+t avg (us): 14910
+
+op/wr/cl bytes: 420; bytes(tot): 1746084; time (us): 15232
+op/wr/cl bytes: 485; bytes(tot): 1746569; time (us): 15256
+op/wr/cl bytes: 273; bytes(tot): 1746842; time (us): 15096
+op/wr/cl bytes: 487; bytes(tot): 1747329; time (us): 15272
+op/wr/cl bytes: 282; bytes(tot): 1747611; time (us): 15092
+op/wr/cl bytes: 334; bytes(tot): 1747945; time (us): 15132
+op/wr/cl bytes: 265; bytes(tot): 1748210; time (us): 15080
+op/wr/cl bytes: 306; bytes(tot): 1748516; time (us): 15096
+op/wr/cl bytes: 492; bytes(tot): 1749008; time (us): 15268
+op/wr/cl bytes: 280; bytes(tot): 1749288; time (us): 15052
+t avg (us): 15157
+
+op/wr/cl bytes: 409; bytes(tot): 1749697; time (us): 15220
+op/wr/cl bytes: 268; bytes(tot): 1749965; time (us): 15064
+op/wr/cl bytes: 354; bytes(tot): 1750319; time (us): 15148
+op/wr/cl bytes: 257; bytes(tot): 1750576; time (us): 15064
+op/wr/cl bytes: 364; bytes(tot): 1750940; time (us): 15188
+op/wr/cl bytes: 393; bytes(tot): 1751333; time (us): 15176
+op/wr/cl bytes: 304; bytes(tot): 1751637; time (us): 15112
+op/wr/cl bytes: 356; bytes(tot): 1751993; time (us): 15148
+op/wr/cl bytes: 361; bytes(tot): 1752354; time (us): 15160
+op/wr/cl bytes: 291; bytes(tot): 1752645; time (us): 15084
+t avg (us): 15136
+
+op/wr/cl bytes: 366; bytes(tot): 1753011; time (us): 15180
+op/wr/cl bytes: 456; bytes(tot): 1753467; time (us): 15236
+op/wr/cl bytes: 499; bytes(tot): 1753966; time (us): 15284
+op/wr/cl bytes: 294; bytes(tot): 1754260; time (us): 15108
+op/wr/cl bytes: 339; bytes(tot): 1754599; time (us): 15156
+op/wr/cl bytes: 478; bytes(tot): 1755077; time (us): 15236
+op/wr/cl bytes: 392; bytes(tot): 1755469; time (us): 15200
+op/wr/cl bytes: 511; bytes(tot): 1755980; time (us): 15276
+op/wr/cl bytes: 465; bytes(tot): 1756445; time (us): 15272
+op/wr/cl bytes: 257; bytes(tot): 1756702; time (us): 15048
+t avg (us): 15199
+
+op/wr/cl bytes: 306; bytes(tot): 1757008; time (us): 15112
+op/wr/cl bytes: 387; bytes(tot): 1757395; time (us): 15192
+op/wr/cl bytes: 295; bytes(tot): 1757690; time (us): 15108
+op/wr/cl bytes: 262; bytes(tot): 1757952; time (us): 15056
+op/wr/cl bytes: 325; bytes(tot): 1758277; time (us): 15124
+op/wr/cl bytes: 337; bytes(tot): 1758614; time (us): 15144
+op/wr/cl bytes: 338; bytes(tot): 1758952; time (us): 15156
+op/wr/cl bytes: 380; bytes(tot): 1759332; time (us): 15160
+op/wr/cl bytes: 460; bytes(tot): 1759792; time (us): 15248
+op/wr/cl bytes: 358; bytes(tot): 1760150; time (us): 15148
+t avg (us): 15144
+
+op/wr/cl bytes: 426; bytes(tot): 1760576; time (us): 15216
+op/wr/cl bytes: 405; bytes(tot): 1760981; time (us): 15192
+op/wr/cl bytes: 390; bytes(tot): 1761371; time (us): 15204
+op/wr/cl bytes: 446; bytes(tot): 1761817; time (us): 15216
+op/wr/cl bytes: 394; bytes(tot): 1762211; time (us): 15208
+op/wr/cl bytes: 481; bytes(tot): 1762692; time (us): 15260
+op/wr/cl bytes: 404; bytes(tot): 1763096; time (us): 15216
+op/wr/cl bytes: 492; bytes(tot): 1763588; time (us): 15260
+op/wr/cl bytes: 269; bytes(tot): 1763857; time (us): 15080
+op/wr/cl bytes: 264; bytes(tot): 1764121; time (us): 15068
+t avg (us): 15192
+
+op/wr/cl bytes: 314; bytes(tot): 1764435; time (us): 15132
+op/wr/cl bytes: 503; bytes(tot): 1764938; time (us): 15276
+op/wr/cl bytes: 293; bytes(tot): 1765231; time (us): 15104
+op/wr/cl bytes: 470; bytes(tot): 1765701; time (us): 15244
+op/wr/cl bytes: 456; bytes(tot): 1766157; time (us): 15260
+op/wr/cl bytes: 512; bytes(tot): 1766669; time (us): 12736
+op/wr/cl bytes: 337; bytes(tot): 1767006; time (us): 15136
+op/wr/cl bytes: 274; bytes(tot): 1767280; time (us): 15084
+op/wr/cl bytes: 337; bytes(tot): 1767617; time (us): 15140
+op/wr/cl bytes: 422; bytes(tot): 1768039; time (us): 15200
+t avg (us): 14931
+
+op/wr/cl bytes: 401; bytes(tot): 1768440; time (us): 15188
+op/wr/cl bytes: 412; bytes(tot): 1768852; time (us): 15196
+op/wr/cl bytes: 378; bytes(tot): 1769230; time (us): 15184
+op/wr/cl bytes: 443; bytes(tot): 1769673; time (us): 15228
+op/wr/cl bytes: 342; bytes(tot): 1770015; time (us): 15168
+op/wr/cl bytes: 340; bytes(tot): 1770355; time (us): 15132
+op/wr/cl bytes: 445; bytes(tot): 1770800; time (us): 15176
+op/wr/cl bytes: 259; bytes(tot): 1771059; time (us): 15060
+op/wr/cl bytes: 402; bytes(tot): 1771461; time (us): 73308
+op/wr/cl bytes: 271; bytes(tot): 1771732; time (us): 15076
+t avg (us): 20971

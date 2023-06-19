@@ -1,0 +1,2003 @@
+op/wr/cl bytes: 416; time (us): 13408
+op/wr/cl bytes: 416; time (us): 14788
+op/wr/cl bytes: 416; time (us): 22888
+op/wr/cl bytes: 416; time (us): 14780
+op/wr/cl bytes: 416; time (us): 14792
+op/wr/cl bytes: 416; time (us): 14776
+op/wr/cl bytes: 416; time (us): 14792
+op/wr/cl bytes: 416; time (us): 14776
+op/wr/cl bytes: 416; time (us): 14780
+op/wr/cl bytes: 416; time (us): 14788
+t avg (us): 15456
+
+op/wr/cl bytes: 424; time (us): 14808
+op/wr/cl bytes: 424; time (us): 14784
+op/wr/cl bytes: 424; time (us): 14780
+op/wr/cl bytes: 424; time (us): 14792
+op/wr/cl bytes: 424; time (us): 14796
+op/wr/cl bytes: 424; time (us): 14784
+op/wr/cl bytes: 424; time (us): 14804
+op/wr/cl bytes: 424; time (us): 14792
+op/wr/cl bytes: 424; time (us): 14800
+op/wr/cl bytes: 424; time (us): 14788
+t avg (us): 14792
+
+op/wr/cl bytes: 432; time (us): 14812
+op/wr/cl bytes: 432; time (us): 14792
+op/wr/cl bytes: 432; time (us): 14804
+op/wr/cl bytes: 432; time (us): 14796
+op/wr/cl bytes: 432; time (us): 14808
+op/wr/cl bytes: 432; time (us): 14804
+op/wr/cl bytes: 432; time (us): 14816
+op/wr/cl bytes: 432; time (us): 14796
+op/wr/cl bytes: 432; time (us): 14816
+op/wr/cl bytes: 432; time (us): 14784
+t avg (us): 14802
+
+op/wr/cl bytes: 440; time (us): 14816
+op/wr/cl bytes: 440; time (us): 14800
+op/wr/cl bytes: 440; time (us): 14820
+op/wr/cl bytes: 440; time (us): 14800
+op/wr/cl bytes: 440; time (us): 14812
+op/wr/cl bytes: 440; time (us): 14812
+op/wr/cl bytes: 440; time (us): 14820
+op/wr/cl bytes: 440; time (us): 14800
+op/wr/cl bytes: 440; time (us): 14824
+op/wr/cl bytes: 440; time (us): 14816
+t avg (us): 14812
+
+op/wr/cl bytes: 448; time (us): 14832
+op/wr/cl bytes: 448; time (us): 14808
+op/wr/cl bytes: 448; time (us): 14820
+op/wr/cl bytes: 448; time (us): 14812
+op/wr/cl bytes: 448; time (us): 14808
+op/wr/cl bytes: 448; time (us): 14804
+op/wr/cl bytes: 448; time (us): 14832
+op/wr/cl bytes: 448; time (us): 14808
+op/wr/cl bytes: 448; time (us): 14812
+op/wr/cl bytes: 448; time (us): 14812
+t avg (us): 14814
+
+op/wr/cl bytes: 456; time (us): 23144
+op/wr/cl bytes: 456; time (us): 14808
+op/wr/cl bytes: 456; time (us): 14812
+op/wr/cl bytes: 456; time (us): 14808
+op/wr/cl bytes: 456; time (us): 14812
+op/wr/cl bytes: 456; time (us): 14804
+op/wr/cl bytes: 456; time (us): 14828
+op/wr/cl bytes: 456; time (us): 14800
+op/wr/cl bytes: 456; time (us): 14816
+op/wr/cl bytes: 456; time (us): 14812
+t avg (us): 15644
+
+op/wr/cl bytes: 464; time (us): 23072
+op/wr/cl bytes: 464; time (us): 14824
+op/wr/cl bytes: 464; time (us): 14844
+op/wr/cl bytes: 464; time (us): 14816
+op/wr/cl bytes: 464; time (us): 14848
+op/wr/cl bytes: 464; time (us): 14832
+op/wr/cl bytes: 464; time (us): 14832
+op/wr/cl bytes: 464; time (us): 14832
+op/wr/cl bytes: 464; time (us): 14840
+op/wr/cl bytes: 464; time (us): 14820
+t avg (us): 15656
+
+op/wr/cl bytes: 472; time (us): 23112
+op/wr/cl bytes: 472; time (us): 14820
+op/wr/cl bytes: 472; time (us): 14828
+op/wr/cl bytes: 472; time (us): 14816
+op/wr/cl bytes: 472; time (us): 14828
+op/wr/cl bytes: 472; time (us): 14816
+op/wr/cl bytes: 472; time (us): 14832
+op/wr/cl bytes: 472; time (us): 14816
+op/wr/cl bytes: 472; time (us): 14836
+op/wr/cl bytes: 472; time (us): 14820
+t avg (us): 15652
+
+op/wr/cl bytes: 480; time (us): 22992
+op/wr/cl bytes: 480; time (us): 14836
+op/wr/cl bytes: 480; time (us): 14848
+op/wr/cl bytes: 480; time (us): 14840
+op/wr/cl bytes: 480; time (us): 14856
+op/wr/cl bytes: 480; time (us): 14836
+op/wr/cl bytes: 480; time (us): 14840
+op/wr/cl bytes: 480; time (us): 14840
+op/wr/cl bytes: 480; time (us): 14856
+op/wr/cl bytes: 480; time (us): 14836
+t avg (us): 15658
+
+op/wr/cl bytes: 488; time (us): 23168
+op/wr/cl bytes: 488; time (us): 14832
+op/wr/cl bytes: 488; time (us): 14848
+op/wr/cl bytes: 488; time (us): 14832
+op/wr/cl bytes: 488; time (us): 14836
+op/wr/cl bytes: 488; time (us): 14828
+op/wr/cl bytes: 488; time (us): 14848
+op/wr/cl bytes: 488; time (us): 14836
+op/wr/cl bytes: 488; time (us): 14840
+op/wr/cl bytes: 488; time (us): 14840
+t avg (us): 15670
+
+op/wr/cl bytes: 496; time (us): 22976
+op/wr/cl bytes: 496; time (us): 14848
+op/wr/cl bytes: 496; time (us): 14868
+op/wr/cl bytes: 496; time (us): 14840
+op/wr/cl bytes: 496; time (us): 14880
+op/wr/cl bytes: 496; time (us): 14864
+op/wr/cl bytes: 496; time (us): 14872
+op/wr/cl bytes: 496; time (us): 14848
+op/wr/cl bytes: 496; time (us): 14876
+op/wr/cl bytes: 496; time (us): 14852
+t avg (us): 15672
+
+op/wr/cl bytes: 504; time (us): 23144
+op/wr/cl bytes: 504; time (us): 14844
+op/wr/cl bytes: 504; time (us): 14856
+op/wr/cl bytes: 504; time (us): 14844
+op/wr/cl bytes: 504; time (us): 14864
+op/wr/cl bytes: 504; time (us): 14852
+op/wr/cl bytes: 504; time (us): 14860
+op/wr/cl bytes: 504; time (us): 14848
+op/wr/cl bytes: 504; time (us): 14860
+op/wr/cl bytes: 504; time (us): 14848
+t avg (us): 15682
+
+op/wr/cl bytes: 512; time (us): 15564
+op/wr/cl bytes: 512; time (us): 12304
+op/wr/cl bytes: 512; time (us): 12324
+op/wr/cl bytes: 512; time (us): 12312
+op/wr/cl bytes: 512; time (us): 12288
+op/wr/cl bytes: 512; time (us): 12312
+op/wr/cl bytes: 512; time (us): 20408
+op/wr/cl bytes: 512; time (us): 12308
+op/wr/cl bytes: 512; time (us): 12308
+op/wr/cl bytes: 512; time (us): 12308
+t avg (us): 13443
+
+op/wr/cl bytes: 520; time (us): 22504
+op/wr/cl bytes: 520; time (us): 20564
+op/wr/cl bytes: 520; time (us): 20536
+op/wr/cl bytes: 520; time (us): 20600
+op/wr/cl bytes: 520; time (us): 20560
+op/wr/cl bytes: 520; time (us): 20608
+op/wr/cl bytes: 520; time (us): 20548
+op/wr/cl bytes: 520; time (us): 20660
+op/wr/cl bytes: 520; time (us): 20544
+op/wr/cl bytes: 520; time (us): 20548
+t avg (us): 20767
+
+op/wr/cl bytes: 528; time (us): 27416
+op/wr/cl bytes: 528; time (us): 20600
+op/wr/cl bytes: 528; time (us): 20604
+op/wr/cl bytes: 528; time (us): 20560
+op/wr/cl bytes: 528; time (us): 20608
+op/wr/cl bytes: 528; time (us): 20604
+op/wr/cl bytes: 528; time (us): 20532
+op/wr/cl bytes: 528; time (us): 20604
+op/wr/cl bytes: 528; time (us): 20528
+op/wr/cl bytes: 528; time (us): 20560
+t avg (us): 21261
+
+op/wr/cl bytes: 536; time (us): 27416
+op/wr/cl bytes: 536; time (us): 20568
+op/wr/cl bytes: 536; time (us): 20488
+op/wr/cl bytes: 536; time (us): 20564
+op/wr/cl bytes: 536; time (us): 20456
+op/wr/cl bytes: 536; time (us): 20584
+op/wr/cl bytes: 536; time (us): 20460
+op/wr/cl bytes: 536; time (us): 20564
+op/wr/cl bytes: 536; time (us): 20492
+op/wr/cl bytes: 536; time (us): 20596
+t avg (us): 21218
+
+op/wr/cl bytes: 544; time (us): 27364
+op/wr/cl bytes: 544; time (us): 20580
+op/wr/cl bytes: 544; time (us): 20472
+op/wr/cl bytes: 544; time (us): 20580
+op/wr/cl bytes: 544; time (us): 20512
+op/wr/cl bytes: 544; time (us): 20480
+op/wr/cl bytes: 544; time (us): 20516
+op/wr/cl bytes: 544; time (us): 20588
+op/wr/cl bytes: 544; time (us): 20496
+op/wr/cl bytes: 544; time (us): 20572
+t avg (us): 21216
+
+op/wr/cl bytes: 552; time (us): 27412
+op/wr/cl bytes: 552; time (us): 20520
+op/wr/cl bytes: 552; time (us): 20468
+op/wr/cl bytes: 552; time (us): 20608
+op/wr/cl bytes: 552; time (us): 20484
+op/wr/cl bytes: 552; time (us): 20468
+op/wr/cl bytes: 552; time (us): 20476
+op/wr/cl bytes: 552; time (us): 20504
+op/wr/cl bytes: 552; time (us): 20516
+op/wr/cl bytes: 552; time (us): 20472
+t avg (us): 21192
+
+op/wr/cl bytes: 560; time (us): 27420
+op/wr/cl bytes: 560; time (us): 20612
+op/wr/cl bytes: 560; time (us): 20488
+op/wr/cl bytes: 560; time (us): 20524
+op/wr/cl bytes: 560; time (us): 20500
+op/wr/cl bytes: 560; time (us): 20588
+op/wr/cl bytes: 560; time (us): 20540
+op/wr/cl bytes: 560; time (us): 20580
+op/wr/cl bytes: 560; time (us): 20532
+op/wr/cl bytes: 560; time (us): 20476
+t avg (us): 21226
+
+op/wr/cl bytes: 568; time (us): 35504
+op/wr/cl bytes: 568; time (us): 20580
+op/wr/cl bytes: 568; time (us): 20588
+op/wr/cl bytes: 568; time (us): 20660
+op/wr/cl bytes: 568; time (us): 20628
+op/wr/cl bytes: 568; time (us): 20620
+op/wr/cl bytes: 568; time (us): 20556
+op/wr/cl bytes: 568; time (us): 20588
+op/wr/cl bytes: 568; time (us): 20600
+op/wr/cl bytes: 568; time (us): 20596
+t avg (us): 22092
+
+op/wr/cl bytes: 576; time (us): 27436
+op/wr/cl bytes: 576; time (us): 20616
+op/wr/cl bytes: 576; time (us): 20616
+op/wr/cl bytes: 576; time (us): 20616
+op/wr/cl bytes: 576; time (us): 20604
+op/wr/cl bytes: 576; time (us): 20656
+op/wr/cl bytes: 576; time (us): 20620
+op/wr/cl bytes: 576; time (us): 20708
+op/wr/cl bytes: 576; time (us): 20552
+op/wr/cl bytes: 576; time (us): 20704
+t avg (us): 21312
+
+op/wr/cl bytes: 584; time (us): 27536
+op/wr/cl bytes: 584; time (us): 20608
+op/wr/cl bytes: 584; time (us): 20536
+op/wr/cl bytes: 584; time (us): 20668
+op/wr/cl bytes: 584; time (us): 20536
+op/wr/cl bytes: 584; time (us): 20544
+op/wr/cl bytes: 584; time (us): 20504
+op/wr/cl bytes: 584; time (us): 20512
+op/wr/cl bytes: 584; time (us): 20484
+op/wr/cl bytes: 584; time (us): 20612
+t avg (us): 21254
+
+op/wr/cl bytes: 592; time (us): 27444
+op/wr/cl bytes: 592; time (us): 20640
+op/wr/cl bytes: 592; time (us): 20564
+op/wr/cl bytes: 592; time (us): 20532
+op/wr/cl bytes: 592; time (us): 20548
+op/wr/cl bytes: 592; time (us): 20524
+op/wr/cl bytes: 592; time (us): 20532
+op/wr/cl bytes: 592; time (us): 20580
+op/wr/cl bytes: 592; time (us): 20556
+op/wr/cl bytes: 592; time (us): 20528
+t avg (us): 21244
+
+op/wr/cl bytes: 600; time (us): 27436
+op/wr/cl bytes: 600; time (us): 20516
+op/wr/cl bytes: 600; time (us): 20512
+op/wr/cl bytes: 600; time (us): 20652
+op/wr/cl bytes: 600; time (us): 20520
+op/wr/cl bytes: 600; time (us): 20516
+op/wr/cl bytes: 600; time (us): 20516
+op/wr/cl bytes: 600; time (us): 20524
+op/wr/cl bytes: 600; time (us): 20524
+op/wr/cl bytes: 600; time (us): 20544
+t avg (us): 21226
+
+op/wr/cl bytes: 608; time (us): 27444
+op/wr/cl bytes: 608; time (us): 20488
+op/wr/cl bytes: 608; time (us): 20476
+op/wr/cl bytes: 608; time (us): 20588
+op/wr/cl bytes: 608; time (us): 20496
+op/wr/cl bytes: 608; time (us): 20516
+op/wr/cl bytes: 608; time (us): 20488
+op/wr/cl bytes: 608; time (us): 20524
+op/wr/cl bytes: 608; time (us): 20492
+op/wr/cl bytes: 608; time (us): 20492
+t avg (us): 21200
+
+op/wr/cl bytes: 616; time (us): 27268
+op/wr/cl bytes: 616; time (us): 20500
+op/wr/cl bytes: 616; time (us): 28800
+op/wr/cl bytes: 616; time (us): 20608
+op/wr/cl bytes: 616; time (us): 20596
+op/wr/cl bytes: 616; time (us): 20604
+op/wr/cl bytes: 616; time (us): 20648
+op/wr/cl bytes: 616; time (us): 20604
+op/wr/cl bytes: 616; time (us): 20684
+op/wr/cl bytes: 616; time (us): 20652
+t avg (us): 22096
+
+op/wr/cl bytes: 624; time (us): 27540
+op/wr/cl bytes: 624; time (us): 20476
+op/wr/cl bytes: 624; time (us): 20664
+op/wr/cl bytes: 624; time (us): 20484
+op/wr/cl bytes: 624; time (us): 20556
+op/wr/cl bytes: 624; time (us): 20516
+op/wr/cl bytes: 624; time (us): 20656
+op/wr/cl bytes: 624; time (us): 20488
+op/wr/cl bytes: 624; time (us): 20592
+op/wr/cl bytes: 624; time (us): 20560
+t avg (us): 21253
+
+op/wr/cl bytes: 632; time (us): 139776
+op/wr/cl bytes: 632; time (us): 20604
+op/wr/cl bytes: 632; time (us): 20672
+op/wr/cl bytes: 632; time (us): 20572
+op/wr/cl bytes: 632; time (us): 20672
+op/wr/cl bytes: 632; time (us): 20680
+op/wr/cl bytes: 632; time (us): 20600
+op/wr/cl bytes: 632; time (us): 20680
+op/wr/cl bytes: 632; time (us): 20676
+op/wr/cl bytes: 632; time (us): 20604
+t avg (us): 32553
+
+op/wr/cl bytes: 640; time (us): 27560
+op/wr/cl bytes: 640; time (us): 20560
+op/wr/cl bytes: 640; time (us): 20680
+op/wr/cl bytes: 640; time (us): 20600
+op/wr/cl bytes: 640; time (us): 20680
+op/wr/cl bytes: 640; time (us): 20592
+op/wr/cl bytes: 640; time (us): 20564
+op/wr/cl bytes: 640; time (us): 20556
+op/wr/cl bytes: 640; time (us): 20560
+op/wr/cl bytes: 640; time (us): 20568
+t avg (us): 21292
+
+
+
+op/wr/cl bytes: 648; time (us): 27472
+op/wr/cl bytes: 648; time (us): 20608
+op/wr/cl bytes: 648; time (us): 20564
+op/wr/cl bytes: 648; time (us): 20584
+op/wr/cl bytes: 648; time (us): 20628
+op/wr/cl bytes: 648; time (us): 20624
+op/wr/cl bytes: 648; time (us): 20728
+op/wr/cl bytes: 648; time (us): 20592
+op/wr/cl bytes: 648; time (us): 20692
+op/wr/cl bytes: 648; time (us): 20584
+t avg (us): 21307
+
+op/wr/cl bytes: 656; time (us): 27612
+op/wr/cl bytes: 656; time (us): 20572
+op/wr/cl bytes: 656; time (us): 20712
+op/wr/cl bytes: 656; time (us): 20572
+op/wr/cl bytes: 656; time (us): 20604
+op/wr/cl bytes: 656; time (us): 20568
+op/wr/cl bytes: 656; time (us): 20580
+op/wr/cl bytes: 656; time (us): 20592
+op/wr/cl bytes: 656; time (us): 20568
+op/wr/cl bytes: 656; time (us): 20568
+t avg (us): 21294
+
+op/wr/cl bytes: 664; time (us): 27588
+op/wr/cl bytes: 664; time (us): 20588
+op/wr/cl bytes: 664; time (us): 20620
+op/wr/cl bytes: 664; time (us): 20568
+op/wr/cl bytes: 664; time (us): 28680
+op/wr/cl bytes: 664; time (us): 20680
+op/wr/cl bytes: 664; time (us): 20604
+op/wr/cl bytes: 664; time (us): 20768
+op/wr/cl bytes: 664; time (us): 20672
+op/wr/cl bytes: 664; time (us): 20780
+t avg (us): 22154
+
+op/wr/cl bytes: 672; time (us): 27616
+op/wr/cl bytes: 672; time (us): 20688
+op/wr/cl bytes: 672; time (us): 20572
+op/wr/cl bytes: 672; time (us): 20656
+op/wr/cl bytes: 672; time (us): 20576
+op/wr/cl bytes: 672; time (us): 20720
+op/wr/cl bytes: 672; time (us): 20716
+op/wr/cl bytes: 672; time (us): 20684
+op/wr/cl bytes: 672; time (us): 20680
+op/wr/cl bytes: 672; time (us): 20684
+t avg (us): 21359
+
+op/wr/cl bytes: 680; time (us): 27528
+op/wr/cl bytes: 680; time (us): 20708
+op/wr/cl bytes: 680; time (us): 20604
+op/wr/cl bytes: 680; time (us): 20708
+op/wr/cl bytes: 680; time (us): 20604
+op/wr/cl bytes: 680; time (us): 20704
+op/wr/cl bytes: 680; time (us): 20660
+op/wr/cl bytes: 680; time (us): 20632
+op/wr/cl bytes: 680; time (us): 20628
+op/wr/cl bytes: 680; time (us): 20680
+t avg (us): 21345
+
+op/wr/cl bytes: 688; time (us): 27556
+op/wr/cl bytes: 688; time (us): 20708
+op/wr/cl bytes: 688; time (us): 20624
+op/wr/cl bytes: 688; time (us): 20592
+op/wr/cl bytes: 688; time (us): 20672
+op/wr/cl bytes: 688; time (us): 20696
+op/wr/cl bytes: 688; time (us): 20700
+op/wr/cl bytes: 688; time (us): 20592
+op/wr/cl bytes: 688; time (us): 20632
+op/wr/cl bytes: 688; time (us): 20600
+t avg (us): 21337
+
+op/wr/cl bytes: 696; time (us): 27504
+op/wr/cl bytes: 696; time (us): 20612
+op/wr/cl bytes: 696; time (us): 20604
+op/wr/cl bytes: 696; time (us): 20620
+op/wr/cl bytes: 696; time (us): 20608
+op/wr/cl bytes: 696; time (us): 20720
+op/wr/cl bytes: 696; time (us): 20604
+op/wr/cl bytes: 696; time (us): 20612
+op/wr/cl bytes: 696; time (us): 20660
+op/wr/cl bytes: 696; time (us): 20648
+t avg (us): 21319
+
+op/wr/cl bytes: 704; time (us): 27572
+op/wr/cl bytes: 704; time (us): 20600
+op/wr/cl bytes: 704; time (us): 20604
+op/wr/cl bytes: 704; time (us): 20636
+op/wr/cl bytes: 704; time (us): 20608
+op/wr/cl bytes: 704; time (us): 20604
+op/wr/cl bytes: 704; time (us): 20620
+op/wr/cl bytes: 704; time (us): 20608
+op/wr/cl bytes: 704; time (us): 20624
+op/wr/cl bytes: 704; time (us): 20604
+t avg (us): 21308
+
+op/wr/cl bytes: 712; time (us): 27516
+op/wr/cl bytes: 712; time (us): 20628
+op/wr/cl bytes: 712; time (us): 20652
+op/wr/cl bytes: 712; time (us): 20632
+op/wr/cl bytes: 712; time (us): 20680
+op/wr/cl bytes: 712; time (us): 20632
+op/wr/cl bytes: 712; time (us): 28816
+op/wr/cl bytes: 712; time (us): 20660
+op/wr/cl bytes: 712; time (us): 20736
+op/wr/cl bytes: 712; time (us): 20728
+t avg (us): 22168
+
+op/wr/cl bytes: 720; time (us): 27584
+op/wr/cl bytes: 720; time (us): 20756
+op/wr/cl bytes: 720; time (us): 20724
+op/wr/cl bytes: 720; time (us): 20776
+op/wr/cl bytes: 720; time (us): 20724
+op/wr/cl bytes: 720; time (us): 20728
+op/wr/cl bytes: 720; time (us): 20728
+op/wr/cl bytes: 720; time (us): 20728
+op/wr/cl bytes: 720; time (us): 20728
+op/wr/cl bytes: 720; time (us): 20692
+t avg (us): 21416
+
+op/wr/cl bytes: 728; time (us): 27628
+op/wr/cl bytes: 728; time (us): 20708
+op/wr/cl bytes: 728; time (us): 20648
+op/wr/cl bytes: 728; time (us): 20752
+op/wr/cl bytes: 728; time (us): 20644
+op/wr/cl bytes: 728; time (us): 20784
+op/wr/cl bytes: 728; time (us): 20752
+op/wr/cl bytes: 728; time (us): 20664
+op/wr/cl bytes: 728; time (us): 20660
+op/wr/cl bytes: 728; time (us): 20740
+t avg (us): 21398
+
+op/wr/cl bytes: 736; time (us): 27600
+op/wr/cl bytes: 736; time (us): 20740
+op/wr/cl bytes: 736; time (us): 20636
+op/wr/cl bytes: 736; time (us): 20712
+op/wr/cl bytes: 736; time (us): 20668
+op/wr/cl bytes: 736; time (us): 20636
+op/wr/cl bytes: 736; time (us): 20632
+op/wr/cl bytes: 736; time (us): 20668
+op/wr/cl bytes: 736; time (us): 20644
+op/wr/cl bytes: 736; time (us): 20736
+t avg (us): 21367
+
+op/wr/cl bytes: 744; time (us): 27528
+op/wr/cl bytes: 744; time (us): 20660
+op/wr/cl bytes: 744; time (us): 20688
+op/wr/cl bytes: 744; time (us): 20700
+op/wr/cl bytes: 744; time (us): 20660
+op/wr/cl bytes: 744; time (us): 20656
+op/wr/cl bytes: 744; time (us): 20664
+op/wr/cl bytes: 744; time (us): 20652
+op/wr/cl bytes: 744; time (us): 20664
+op/wr/cl bytes: 744; time (us): 20688
+t avg (us): 21356
+
+op/wr/cl bytes: 752; time (us): 27576
+op/wr/cl bytes: 752; time (us): 20648
+op/wr/cl bytes: 752; time (us): 20664
+op/wr/cl bytes: 752; time (us): 20652
+op/wr/cl bytes: 752; time (us): 20688
+op/wr/cl bytes: 752; time (us): 20784
+op/wr/cl bytes: 752; time (us): 20648
+op/wr/cl bytes: 752; time (us): 20688
+op/wr/cl bytes: 752; time (us): 20652
+op/wr/cl bytes: 752; time (us): 20760
+t avg (us): 21376
+
+op/wr/cl bytes: 760; time (us): 27528
+op/wr/cl bytes: 760; time (us): 20660
+op/wr/cl bytes: 760; time (us): 20676
+op/wr/cl bytes: 760; time (us): 20744
+op/wr/cl bytes: 760; time (us): 20676
+op/wr/cl bytes: 760; time (us): 20676
+op/wr/cl bytes: 760; time (us): 20716
+op/wr/cl bytes: 760; time (us): 20648
+op/wr/cl bytes: 760; time (us): 28880
+op/wr/cl bytes: 760; time (us): 20664
+t avg (us): 22186
+
+op/wr/cl bytes: 768; time (us): 27692
+op/wr/cl bytes: 768; time (us): 20668
+op/wr/cl bytes: 768; time (us): 20768
+op/wr/cl bytes: 768; time (us): 20764
+op/wr/cl bytes: 768; time (us): 20780
+op/wr/cl bytes: 768; time (us): 20828
+op/wr/cl bytes: 768; time (us): 20776
+op/wr/cl bytes: 768; time (us): 20672
+op/wr/cl bytes: 768; time (us): 20736
+op/wr/cl bytes: 768; time (us): 20676
+t avg (us): 21436
+
+op/wr/cl bytes: 776; time (us): 27652
+op/wr/cl bytes: 776; time (us): 20684
+op/wr/cl bytes: 776; time (us): 20804
+op/wr/cl bytes: 776; time (us): 20704
+op/wr/cl bytes: 776; time (us): 20796
+op/wr/cl bytes: 776; time (us): 20692
+op/wr/cl bytes: 776; time (us): 20688
+op/wr/cl bytes: 776; time (us): 20712
+op/wr/cl bytes: 776; time (us): 20804
+op/wr/cl bytes: 776; time (us): 20696
+t avg (us): 21423
+
+
+op/wr/cl bytes: 784; time (us): 27644
+op/wr/cl bytes: 784; time (us): 20744
+op/wr/cl bytes: 784; time (us): 20788
+op/wr/cl bytes: 784; time (us): 20692
+op/wr/cl bytes: 784; time (us): 20784
+op/wr/cl bytes: 784; time (us): 20680
+op/wr/cl bytes: 784; time (us): 20680
+op/wr/cl bytes: 784; time (us): 20684
+op/wr/cl bytes: 784; time (us): 20792
+op/wr/cl bytes: 784; time (us): 20716
+t avg (us): 21420
+
+op/wr/cl bytes: 792; time (us): 27596
+op/wr/cl bytes: 792; time (us): 20708
+op/wr/cl bytes: 792; time (us): 20740
+op/wr/cl bytes: 792; time (us): 20716
+op/wr/cl bytes: 792; time (us): 20740
+op/wr/cl bytes: 792; time (us): 20708
+op/wr/cl bytes: 792; time (us): 20752
+op/wr/cl bytes: 792; time (us): 20740
+op/wr/cl bytes: 792; time (us): 20812
+op/wr/cl bytes: 792; time (us): 20712
+t avg (us): 21422
+
+op/wr/cl bytes: 800; time (us): 27668
+op/wr/cl bytes: 800; time (us): 20732
+op/wr/cl bytes: 800; time (us): 20716
+op/wr/cl bytes: 800; time (us): 20692
+op/wr/cl bytes: 800; time (us): 20704
+op/wr/cl bytes: 800; time (us): 20692
+op/wr/cl bytes: 800; time (us): 20804
+op/wr/cl bytes: 800; time (us): 20708
+op/wr/cl bytes: 800; time (us): 20716
+op/wr/cl bytes: 800; time (us): 20700
+t avg (us): 21413
+
+op/wr/cl bytes: 808; time (us): 27636
+op/wr/cl bytes: 808; time (us): 20720
+op/wr/cl bytes: 808; time (us): 20760
+op/wr/cl bytes: 808; time (us): 20760
+op/wr/cl bytes: 808; time (us): 20752
+op/wr/cl bytes: 808; time (us): 20728
+op/wr/cl bytes: 808; time (us): 20832
+op/wr/cl bytes: 808; time (us): 20724
+op/wr/cl bytes: 808; time (us): 20760
+op/wr/cl bytes: 808; time (us): 20696
+t avg (us): 21436
+
+op/wr/cl bytes: 816; time (us): 35652
+op/wr/cl bytes: 816; time (us): 20808
+op/wr/cl bytes: 816; time (us): 20700
+op/wr/cl bytes: 816; time (us): 20808
+op/wr/cl bytes: 816; time (us): 20808
+op/wr/cl bytes: 816; time (us): 20804
+op/wr/cl bytes: 816; time (us): 20876
+op/wr/cl bytes: 816; time (us): 20812
+op/wr/cl bytes: 816; time (us): 20704
+op/wr/cl bytes: 816; time (us): 20812
+t avg (us): 22278
+
+op/wr/cl bytes: 824; time (us): 27720
+op/wr/cl bytes: 824; time (us): 20844
+op/wr/cl bytes: 824; time (us): 20832
+op/wr/cl bytes: 824; time (us): 20832
+op/wr/cl bytes: 824; time (us): 20760
+op/wr/cl bytes: 824; time (us): 20828
+op/wr/cl bytes: 824; time (us): 20832
+op/wr/cl bytes: 824; time (us): 20820
+op/wr/cl bytes: 824; time (us): 20776
+op/wr/cl bytes: 824; time (us): 20828
+t avg (us): 21507
+
+op/wr/cl bytes: 832; time (us): 27788
+op/wr/cl bytes: 832; time (us): 20820
+op/wr/cl bytes: 832; time (us): 20760
+op/wr/cl bytes: 832; time (us): 20792
+op/wr/cl bytes: 832; time (us): 20748
+op/wr/cl bytes: 832; time (us): 20800
+op/wr/cl bytes: 832; time (us): 20716
+op/wr/cl bytes: 832; time (us): 20752
+op/wr/cl bytes: 832; time (us): 20792
+op/wr/cl bytes: 832; time (us): 20836
+t avg (us): 21480
+
+op/wr/cl bytes: 840; time (us): 27676
+op/wr/cl bytes: 840; time (us): 20840
+op/wr/cl bytes: 840; time (us): 20732
+op/wr/cl bytes: 840; time (us): 20868
+op/wr/cl bytes: 840; time (us): 20748
+op/wr/cl bytes: 840; time (us): 20784
+op/wr/cl bytes: 840; time (us): 20760
+op/wr/cl bytes: 840; time (us): 20748
+op/wr/cl bytes: 840; time (us): 20748
+op/wr/cl bytes: 840; time (us): 20792
+t avg (us): 21469
+
+op/wr/cl bytes: 848; time (us): 27784
+op/wr/cl bytes: 848; time (us): 20836
+op/wr/cl bytes: 848; time (us): 20772
+op/wr/cl bytes: 848; time (us): 20748
+op/wr/cl bytes: 848; time (us): 20772
+op/wr/cl bytes: 848; time (us): 20736
+op/wr/cl bytes: 848; time (us): 20744
+op/wr/cl bytes: 848; time (us): 20732
+op/wr/cl bytes: 848; time (us): 20740
+op/wr/cl bytes: 848; time (us): 20816
+t avg (us): 21468
+
+op/wr/cl bytes: 856; time (us): 27604
+op/wr/cl bytes: 856; time (us): 20784
+op/wr/cl bytes: 856; time (us): 20748
+op/wr/cl bytes: 856; time (us): 20800
+op/wr/cl bytes: 856; time (us): 20784
+op/wr/cl bytes: 856; time (us): 20760
+op/wr/cl bytes: 856; time (us): 20764
+op/wr/cl bytes: 856; time (us): 20796
+op/wr/cl bytes: 856; time (us): 20792
+op/wr/cl bytes: 856; time (us): 20808
+t avg (us): 21464
+
+op/wr/cl bytes: 864; time (us): 27636
+op/wr/cl bytes: 864; time (us): 20728
+op/wr/cl bytes: 864; time (us): 28976
+op/wr/cl bytes: 864; time (us): 20752
+op/wr/cl bytes: 864; time (us): 20856
+op/wr/cl bytes: 864; time (us): 20884
+op/wr/cl bytes: 864; time (us): 20852
+op/wr/cl bytes: 864; time (us): 20812
+op/wr/cl bytes: 864; time (us): 20824
+op/wr/cl bytes: 864; time (us): 20888
+t avg (us): 22320
+
+op/wr/cl bytes: 872; time (us): 27764
+op/wr/cl bytes: 872; time (us): 20776
+op/wr/cl bytes: 872; time (us): 20864
+op/wr/cl bytes: 872; time (us): 20804
+op/wr/cl bytes: 872; time (us): 20836
+op/wr/cl bytes: 872; time (us): 20776
+op/wr/cl bytes: 872; time (us): 20816
+op/wr/cl bytes: 872; time (us): 20804
+op/wr/cl bytes: 872; time (us): 20776
+op/wr/cl bytes: 872; time (us): 20780
+t avg (us): 21499
+
+op/wr/cl bytes: 880; time (us): 27864
+op/wr/cl bytes: 880; time (us): 20764
+op/wr/cl bytes: 880; time (us): 20768
+op/wr/cl bytes: 880; time (us): 20768
+op/wr/cl bytes: 880; time (us): 20880
+op/wr/cl bytes: 880; time (us): 20864
+op/wr/cl bytes: 880; time (us): 20764
+op/wr/cl bytes: 880; time (us): 20776
+op/wr/cl bytes: 880; time (us): 20752
+op/wr/cl bytes: 880; time (us): 20800
+t avg (us): 21500
+
+op/wr/cl bytes: 888; time (us): 27704
+op/wr/cl bytes: 888; time (us): 20804
+op/wr/cl bytes: 888; time (us): 20900
+op/wr/cl bytes: 888; time (us): 20796
+op/wr/cl bytes: 888; time (us): 20904
+op/wr/cl bytes: 888; time (us): 20792
+op/wr/cl bytes: 888; time (us): 20808
+op/wr/cl bytes: 888; time (us): 20796
+op/wr/cl bytes: 888; time (us): 20860
+op/wr/cl bytes: 888; time (us): 20792
+t avg (us): 21515
+
+
+op/wr/cl bytes: 896; time (us): 27704
+op/wr/cl bytes: 896; time (us): 20788
+op/wr/cl bytes: 896; time (us): 20788
+op/wr/cl bytes: 896; time (us): 20784
+op/wr/cl bytes: 896; time (us): 20796
+op/wr/cl bytes: 896; time (us): 20824
+op/wr/cl bytes: 896; time (us): 20896
+op/wr/cl bytes: 896; time (us): 20784
+op/wr/cl bytes: 896; time (us): 20832
+op/wr/cl bytes: 896; time (us): 20792
+t avg (us): 21498
+
+op/wr/cl bytes: 904; time (us): 27804
+op/wr/cl bytes: 904; time (us): 20796
+op/wr/cl bytes: 904; time (us): 20888
+op/wr/cl bytes: 904; time (us): 20860
+op/wr/cl bytes: 904; time (us): 20816
+op/wr/cl bytes: 904; time (us): 20812
+op/wr/cl bytes: 904; time (us): 20800
+op/wr/cl bytes: 904; time (us): 20820
+op/wr/cl bytes: 904; time (us): 20824
+op/wr/cl bytes: 904; time (us): 20812
+t avg (us): 21523
+
+op/wr/cl bytes: 912; time (us): 27696
+op/wr/cl bytes: 912; time (us): 20800
+op/wr/cl bytes: 912; time (us): 20812
+op/wr/cl bytes: 912; time (us): 20768
+op/wr/cl bytes: 912; time (us): 28864
+op/wr/cl bytes: 912; time (us): 20904
+op/wr/cl bytes: 912; time (us): 20896
+op/wr/cl bytes: 912; time (us): 20900
+op/wr/cl bytes: 912; time (us): 20864
+op/wr/cl bytes: 912; time (us): 20820
+t avg (us): 22332
+
+op/wr/cl bytes: 920; time (us): 27796
+op/wr/cl bytes: 920; time (us): 20852
+op/wr/cl bytes: 920; time (us): 20828
+op/wr/cl bytes: 920; time (us): 20928
+op/wr/cl bytes: 920; time (us): 20920
+op/wr/cl bytes: 920; time (us): 20820
+op/wr/cl bytes: 920; time (us): 20808
+op/wr/cl bytes: 920; time (us): 20932
+op/wr/cl bytes: 920; time (us): 20820
+op/wr/cl bytes: 920; time (us): 20924
+t avg (us): 21562
+
+op/wr/cl bytes: 928; time (us): 27744
+op/wr/cl bytes: 928; time (us): 20808
+op/wr/cl bytes: 928; time (us): 20812
+op/wr/cl bytes: 928; time (us): 20840
+op/wr/cl bytes: 928; time (us): 20920
+op/wr/cl bytes: 928; time (us): 20808
+op/wr/cl bytes: 928; time (us): 20816
+op/wr/cl bytes: 928; time (us): 20816
+op/wr/cl bytes: 928; time (us): 20820
+op/wr/cl bytes: 928; time (us): 20836
+t avg (us): 21522
+
+op/wr/cl bytes: 936; time (us): 27748
+op/wr/cl bytes: 936; time (us): 20824
+op/wr/cl bytes: 936; time (us): 20864
+op/wr/cl bytes: 936; time (us): 20844
+op/wr/cl bytes: 936; time (us): 20940
+op/wr/cl bytes: 936; time (us): 20832
+op/wr/cl bytes: 936; time (us): 20864
+op/wr/cl bytes: 936; time (us): 20828
+op/wr/cl bytes: 936; time (us): 20848
+op/wr/cl bytes: 936; time (us): 20840
+t avg (us): 21543
+
+
+op/wr/cl bytes: 944; time (us): 27792
+op/wr/cl bytes: 944; time (us): 20824
+op/wr/cl bytes: 944; time (us): 20852
+op/wr/cl bytes: 944; time (us): 20824
+op/wr/cl bytes: 944; time (us): 20864
+op/wr/cl bytes: 944; time (us): 20832
+op/wr/cl bytes: 944; time (us): 20824
+op/wr/cl bytes: 944; time (us): 20824
+op/wr/cl bytes: 944; time (us): 20816
+op/wr/cl bytes: 944; time (us): 20836
+t avg (us): 21528
+
+op/wr/cl bytes: 952; time (us): 27732
+op/wr/cl bytes: 952; time (us): 20852
+op/wr/cl bytes: 952; time (us): 20848
+op/wr/cl bytes: 952; time (us): 20848
+op/wr/cl bytes: 952; time (us): 20916
+op/wr/cl bytes: 952; time (us): 20856
+op/wr/cl bytes: 952; time (us): 20856
+op/wr/cl bytes: 952; time (us): 20848
+op/wr/cl bytes: 952; time (us): 20852
+op/wr/cl bytes: 952; time (us): 20844
+t avg (us): 21545
+
+op/wr/cl bytes: 960; time (us): 27772
+op/wr/cl bytes: 960; time (us): 20844
+op/wr/cl bytes: 960; time (us): 20852
+op/wr/cl bytes: 960; time (us): 20840
+op/wr/cl bytes: 960; time (us): 20844
+op/wr/cl bytes: 960; time (us): 20740
+op/wr/cl bytes: 960; time (us): 28920
+op/wr/cl bytes: 960; time (us): 20868
+op/wr/cl bytes: 960; time (us): 20968
+op/wr/cl bytes: 960; time (us): 20940
+t avg (us): 22358
+
+op/wr/cl bytes: 968; time (us): 27840
+op/wr/cl bytes: 968; time (us): 20952
+op/wr/cl bytes: 968; time (us): 20968
+op/wr/cl bytes: 968; time (us): 20888
+op/wr/cl bytes: 968; time (us): 20964
+op/wr/cl bytes: 968; time (us): 20948
+op/wr/cl bytes: 968; time (us): 20984
+op/wr/cl bytes: 968; time (us): 20880
+op/wr/cl bytes: 968; time (us): 20972
+op/wr/cl bytes: 968; time (us): 20876
+t avg (us): 21627
+
+op/wr/cl bytes: 976; time (us): 27872
+op/wr/cl bytes: 976; time (us): 20852
+op/wr/cl bytes: 976; time (us): 20964
+op/wr/cl bytes: 976; time (us): 20848
+op/wr/cl bytes: 976; time (us): 20960
+op/wr/cl bytes: 976; time (us): 20852
+op/wr/cl bytes: 976; time (us): 20968
+op/wr/cl bytes: 976; time (us): 20860
+op/wr/cl bytes: 976; time (us): 20888
+op/wr/cl bytes: 976; time (us): 20852
+t avg (us): 21591
+
+op/wr/cl bytes: 984; time (us): 27876
+op/wr/cl bytes: 984; time (us): 20868
+op/wr/cl bytes: 984; time (us): 20948
+op/wr/cl bytes: 984; time (us): 20876
+op/wr/cl bytes: 984; time (us): 20864
+op/wr/cl bytes: 984; time (us): 20924
+op/wr/cl bytes: 984; time (us): 20912
+op/wr/cl bytes: 984; time (us): 20876
+op/wr/cl bytes: 984; time (us): 20876
+op/wr/cl bytes: 984; time (us): 20872
+t avg (us): 21589
+
+op/wr/cl bytes: 992; time (us): 27796
+op/wr/cl bytes: 992; time (us): 20864
+op/wr/cl bytes: 992; time (us): 20868
+op/wr/cl bytes: 992; time (us): 20872
+op/wr/cl bytes: 992; time (us): 20872
+op/wr/cl bytes: 992; time (us): 20900
+op/wr/cl bytes: 992; time (us): 20908
+op/wr/cl bytes: 992; time (us): 20872
+op/wr/cl bytes: 992; time (us): 20868
+op/wr/cl bytes: 992; time (us): 20864
+t avg (us): 21568
+
+op/wr/cl bytes: 1000; time (us): 27808
+op/wr/cl bytes: 1000; time (us): 20916
+op/wr/cl bytes: 1000; time (us): 20892
+op/wr/cl bytes: 1000; time (us): 20900
+op/wr/cl bytes: 1000; time (us): 20916
+op/wr/cl bytes: 1000; time (us): 20908
+op/wr/cl bytes: 1000; time (us): 20980
+op/wr/cl bytes: 1000; time (us): 20936
+op/wr/cl bytes: 1000; time (us): 20932
+op/wr/cl bytes: 1000; time (us): 20904
+t avg (us): 21609
+
+op/wr/cl bytes: 1008; time (us): 27876
+op/wr/cl bytes: 1008; time (us): 20892
+op/wr/cl bytes: 1008; time (us): 20884
+op/wr/cl bytes: 1008; time (us): 20888
+op/wr/cl bytes: 1008; time (us): 20992
+op/wr/cl bytes: 1008; time (us): 20888
+op/wr/cl bytes: 1008; time (us): 20888
+op/wr/cl bytes: 1008; time (us): 20848
+op/wr/cl bytes: 1008; time (us): 28936
+op/wr/cl bytes: 1008; time (us): 20980
+t avg (us): 22407
+
+
+op/wr/cl bytes: 1016; time (us): 27776
+op/wr/cl bytes: 1016; time (us): 20984
+op/wr/cl bytes: 1016; time (us): 21056
+op/wr/cl bytes: 1016; time (us): 20996
+op/wr/cl bytes: 1016; time (us): 21008
+op/wr/cl bytes: 1016; time (us): 21016
+op/wr/cl bytes: 1016; time (us): 20908
+op/wr/cl bytes: 1016; time (us): 21012
+op/wr/cl bytes: 1016; time (us): 21016
+op/wr/cl bytes: 1016; time (us): 20908
+t avg (us): 21668
+
+op/wr/cl bytes: 1024; time (us): 19040
+op/wr/cl bytes: 1024; time (us): 15732
+op/wr/cl bytes: 1024; time (us): 15740
+op/wr/cl bytes: 1024; time (us): 15744
+op/wr/cl bytes: 1024; time (us): 15736
+op/wr/cl bytes: 1024; time (us): 15740
+op/wr/cl bytes: 1024; time (us): 15744
+op/wr/cl bytes: 1024; time (us): 15736
+op/wr/cl bytes: 1024; time (us): 15736
+op/wr/cl bytes: 1024; time (us): 15736
+t avg (us): 16068
+
+op/wr/cl bytes: 1032; time (us): 27272
+op/wr/cl bytes: 1032; time (us): 23880
+op/wr/cl bytes: 1032; time (us): 22716
+op/wr/cl bytes: 1032; time (us): 23892
+op/wr/cl bytes: 1032; time (us): 22632
+op/wr/cl bytes: 1032; time (us): 23928
+op/wr/cl bytes: 1032; time (us): 22724
+op/wr/cl bytes: 1032; time (us): 23920
+op/wr/cl bytes: 1032; time (us): 22628
+op/wr/cl bytes: 1032; time (us): 23884
+t avg (us): 23747
+
+op/wr/cl bytes: 1040; time (us): 30896
+op/wr/cl bytes: 1040; time (us): 23912
+op/wr/cl bytes: 1040; time (us): 22600
+op/wr/cl bytes: 1040; time (us): 23876
+op/wr/cl bytes: 1040; time (us): 22696
+op/wr/cl bytes: 1040; time (us): 23948
+op/wr/cl bytes: 1040; time (us): 22624
+op/wr/cl bytes: 1040; time (us): 23880
+op/wr/cl bytes: 1040; time (us): 22700
+op/wr/cl bytes: 1040; time (us): 23868
+t avg (us): 24100
+
+op/wr/cl bytes: 1048; time (us): 30788
+op/wr/cl bytes: 1048; time (us): 23888
+op/wr/cl bytes: 1048; time (us): 22644
+op/wr/cl bytes: 1048; time (us): 23900
+op/wr/cl bytes: 1048; time (us): 22644
+op/wr/cl bytes: 1048; time (us): 23892
+op/wr/cl bytes: 1048; time (us): 31900
+op/wr/cl bytes: 1048; time (us): 24036
+op/wr/cl bytes: 1048; time (us): 22656
+op/wr/cl bytes: 1048; time (us): 23964
+t avg (us): 25031
+
+op/wr/cl bytes: 1056; time (us): 30880
+op/wr/cl bytes: 1056; time (us): 23996
+op/wr/cl bytes: 1056; time (us): 22648
+op/wr/cl bytes: 1056; time (us): 23984
+op/wr/cl bytes: 1056; time (us): 22712
+op/wr/cl bytes: 1056; time (us): 24020
+op/wr/cl bytes: 1056; time (us): 22644
+op/wr/cl bytes: 1056; time (us): 23884
+op/wr/cl bytes: 1056; time (us): 22716
+op/wr/cl bytes: 1056; time (us): 23888
+t avg (us): 24137
+
+
+op/wr/cl bytes: 1064; time (us): 30836
+op/wr/cl bytes: 1064; time (us): 23900
+op/wr/cl bytes: 1064; time (us): 22732
+op/wr/cl bytes: 1064; time (us): 24012
+op/wr/cl bytes: 1064; time (us): 22656
+op/wr/cl bytes: 1064; time (us): 23924
+op/wr/cl bytes: 1064; time (us): 22728
+op/wr/cl bytes: 1064; time (us): 23944
+op/wr/cl bytes: 1064; time (us): 22664
+op/wr/cl bytes: 1064; time (us): 23944
+t avg (us): 24134
+
+op/wr/cl bytes: 1072; time (us): 31000
+op/wr/cl bytes: 1072; time (us): 23964
+op/wr/cl bytes: 1072; time (us): 22620
+op/wr/cl bytes: 1072; time (us): 23936
+op/wr/cl bytes: 1072; time (us): 22744
+op/wr/cl bytes: 1072; time (us): 23896
+op/wr/cl bytes: 1072; time (us): 22640
+op/wr/cl bytes: 1072; time (us): 23904
+op/wr/cl bytes: 1072; time (us): 22652
+op/wr/cl bytes: 1072; time (us): 23908
+t avg (us): 24126
+
+op/wr/cl bytes: 1080; time (us): 30784
+op/wr/cl bytes: 1080; time (us): 23920
+op/wr/cl bytes: 1080; time (us): 22688
+op/wr/cl bytes: 1080; time (us): 23924
+op/wr/cl bytes: 1080; time (us): 22684
+op/wr/cl bytes: 1080; time (us): 23940
+op/wr/cl bytes: 1080; time (us): 22704
+op/wr/cl bytes: 1080; time (us): 23872
+op/wr/cl bytes: 1080; time (us): 30684
+op/wr/cl bytes: 1080; time (us): 24060
+t avg (us): 24926
+
+op/wr/cl bytes: 1088; time (us): 31044
+op/wr/cl bytes: 1088; time (us): 23904
+op/wr/cl bytes: 1088; time (us): 22680
+op/wr/cl bytes: 1088; time (us): 23996
+op/wr/cl bytes: 1088; time (us): 22736
+op/wr/cl bytes: 1088; time (us): 23956
+op/wr/cl bytes: 1088; time (us): 22688
+op/wr/cl bytes: 1088; time (us): 24036
+op/wr/cl bytes: 1088; time (us): 22756
+op/wr/cl bytes: 1088; time (us): 23924
+t avg (us): 24172
+
+op/wr/cl bytes: 1096; time (us): 30896
+op/wr/cl bytes: 1096; time (us): 24040
+op/wr/cl bytes: 1096; time (us): 22708
+op/wr/cl bytes: 1096; time (us): 23940
+op/wr/cl bytes: 1096; time (us): 22696
+op/wr/cl bytes: 1096; time (us): 24000
+op/wr/cl bytes: 1096; time (us): 22716
+op/wr/cl bytes: 1096; time (us): 23960
+op/wr/cl bytes: 1096; time (us): 22704
+op/wr/cl bytes: 1096; time (us): 23992
+t avg (us): 24165
+
+op/wr/cl bytes: 1104; time (us): 31000
+op/wr/cl bytes: 1104; time (us): 23952
+op/wr/cl bytes: 1104; time (us): 22692
+op/wr/cl bytes: 1104; time (us): 23936
+op/wr/cl bytes: 1104; time (us): 22692
+op/wr/cl bytes: 1104; time (us): 23932
+op/wr/cl bytes: 1104; time (us): 22696
+op/wr/cl bytes: 1104; time (us): 24016
+op/wr/cl bytes: 1104; time (us): 22776
+op/wr/cl bytes: 1104; time (us): 23948
+t avg (us): 24164
+
+op/wr/cl bytes: 1112; time (us): 30848
+op/wr/cl bytes: 1112; time (us): 23960
+op/wr/cl bytes: 1112; time (us): 22804
+op/wr/cl bytes: 1112; time (us): 23972
+op/wr/cl bytes: 1112; time (us): 22724
+op/wr/cl bytes: 1112; time (us): 23968
+op/wr/cl bytes: 1112; time (us): 22720
+op/wr/cl bytes: 1112; time (us): 23964
+op/wr/cl bytes: 1112; time (us): 22596
+op/wr/cl bytes: 1112; time (us): 32108
+t avg (us): 24966
+
+op/wr/cl bytes: 1120; time (us): 31072
+op/wr/cl bytes: 1120; time (us): 24052
+op/wr/cl bytes: 1120; time (us): 22696
+op/wr/cl bytes: 1120; time (us): 24068
+op/wr/cl bytes: 1120; time (us): 22788
+op/wr/cl bytes: 1120; time (us): 23956
+op/wr/cl bytes: 1120; time (us): 22720
+op/wr/cl bytes: 1120; time (us): 23988
+op/wr/cl bytes: 1120; time (us): 22716
+op/wr/cl bytes: 1120; time (us): 23952
+t avg (us): 24200
+
+op/wr/cl bytes: 1128; time (us): 30872
+op/wr/cl bytes: 1128; time (us): 24072
+op/wr/cl bytes: 1128; time (us): 22812
+op/wr/cl bytes: 1128; time (us): 24000
+op/wr/cl bytes: 1128; time (us): 22736
+op/wr/cl bytes: 1128; time (us): 23996
+op/wr/cl bytes: 1128; time (us): 22732
+op/wr/cl bytes: 1128; time (us): 24020
+op/wr/cl bytes: 1128; time (us): 22728
+op/wr/cl bytes: 1128; time (us): 24088
+t avg (us): 24205
+
+op/wr/cl bytes: 1136; time (us): 30948
+op/wr/cl bytes: 1136; time (us): 23964
+op/wr/cl bytes: 1136; time (us): 22728
+op/wr/cl bytes: 1136; time (us): 24012
+op/wr/cl bytes: 1136; time (us): 22720
+op/wr/cl bytes: 1136; time (us): 23972
+op/wr/cl bytes: 1136; time (us): 22740
+op/wr/cl bytes: 1136; time (us): 23972
+op/wr/cl bytes: 1136; time (us): 22736
+op/wr/cl bytes: 1136; time (us): 23972
+t avg (us): 24176
+
+op/wr/cl bytes: 1144; time (us): 30900
+op/wr/cl bytes: 1144; time (us): 23932
+op/wr/cl bytes: 1144; time (us): 22688
+op/wr/cl bytes: 1144; time (us): 23932
+op/wr/cl bytes: 1144; time (us): 22684
+op/wr/cl bytes: 1144; time (us): 23968
+op/wr/cl bytes: 1144; time (us): 22692
+op/wr/cl bytes: 1144; time (us): 23900
+op/wr/cl bytes: 1144; time (us): 22700
+op/wr/cl bytes: 1144; time (us): 23936
+t avg (us): 24133
+
+op/wr/cl bytes: 1152; time (us): 40096
+op/wr/cl bytes: 1152; time (us): 24068
+op/wr/cl bytes: 1152; time (us): 22740
+op/wr/cl bytes: 1152; time (us): 24084
+op/wr/cl bytes: 1152; time (us): 22792
+op/wr/cl bytes: 1152; time (us): 24084
+op/wr/cl bytes: 1152; time (us): 22732
+op/wr/cl bytes: 1152; time (us): 24080
+op/wr/cl bytes: 1152; time (us): 22796
+op/wr/cl bytes: 1152; time (us): 24088
+t avg (us): 25156
+
+op/wr/cl bytes: 1160; time (us): 30936
+op/wr/cl bytes: 1160; time (us): 23924
+op/wr/cl bytes: 1160; time (us): 22752
+op/wr/cl bytes: 1160; time (us): 24000
+op/wr/cl bytes: 1160; time (us): 22680
+op/wr/cl bytes: 1160; time (us): 24028
+op/wr/cl bytes: 1160; time (us): 22748
+op/wr/cl bytes: 1160; time (us): 23996
+op/wr/cl bytes: 1160; time (us): 22680
+op/wr/cl bytes: 1160; time (us): 23932
+t avg (us): 24167
+
+op/wr/cl bytes: 1168; time (us): 142068
+op/wr/cl bytes: 1168; time (us): 24036
+op/wr/cl bytes: 1168; time (us): 22784
+op/wr/cl bytes: 1168; time (us): 24012
+op/wr/cl bytes: 1168; time (us): 22844
+op/wr/cl bytes: 1168; time (us): 24008
+op/wr/cl bytes: 1168; time (us): 22748
+op/wr/cl bytes: 1168; time (us): 24044
+op/wr/cl bytes: 1168; time (us): 22772
+op/wr/cl bytes: 1168; time (us): 24008
+t avg (us): 35332
+
+op/wr/cl bytes: 1176; time (us): 30980
+op/wr/cl bytes: 1176; time (us): 24004
+op/wr/cl bytes: 1176; time (us): 22836
+op/wr/cl bytes: 1176; time (us): 24076
+op/wr/cl bytes: 1176; time (us): 22740
+op/wr/cl bytes: 1176; time (us): 24004
+op/wr/cl bytes: 1176; time (us): 22776
+op/wr/cl bytes: 1176; time (us): 24000
+op/wr/cl bytes: 1176; time (us): 22768
+op/wr/cl bytes: 1176; time (us): 24000
+t avg (us): 24218
+
+op/wr/cl bytes: 1184; time (us): 30992
+op/wr/cl bytes: 1184; time (us): 23960
+op/wr/cl bytes: 1184; time (us): 30816
+op/wr/cl bytes: 1184; time (us): 24120
+op/wr/cl bytes: 1184; time (us): 22848
+op/wr/cl bytes: 1184; time (us): 24128
+op/wr/cl bytes: 1184; time (us): 22788
+op/wr/cl bytes: 1184; time (us): 24024
+op/wr/cl bytes: 1184; time (us): 22852
+op/wr/cl bytes: 1184; time (us): 24124
+t avg (us): 25065
+
+op/wr/cl bytes: 1192; time (us): 30956
+op/wr/cl bytes: 1192; time (us): 24120
+op/wr/cl bytes: 1192; time (us): 22828
+op/wr/cl bytes: 1192; time (us): 24112
+op/wr/cl bytes: 1192; time (us): 22772
+op/wr/cl bytes: 1192; time (us): 24012
+op/wr/cl bytes: 1192; time (us): 22828
+op/wr/cl bytes: 1192; time (us): 24036
+op/wr/cl bytes: 1192; time (us): 22760
+op/wr/cl bytes: 1192; time (us): 24044
+t avg (us): 24246
+
+op/wr/cl bytes: 1200; time (us): 31008
+op/wr/cl bytes: 1200; time (us): 24100
+op/wr/cl bytes: 1200; time (us): 22796
+op/wr/cl bytes: 1200; time (us): 24028
+op/wr/cl bytes: 1200; time (us): 22864
+op/wr/cl bytes: 1200; time (us): 24040
+op/wr/cl bytes: 1200; time (us): 22800
+op/wr/cl bytes: 1200; time (us): 24032
+op/wr/cl bytes: 1200; time (us): 22864
+op/wr/cl bytes: 1200; time (us): 24144
+t avg (us): 24267
+
+op/wr/cl bytes: 1208; time (us): 31004
+op/wr/cl bytes: 1208; time (us): 24020
+op/wr/cl bytes: 1208; time (us): 22780
+op/wr/cl bytes: 1208; time (us): 24056
+op/wr/cl bytes: 1208; time (us): 22780
+op/wr/cl bytes: 1208; time (us): 24020
+op/wr/cl bytes: 1208; time (us): 22852
+op/wr/cl bytes: 1208; time (us): 24056
+op/wr/cl bytes: 1208; time (us): 22756
+op/wr/cl bytes: 1208; time (us): 24052
+t avg (us): 24237
+
+op/wr/cl bytes: 1216; time (us): 31016
+op/wr/cl bytes: 1216; time (us): 24044
+op/wr/cl bytes: 1216; time (us): 22692
+op/wr/cl bytes: 1216; time (us): 32148
+op/wr/cl bytes: 1216; time (us): 22860
+op/wr/cl bytes: 1216; time (us): 24144
+op/wr/cl bytes: 1216; time (us): 22808
+op/wr/cl bytes: 1216; time (us): 24072
+op/wr/cl bytes: 1216; time (us): 22868
+op/wr/cl bytes: 1216; time (us): 24040
+t avg (us): 25069
+
+op/wr/cl bytes: 1224; time (us): 31088
+op/wr/cl bytes: 1224; time (us): 24028
+op/wr/cl bytes: 1224; time (us): 22860
+op/wr/cl bytes: 1224; time (us): 24036
+op/wr/cl bytes: 1224; time (us): 22800
+op/wr/cl bytes: 1224; time (us): 24036
+op/wr/cl bytes: 1224; time (us): 22852
+op/wr/cl bytes: 1224; time (us): 24064
+op/wr/cl bytes: 1224; time (us): 22788
+op/wr/cl bytes: 1224; time (us): 24072
+t avg (us): 24262
+
+
+op/wr/cl bytes: 1232; time (us): 31024
+op/wr/cl bytes: 1232; time (us): 24056
+op/wr/cl bytes: 1232; time (us): 22812
+op/wr/cl bytes: 1232; time (us): 24036
+op/wr/cl bytes: 1232; time (us): 22808
+op/wr/cl bytes: 1232; time (us): 24064
+op/wr/cl bytes: 1232; time (us): 22812
+op/wr/cl bytes: 1232; time (us): 24084
+op/wr/cl bytes: 1232; time (us): 22888
+op/wr/cl bytes: 1232; time (us): 24052
+t avg (us): 24263
+
+op/wr/cl bytes: 1240; time (us): 30980
+op/wr/cl bytes: 1240; time (us): 24056
+op/wr/cl bytes: 1240; time (us): 22880
+op/wr/cl bytes: 1240; time (us): 24096
+op/wr/cl bytes: 1240; time (us): 22772
+op/wr/cl bytes: 1240; time (us): 24060
+op/wr/cl bytes: 1240; time (us): 22876
+op/wr/cl bytes: 1240; time (us): 24044
+op/wr/cl bytes: 1240; time (us): 22776
+op/wr/cl bytes: 1240; time (us): 24052
+t avg (us): 24259
+
+op/wr/cl bytes: 1248; time (us): 31056
+op/wr/cl bytes: 1248; time (us): 24068
+op/wr/cl bytes: 1248; time (us): 22824
+op/wr/cl bytes: 1248; time (us): 24080
+op/wr/cl bytes: 1248; time (us): 32044
+op/wr/cl bytes: 1248; time (us): 24168
+op/wr/cl bytes: 1248; time (us): 22820
+op/wr/cl bytes: 1248; time (us): 24236
+op/wr/cl bytes: 1248; time (us): 22896
+op/wr/cl bytes: 1248; time (us): 24176
+t avg (us): 25236
+
+op/wr/cl bytes: 1256; time (us): 31080
+op/wr/cl bytes: 1256; time (us): 24168
+op/wr/cl bytes: 1256; time (us): 22884
+op/wr/cl bytes: 1256; time (us): 24096
+op/wr/cl bytes: 1256; time (us): 22820
+op/wr/cl bytes: 1256; time (us): 24060
+op/wr/cl bytes: 1256; time (us): 22888
+op/wr/cl bytes: 1256; time (us): 24096
+op/wr/cl bytes: 1256; time (us): 22824
+op/wr/cl bytes: 1256; time (us): 24072
+t avg (us): 24298
+
+op/wr/cl bytes: 1264; time (us): 31088
+op/wr/cl bytes: 1264; time (us): 24112
+op/wr/cl bytes: 1264; time (us): 22852
+op/wr/cl bytes: 1264; time (us): 24088
+op/wr/cl bytes: 1264; time (us): 22924
+op/wr/cl bytes: 1264; time (us): 24156
+op/wr/cl bytes: 1264; time (us): 22848
+op/wr/cl bytes: 1264; time (us): 24100
+op/wr/cl bytes: 1264; time (us): 22908
+op/wr/cl bytes: 1264; time (us): 24084
+t avg (us): 24316
+
+op/wr/cl bytes: 1272; time (us): 31112
+op/wr/cl bytes: 1272; time (us): 24084
+op/wr/cl bytes: 1272; time (us): 22912
+op/wr/cl bytes: 1272; time (us): 24084
+op/wr/cl bytes: 1272; time (us): 23128
+op/wr/cl bytes: 1272; time (us): 24072
+op/wr/cl bytes: 1272; time (us): 22900
+op/wr/cl bytes: 1272; time (us): 24144
+op/wr/cl bytes: 1272; time (us): 22844
+op/wr/cl bytes: 1272; time (us): 24084
+t avg (us): 24336
+
+op/wr/cl bytes: 1280; time (us): 31072
+op/wr/cl bytes: 1280; time (us): 24092
+op/wr/cl bytes: 1280; time (us): 22852
+op/wr/cl bytes: 1280; time (us): 24196
+op/wr/cl bytes: 1280; time (us): 22932
+op/wr/cl bytes: 1280; time (us): 24092
+op/wr/cl bytes: 1280; time (us): 30880
+op/wr/cl bytes: 1280; time (us): 24276
+op/wr/cl bytes: 1280; time (us): 22924
+op/wr/cl bytes: 1280; time (us): 24124
+t avg (us): 25144
+
+op/wr/cl bytes: 1288; time (us): 31108
+op/wr/cl bytes: 1288; time (us): 24200
+op/wr/cl bytes: 1288; time (us): 22928
+op/wr/cl bytes: 1288; time (us): 24104
+op/wr/cl bytes: 1288; time (us): 22856
+op/wr/cl bytes: 1288; time (us): 24164
+op/wr/cl bytes: 1288; time (us): 22936
+op/wr/cl bytes: 1288; time (us): 24132
+op/wr/cl bytes: 1288; time (us): 22856
+op/wr/cl bytes: 1288; time (us): 24200
+t avg (us): 24348
+
+op/wr/cl bytes: 1296; time (us): 31092
+op/wr/cl bytes: 1296; time (us): 24108
+op/wr/cl bytes: 1296; time (us): 22872
+op/wr/cl bytes: 1296; time (us): 24224
+op/wr/cl bytes: 1296; time (us): 22952
+op/wr/cl bytes: 1296; time (us): 24124
+op/wr/cl bytes: 1296; time (us): 22892
+op/wr/cl bytes: 1296; time (us): 24128
+op/wr/cl bytes: 1296; time (us): 22892
+op/wr/cl bytes: 1296; time (us): 24128
+t avg (us): 24341
+
+op/wr/cl bytes: 1304; time (us): 31072
+op/wr/cl bytes: 1304; time (us): 24116
+op/wr/cl bytes: 1304; time (us): 22888
+op/wr/cl bytes: 1304; time (us): 24132
+op/wr/cl bytes: 1304; time (us): 22884
+op/wr/cl bytes: 1304; time (us): 24224
+op/wr/cl bytes: 1304; time (us): 22880
+op/wr/cl bytes: 1304; time (us): 24116
+op/wr/cl bytes: 1304; time (us): 22888
+op/wr/cl bytes: 1304; time (us): 24164
+t avg (us): 24336
+
+op/wr/cl bytes: 1312; time (us): 31180
+op/wr/cl bytes: 1312; time (us): 24136
+op/wr/cl bytes: 1312; time (us): 22900
+op/wr/cl bytes: 1312; time (us): 24156
+op/wr/cl bytes: 1312; time (us): 22908
+op/wr/cl bytes: 1312; time (us): 24132
+op/wr/cl bytes: 1312; time (us): 22784
+op/wr/cl bytes: 1312; time (us): 32248
+op/wr/cl bytes: 1312; time (us): 22948
+op/wr/cl bytes: 1312; time (us): 24228
+t avg (us): 25162
+
+op/wr/cl bytes: 1320; time (us): 31168
+op/wr/cl bytes: 1320; time (us): 24192
+op/wr/cl bytes: 1320; time (us): 22948
+op/wr/cl bytes: 1320; time (us): 24236
+op/wr/cl bytes: 1320; time (us): 22876
+op/wr/cl bytes: 1320; time (us): 24120
+op/wr/cl bytes: 1320; time (us): 22944
+op/wr/cl bytes: 1320; time (us): 24188
+op/wr/cl bytes: 1320; time (us): 22884
+op/wr/cl bytes: 1320; time (us): 24188
+t avg (us): 24374
+
+op/wr/cl bytes: 1328; time (us): 31220
+op/wr/cl bytes: 1328; time (us): 24244
+op/wr/cl bytes: 1328; time (us): 22888
+op/wr/cl bytes: 1328; time (us): 24140
+op/wr/cl bytes: 1328; time (us): 22960
+op/wr/cl bytes: 1328; time (us): 24148
+op/wr/cl bytes: 1328; time (us): 22912
+op/wr/cl bytes: 1328; time (us): 24152
+op/wr/cl bytes: 1328; time (us): 22964
+op/wr/cl bytes: 1328; time (us): 24176
+t avg (us): 24380
+
+op/wr/cl bytes: 1336; time (us): 31044
+op/wr/cl bytes: 1336; time (us): 24168
+op/wr/cl bytes: 1336; time (us): 22964
+op/wr/cl bytes: 1336; time (us): 24228
+op/wr/cl bytes: 1336; time (us): 22868
+op/wr/cl bytes: 1336; time (us): 24132
+op/wr/cl bytes: 1336; time (us): 22952
+op/wr/cl bytes: 1336; time (us): 24128
+op/wr/cl bytes: 1336; time (us): 22868
+op/wr/cl bytes: 1336; time (us): 24140
+t avg (us): 24349
+
+
+op/wr/cl bytes: 1344; time (us): 31112
+op/wr/cl bytes: 1344; time (us): 24152
+op/wr/cl bytes: 1344; time (us): 22892
+op/wr/cl bytes: 1344; time (us): 24156
+op/wr/cl bytes: 1344; time (us): 22992
+op/wr/cl bytes: 1344; time (us): 24156
+op/wr/cl bytes: 1344; time (us): 22920
+op/wr/cl bytes: 1344; time (us): 24164
+op/wr/cl bytes: 1344; time (us): 32228
+op/wr/cl bytes: 1344; time (us): 24228
+t avg (us): 25300
+
+op/wr/cl bytes: 1352; time (us): 31200
+op/wr/cl bytes: 1352; time (us): 24224
+op/wr/cl bytes: 1352; time (us): 22976
+op/wr/cl bytes: 1352; time (us): 24268
+op/wr/cl bytes: 1352; time (us): 22924
+op/wr/cl bytes: 1352; time (us): 24272
+op/wr/cl bytes: 1352; time (us): 22976
+op/wr/cl bytes: 1352; time (us): 24148
+op/wr/cl bytes: 1352; time (us): 22908
+op/wr/cl bytes: 1352; time (us): 24260
+t avg (us): 24415
+
+op/wr/cl bytes: 1360; time (us): 31256
+op/wr/cl bytes: 1360; time (us): 24284
+op/wr/cl bytes: 1360; time (us): 22932
+op/wr/cl bytes: 1360; time (us): 24176
+op/wr/cl bytes: 1360; time (us): 23008
+op/wr/cl bytes: 1360; time (us): 24296
+op/wr/cl bytes: 1360; time (us): 22928
+op/wr/cl bytes: 1360; time (us): 24216
+op/wr/cl bytes: 1360; time (us): 23016
+op/wr/cl bytes: 1360; time (us): 24184
+t avg (us): 24429
+
+op/wr/cl bytes: 1368; time (us): 31120
+op/wr/cl bytes: 1368; time (us): 24168
+op/wr/cl bytes: 1368; time (us): 22940
+op/wr/cl bytes: 1368; time (us): 24180
+op/wr/cl bytes: 1368; time (us): 22928
+op/wr/cl bytes: 1368; time (us): 24184
+op/wr/cl bytes: 1368; time (us): 23008
+op/wr/cl bytes: 1368; time (us): 24224
+op/wr/cl bytes: 1368; time (us): 22932
+op/wr/cl bytes: 1368; time (us): 24216
+t avg (us): 24390
+
+op/wr/cl bytes: 1376; time (us): 31196
+op/wr/cl bytes: 1376; time (us): 24236
+op/wr/cl bytes: 1376; time (us): 22964
+op/wr/cl bytes: 1376; time (us): 24212
+op/wr/cl bytes: 1376; time (us): 22948
+op/wr/cl bytes: 1376; time (us): 24204
+op/wr/cl bytes: 1376; time (us): 22968
+op/wr/cl bytes: 1376; time (us): 24276
+op/wr/cl bytes: 1376; time (us): 22956
+op/wr/cl bytes: 1376; time (us): 24144
+t avg (us): 24410
+
+op/wr/cl bytes: 1384; time (us): 39224
+op/wr/cl bytes: 1384; time (us): 24200
+op/wr/cl bytes: 1384; time (us): 22996
+op/wr/cl bytes: 1384; time (us): 24280
+op/wr/cl bytes: 1384; time (us): 22932
+op/wr/cl bytes: 1384; time (us): 24176
+op/wr/cl bytes: 1384; time (us): 22996
+op/wr/cl bytes: 1384; time (us): 24288
+op/wr/cl bytes: 1384; time (us): 22936
+op/wr/cl bytes: 1384; time (us): 24172
+t avg (us): 25220
+
+op/wr/cl bytes: 1392; time (us): 31160
+op/wr/cl bytes: 1392; time (us): 24292
+op/wr/cl bytes: 1392; time (us): 22956
+op/wr/cl bytes: 1392; time (us): 24236
+op/wr/cl bytes: 1392; time (us): 23012
+op/wr/cl bytes: 1392; time (us): 24308
+op/wr/cl bytes: 1392; time (us): 22956
+op/wr/cl bytes: 1392; time (us): 24272
+op/wr/cl bytes: 1392; time (us): 23024
+op/wr/cl bytes: 1392; time (us): 24196
+t avg (us): 24441
+
+op/wr/cl bytes: 1400; time (us): 31136
+op/wr/cl bytes: 1400; time (us): 24196
+op/wr/cl bytes: 1400; time (us): 23024
+op/wr/cl bytes: 1400; time (us): 24228
+op/wr/cl bytes: 1400; time (us): 22948
+op/wr/cl bytes: 1400; time (us): 24188
+op/wr/cl bytes: 1400; time (us): 23016
+op/wr/cl bytes: 1400; time (us): 24228
+op/wr/cl bytes: 1400; time (us): 22916
+op/wr/cl bytes: 1400; time (us): 24192
+t avg (us): 24407
+
+op/wr/cl bytes: 1408; time (us): 31176
+op/wr/cl bytes: 1408; time (us): 24208
+op/wr/cl bytes: 1408; time (us): 22960
+op/wr/cl bytes: 1408; time (us): 24260
+op/wr/cl bytes: 1408; time (us): 23044
+op/wr/cl bytes: 1408; time (us): 24252
+op/wr/cl bytes: 1408; time (us): 22944
+op/wr/cl bytes: 1408; time (us): 24212
+op/wr/cl bytes: 1408; time (us): 23048
+op/wr/cl bytes: 1408; time (us): 24224
+t avg (us): 24432
+
+op/wr/cl bytes: 1416; time (us): 31036
+op/wr/cl bytes: 1416; time (us): 32304
+op/wr/cl bytes: 1416; time (us): 23032
+op/wr/cl bytes: 1416; time (us): 24300
+op/wr/cl bytes: 1416; time (us): 22956
+op/wr/cl bytes: 1416; time (us): 24236
+op/wr/cl bytes: 1416; time (us): 23020
+op/wr/cl bytes: 1416; time (us): 24308
+op/wr/cl bytes: 1416; time (us): 22960
+op/wr/cl bytes: 1416; time (us): 24208
+t avg (us): 25236
+
+
+op/wr/cl bytes: 1424; time (us): 31188
+op/wr/cl bytes: 1424; time (us): 24228
+op/wr/cl bytes: 1424; time (us): 22980
+op/wr/cl bytes: 1424; time (us): 24260
+op/wr/cl bytes: 1424; time (us): 23064
+op/wr/cl bytes: 1424; time (us): 24216
+op/wr/cl bytes: 1424; time (us): 22992
+op/wr/cl bytes: 1424; time (us): 24232
+op/wr/cl bytes: 1424; time (us): 23048
+op/wr/cl bytes: 1424; time (us): 24300
+t avg (us): 24450
+
+op/wr/cl bytes: 1432; time (us): 31196
+op/wr/cl bytes: 1432; time (us): 24216
+op/wr/cl bytes: 1432; time (us): 23056
+op/wr/cl bytes: 1432; time (us): 24212
+op/wr/cl bytes: 1432; time (us): 22960
+op/wr/cl bytes: 1432; time (us): 24228
+op/wr/cl bytes: 1432; time (us): 23048
+op/wr/cl bytes: 1432; time (us): 24260
+op/wr/cl bytes: 1432; time (us): 22988
+op/wr/cl bytes: 1432; time (us): 24232
+t avg (us): 24439
+
+op/wr/cl bytes: 1440; time (us): 31184
+op/wr/cl bytes: 1440; time (us): 24272
+op/wr/cl bytes: 1440; time (us): 23004
+op/wr/cl bytes: 1440; time (us): 24288
+op/wr/cl bytes: 1440; time (us): 23000
+op/wr/cl bytes: 1440; time (us): 24268
+op/wr/cl bytes: 1440; time (us): 23016
+op/wr/cl bytes: 1440; time (us): 24260
+op/wr/cl bytes: 1440; time (us): 23064
+op/wr/cl bytes: 1440; time (us): 24284
+t avg (us): 24464
+
+op/wr/cl bytes: 1448; time (us): 31164
+op/wr/cl bytes: 1448; time (us): 24248
+op/wr/cl bytes: 1448; time (us): 32216
+op/wr/cl bytes: 1448; time (us): 24232
+op/wr/cl bytes: 1448; time (us): 23004
+op/wr/cl bytes: 1448; time (us): 24412
+op/wr/cl bytes: 1448; time (us): 23064
+op/wr/cl bytes: 1448; time (us): 24340
+op/wr/cl bytes: 1448; time (us): 22996
+op/wr/cl bytes: 1448; time (us): 24408
+t avg (us): 25408
+
+op/wr/cl bytes: 1456; time (us): 31328
+op/wr/cl bytes: 1456; time (us): 24284
+op/wr/cl bytes: 1456; time (us): 23024
+op/wr/cl bytes: 1456; time (us): 24364
+op/wr/cl bytes: 1456; time (us): 23084
+op/wr/cl bytes: 1456; time (us): 24320
+op/wr/cl bytes: 1456; time (us): 23032
+op/wr/cl bytes: 1456; time (us): 24248
+op/wr/cl bytes: 1456; time (us): 23024
+op/wr/cl bytes: 1456; time (us): 24268
+t avg (us): 24497
+
+op/wr/cl bytes: 1464; time (us): 31200
+op/wr/cl bytes: 1464; time (us): 24264
+op/wr/cl bytes: 1464; time (us): 23084
+op/wr/cl bytes: 1464; time (us): 24268
+op/wr/cl bytes: 1464; time (us): 23012
+op/wr/cl bytes: 1464; time (us): 24268
+op/wr/cl bytes: 1464; time (us): 23088
+op/wr/cl bytes: 1464; time (us): 24332
+op/wr/cl bytes: 1464; time (us): 23016
+op/wr/cl bytes: 1464; time (us): 24288
+t avg (us): 24482
+
+
+op/wr/cl bytes: 1472; time (us): 31300
+op/wr/cl bytes: 1472; time (us): 24276
+op/wr/cl bytes: 1472; time (us): 23044
+op/wr/cl bytes: 1472; time (us): 24284
+op/wr/cl bytes: 1472; time (us): 23108
+op/wr/cl bytes: 1472; time (us): 24284
+op/wr/cl bytes: 1472; time (us): 23032
+op/wr/cl bytes: 1472; time (us): 24380
+op/wr/cl bytes: 1472; time (us): 23044
+op/wr/cl bytes: 1472; time (us): 24308
+t avg (us): 24506
+
+op/wr/cl bytes: 1480; time (us): 31216
+op/wr/cl bytes: 1480; time (us): 24312
+op/wr/cl bytes: 1480; time (us): 23032
+op/wr/cl bytes: 1480; time (us): 24212
+op/wr/cl bytes: 1480; time (us): 31108
+op/wr/cl bytes: 1480; time (us): 24356
+op/wr/cl bytes: 1480; time (us): 23080
+op/wr/cl bytes: 1480; time (us): 24356
+op/wr/cl bytes: 1480; time (us): 23028
+op/wr/cl bytes: 1480; time (us): 24264
+t avg (us): 25296
+
+op/wr/cl bytes: 1488; time (us): 31312
+op/wr/cl bytes: 1488; time (us): 24452
+op/wr/cl bytes: 1488; time (us): 23036
+op/wr/cl bytes: 1488; time (us): 24280
+op/wr/cl bytes: 1488; time (us): 23112
+op/wr/cl bytes: 1488; time (us): 24388
+op/wr/cl bytes: 1488; time (us): 23040
+op/wr/cl bytes: 1488; time (us): 24312
+op/wr/cl bytes: 1488; time (us): 23104
+op/wr/cl bytes: 1488; time (us): 24284
+t avg (us): 24532
+
+op/wr/cl bytes: 1496; time (us): 31388
+op/wr/cl bytes: 1496; time (us): 24268
+op/wr/cl bytes: 1496; time (us): 23104
+op/wr/cl bytes: 1496; time (us): 24356
+op/wr/cl bytes: 1496; time (us): 23040
+op/wr/cl bytes: 1496; time (us): 24304
+op/wr/cl bytes: 1496; time (us): 23092
+op/wr/cl bytes: 1496; time (us): 24284
+op/wr/cl bytes: 1496; time (us): 23032
+op/wr/cl bytes: 1496; time (us): 24276
+t avg (us): 24514
+
+op/wr/cl bytes: 1504; time (us): 31576
+op/wr/cl bytes: 1504; time (us): 24336
+op/wr/cl bytes: 1504; time (us): 23064
+op/wr/cl bytes: 1504; time (us): 24304
+op/wr/cl bytes: 1504; time (us): 23124
+op/wr/cl bytes: 1504; time (us): 24312
+op/wr/cl bytes: 1504; time (us): 23016
+op/wr/cl bytes: 1504; time (us): 24300
+op/wr/cl bytes: 1504; time (us): 23136
+op/wr/cl bytes: 1504; time (us): 24296
+t avg (us): 24546
+
+op/wr/cl bytes: 1512; time (us): 31244
+op/wr/cl bytes: 1512; time (us): 24292
+op/wr/cl bytes: 1512; time (us): 23128
+op/wr/cl bytes: 1512; time (us): 24336
+op/wr/cl bytes: 1512; time (us): 22944
+op/wr/cl bytes: 1512; time (us): 32480
+op/wr/cl bytes: 1512; time (us): 23116
+op/wr/cl bytes: 1512; time (us): 24404
+op/wr/cl bytes: 1512; time (us): 23048
+op/wr/cl bytes: 1512; time (us): 24392
+t avg (us): 25338
+
+op/wr/cl bytes: 1520; time (us): 31364
+op/wr/cl bytes: 1520; time (us): 24428
+op/wr/cl bytes: 1520; time (us): 23080
+op/wr/cl bytes: 1520; time (us): 24416
+op/wr/cl bytes: 1520; time (us): 23148
+op/wr/cl bytes: 1520; time (us): 24348
+op/wr/cl bytes: 1520; time (us): 23084
+op/wr/cl bytes: 1520; time (us): 24336
+op/wr/cl bytes: 1520; time (us): 23148
+op/wr/cl bytes: 1520; time (us): 24348
+t avg (us): 24570
+
+op/wr/cl bytes: 1528; time (us): 31272
+op/wr/cl bytes: 1528; time (us): 24720
+op/wr/cl bytes: 1528; time (us): 23132
+op/wr/cl bytes: 1528; time (us): 24320
+op/wr/cl bytes: 1528; time (us): 23068
+op/wr/cl bytes: 1528; time (us): 24312
+op/wr/cl bytes: 1528; time (us): 23140
+op/wr/cl bytes: 1528; time (us): 24316
+op/wr/cl bytes: 1528; time (us): 23076
+op/wr/cl bytes: 1528; time (us): 24320
+t avg (us): 24567
+
+op/wr/cl bytes: 1536; time (us): 22436
+op/wr/cl bytes: 1536; time (us): 19192
+op/wr/cl bytes: 1536; time (us): 19192
+op/wr/cl bytes: 1536; time (us): 19192
+op/wr/cl bytes: 1536; time (us): 19192
+op/wr/cl bytes: 1536; time (us): 19180
+op/wr/cl bytes: 1536; time (us): 19188
+op/wr/cl bytes: 1536; time (us): 19176
+op/wr/cl bytes: 1536; time (us): 19200
+op/wr/cl bytes: 1536; time (us): 19188
+t avg (us): 19513
+
+op/wr/cl bytes: 1544; time (us): 29364
+op/wr/cl bytes: 1544; time (us): 27272
+op/wr/cl bytes: 1544; time (us): 27284
+op/wr/cl bytes: 1544; time (us): 27272
+op/wr/cl bytes: 1544; time (us): 27228
+op/wr/cl bytes: 1544; time (us): 35356
+op/wr/cl bytes: 1544; time (us): 27360
+op/wr/cl bytes: 1544; time (us): 27360
+op/wr/cl bytes: 1544; time (us): 27372
+op/wr/cl bytes: 1544; time (us): 27364
+t avg (us): 28323
+
+op/wr/cl bytes: 1552; time (us): 34348
+op/wr/cl bytes: 1552; time (us): 27380
+op/wr/cl bytes: 1552; time (us): 27404
+op/wr/cl bytes: 1552; time (us): 27404
+op/wr/cl bytes: 1552; time (us): 27400
+op/wr/cl bytes: 1552; time (us): 27396
+op/wr/cl bytes: 1552; time (us): 27352
+op/wr/cl bytes: 1552; time (us): 27412
+op/wr/cl bytes: 1552; time (us): 27404
+op/wr/cl bytes: 1552; time (us): 27344
+t avg (us): 28084
+
+op/wr/cl bytes: 1560; time (us): 34364
+op/wr/cl bytes: 1560; time (us): 27276
+op/wr/cl bytes: 1560; time (us): 27292
+op/wr/cl bytes: 1560; time (us): 27300
+op/wr/cl bytes: 1560; time (us): 27352
+op/wr/cl bytes: 1560; time (us): 27340
+op/wr/cl bytes: 1560; time (us): 27284
+op/wr/cl bytes: 1560; time (us): 27336
+op/wr/cl bytes: 1560; time (us): 27296
+op/wr/cl bytes: 1560; time (us): 27324
+t avg (us): 28016
+
+op/wr/cl bytes: 1568; time (us): 34268
+op/wr/cl bytes: 1568; time (us): 27340
+op/wr/cl bytes: 1568; time (us): 27300
+op/wr/cl bytes: 1568; time (us): 27324
+op/wr/cl bytes: 1568; time (us): 27312
+op/wr/cl bytes: 1568; time (us): 27272
+op/wr/cl bytes: 1568; time (us): 35344
+op/wr/cl bytes: 1568; time (us): 27312
+op/wr/cl bytes: 1568; time (us): 27420
+op/wr/cl bytes: 1568; time (us): 27360
+t avg (us): 28825
+
+op/wr/cl bytes: 1576; time (us): 34304
+op/wr/cl bytes: 1576; time (us): 27408
+op/wr/cl bytes: 1576; time (us): 27308
+op/wr/cl bytes: 1576; time (us): 27308
+op/wr/cl bytes: 1576; time (us): 27300
+op/wr/cl bytes: 1576; time (us): 27408
+op/wr/cl bytes: 1576; time (us): 27304
+op/wr/cl bytes: 1576; time (us): 27380
+op/wr/cl bytes: 1576; time (us): 27336
+op/wr/cl bytes: 1576; time (us): 27304
+t avg (us): 28036
+
+op/wr/cl bytes: 1584; time (us): 34284
+op/wr/cl bytes: 1584; time (us): 27328
+op/wr/cl bytes: 1584; time (us): 27332
+op/wr/cl bytes: 1584; time (us): 27336
+op/wr/cl bytes: 1584; time (us): 27348
+op/wr/cl bytes: 1584; time (us): 27324
+op/wr/cl bytes: 1584; time (us): 27336
+op/wr/cl bytes: 1584; time (us): 27324
+op/wr/cl bytes: 1584; time (us): 27340
+op/wr/cl bytes: 1584; time (us): 27324
+t avg (us): 28027
+
+op/wr/cl bytes: 1592; time (us): 34356
+op/wr/cl bytes: 1592; time (us): 27320
+op/wr/cl bytes: 1592; time (us): 27316
+op/wr/cl bytes: 1592; time (us): 27360
+op/wr/cl bytes: 1592; time (us): 27328
+op/wr/cl bytes: 1592; time (us): 27332
+op/wr/cl bytes: 1592; time (us): 27264
+op/wr/cl bytes: 1592; time (us): 35492
+op/wr/cl bytes: 1592; time (us): 27480
+op/wr/cl bytes: 1592; time (us): 27416
+t avg (us): 28866
+
+op/wr/cl bytes: 1600; time (us): 34392
+op/wr/cl bytes: 1600; time (us): 27500
+op/wr/cl bytes: 1600; time (us): 27412
+op/wr/cl bytes: 1600; time (us): 27500
+op/wr/cl bytes: 1600; time (us): 27436
+op/wr/cl bytes: 1600; time (us): 27476
+op/wr/cl bytes: 1600; time (us): 27400
+op/wr/cl bytes: 1600; time (us): 27340
+op/wr/cl bytes: 1600; time (us): 27408
+op/wr/cl bytes: 1600; time (us): 27408
+t avg (us): 28127
+
+op/wr/cl bytes: 1608; time (us): 34360
+op/wr/cl bytes: 1608; time (us): 27352
+op/wr/cl bytes: 1608; time (us): 27360
+op/wr/cl bytes: 1608; time (us): 27336
+op/wr/cl bytes: 1608; time (us): 27352
+op/wr/cl bytes: 1608; time (us): 27392
+op/wr/cl bytes: 1608; time (us): 27428
+op/wr/cl bytes: 1608; time (us): 27336
+op/wr/cl bytes: 1608; time (us): 27392
+op/wr/cl bytes: 1608; time (us): 27336
+t avg (us): 28064
+
+op/wr/cl bytes: 1616; time (us): 34344
+op/wr/cl bytes: 1616; time (us): 27344
+op/wr/cl bytes: 1616; time (us): 27364
+op/wr/cl bytes: 1616; time (us): 27380
+op/wr/cl bytes: 1616; time (us): 27384
+op/wr/cl bytes: 1616; time (us): 27344
+op/wr/cl bytes: 1616; time (us): 27360
+op/wr/cl bytes: 1616; time (us): 27324
+op/wr/cl bytes: 1616; time (us): 35560
+op/wr/cl bytes: 1616; time (us): 27460
+t avg (us): 28886
+
+op/wr/cl bytes: 1624; time (us): 34448
+op/wr/cl bytes: 1624; time (us): 27444
+op/wr/cl bytes: 1624; time (us): 27348
+op/wr/cl bytes: 1624; time (us): 27448
+op/wr/cl bytes: 1624; time (us): 27384
+op/wr/cl bytes: 1624; time (us): 27368
+op/wr/cl bytes: 1624; time (us): 27344
+op/wr/cl bytes: 1624; time (us): 27428
+op/wr/cl bytes: 1624; time (us): 27384
+op/wr/cl bytes: 1624; time (us): 27352
+t avg (us): 28094
+
+op/wr/cl bytes: 1632; time (us): 34284
+op/wr/cl bytes: 1632; time (us): 27396
+op/wr/cl bytes: 1632; time (us): 27380
+op/wr/cl bytes: 1632; time (us): 27376
+op/wr/cl bytes: 1632; time (us): 27376
+op/wr/cl bytes: 1632; time (us): 27372
+op/wr/cl bytes: 1632; time (us): 27388
+op/wr/cl bytes: 1632; time (us): 27380
+op/wr/cl bytes: 1632; time (us): 27372
+op/wr/cl bytes: 1632; time (us): 27448
+t avg (us): 28077
+
+op/wr/cl bytes: 1640; time (us): 34404
+op/wr/cl bytes: 1640; time (us): 27352
+op/wr/cl bytes: 1640; time (us): 27360
+op/wr/cl bytes: 1640; time (us): 27400
+op/wr/cl bytes: 1640; time (us): 27368
+op/wr/cl bytes: 1640; time (us): 27368
+op/wr/cl bytes: 1640; time (us): 27404
+op/wr/cl bytes: 1640; time (us): 27448
+op/wr/cl bytes: 1640; time (us): 27300
+op/wr/cl bytes: 1640; time (us): 35576
+t avg (us): 28898
+
+op/wr/cl bytes: 1648; time (us): 34436
+op/wr/cl bytes: 1648; time (us): 27468
+op/wr/cl bytes: 1648; time (us): 27492
+op/wr/cl bytes: 1648; time (us): 27488
+op/wr/cl bytes: 1648; time (us): 27472
+op/wr/cl bytes: 1648; time (us): 27496
+op/wr/cl bytes: 1648; time (us): 27480
+op/wr/cl bytes: 1648; time (us): 27464
+op/wr/cl bytes: 1648; time (us): 27484
+op/wr/cl bytes: 1648; time (us): 27484
+t avg (us): 28176
+
+op/wr/cl bytes: 1656; time (us): 34480
+op/wr/cl bytes: 1656; time (us): 27492
+op/wr/cl bytes: 1656; time (us): 27408
+op/wr/cl bytes: 1656; time (us): 27412
+op/wr/cl bytes: 1656; time (us): 27540
+op/wr/cl bytes: 1656; time (us): 27384
+op/wr/cl bytes: 1656; time (us): 27412
+op/wr/cl bytes: 1656; time (us): 27396
+op/wr/cl bytes: 1656; time (us): 27368
+op/wr/cl bytes: 1656; time (us): 27396
+t avg (us): 28128
+
+op/wr/cl bytes: 1664; time (us): 34352
+op/wr/cl bytes: 1664; time (us): 27388
+op/wr/cl bytes: 1664; time (us): 27392
+op/wr/cl bytes: 1664; time (us): 27432
+op/wr/cl bytes: 1664; time (us): 27508
+op/wr/cl bytes: 1664; time (us): 27392
+op/wr/cl bytes: 1664; time (us): 27436
+op/wr/cl bytes: 1664; time (us): 27568
+op/wr/cl bytes: 1664; time (us): 27428
+op/wr/cl bytes: 1664; time (us): 27336
+t avg (us): 28123
+
+op/wr/cl bytes: 1672; time (us): 42628
+op/wr/cl bytes: 1672; time (us): 27508
+op/wr/cl bytes: 1672; time (us): 27512
+op/wr/cl bytes: 1672; time (us): 27560
+op/wr/cl bytes: 1672; time (us): 27484
+op/wr/cl bytes: 1672; time (us): 27480
+op/wr/cl bytes: 1672; time (us): 27488
+op/wr/cl bytes: 1672; time (us): 27488
+op/wr/cl bytes: 1672; time (us): 27488
+op/wr/cl bytes: 1672; time (us): 27492
+t avg (us): 29012
+
+op/wr/cl bytes: 1680; time (us): 34456
+op/wr/cl bytes: 1680; time (us): 27436
+op/wr/cl bytes: 1680; time (us): 27508
+op/wr/cl bytes: 1680; time (us): 27336
+op/wr/cl bytes: 1680; time (us): 27380
+op/wr/cl bytes: 1680; time (us): 27448
+op/wr/cl bytes: 1680; time (us): 27448
+op/wr/cl bytes: 1680; time (us): 27352
+op/wr/cl bytes: 1680; time (us): 27388
+op/wr/cl bytes: 1680; time (us): 27488
+t avg (us): 28124
+
+op/wr/cl bytes: 1688; time (us): 34280
+op/wr/cl bytes: 1688; time (us): 27432
+op/wr/cl bytes: 1688; time (us): 27444
+op/wr/cl bytes: 1688; time (us): 27440
+op/wr/cl bytes: 1688; time (us): 27408
+op/wr/cl bytes: 1688; time (us): 27412
+op/wr/cl bytes: 1688; time (us): 27508
+op/wr/cl bytes: 1688; time (us): 27508
+op/wr/cl bytes: 1688; time (us): 27508
+op/wr/cl bytes: 1688; time (us): 27428
+t avg (us): 28136
+
+op/wr/cl bytes: 1696; time (us): 35516
+op/wr/cl bytes: 1696; time (us): 35544
+op/wr/cl bytes: 1696; time (us): 27520
+op/wr/cl bytes: 1696; time (us): 27452
+op/wr/cl bytes: 1696; time (us): 27440
+op/wr/cl bytes: 1696; time (us): 27452
+op/wr/cl bytes: 1696; time (us): 27452
+op/wr/cl bytes: 1696; time (us): 27444
+op/wr/cl bytes: 1696; time (us): 27444
+op/wr/cl bytes: 1696; time (us): 27548
+t avg (us): 29081
+
+op/wr/cl bytes: 1704; time (us): 146844
+op/wr/cl bytes: 1704; time (us): 27452
+op/wr/cl bytes: 1704; time (us): 27500
+op/wr/cl bytes: 1704; time (us): 27532
+op/wr/cl bytes: 1704; time (us): 27520
+op/wr/cl bytes: 1704; time (us): 27588
+op/wr/cl bytes: 1704; time (us): 27536
+op/wr/cl bytes: 1704; time (us): 27456
+op/wr/cl bytes: 1704; time (us): 27540
+op/wr/cl bytes: 1704; time (us): 27532
+t avg (us): 39450
+
+op/wr/cl bytes: 1712; time (us): 34460
+op/wr/cl bytes: 1712; time (us): 27536
+op/wr/cl bytes: 1712; time (us): 27532
+op/wr/cl bytes: 1712; time (us): 27532
+op/wr/cl bytes: 1712; time (us): 27420
+op/wr/cl bytes: 1712; time (us): 27500
+op/wr/cl bytes: 1712; time (us): 27532
+op/wr/cl bytes: 1712; time (us): 27448
+op/wr/cl bytes: 1712; time (us): 27524
+op/wr/cl bytes: 1712; time (us): 27460
+t avg (us): 28194
+
+op/wr/cl bytes: 1720; time (us): 34516
+op/wr/cl bytes: 1720; time (us): 27440
+op/wr/cl bytes: 1720; time (us): 35676
+op/wr/cl bytes: 1720; time (us): 27716
+op/wr/cl bytes: 1720; time (us): 27544
+op/wr/cl bytes: 1720; time (us): 27616
+op/wr/cl bytes: 1720; time (us): 27544
+op/wr/cl bytes: 1720; time (us): 27544
+op/wr/cl bytes: 1720; time (us): 27548
+op/wr/cl bytes: 1720; time (us): 27548
+t avg (us): 29069
+
+op/wr/cl bytes: 1728; time (us): 34544
+op/wr/cl bytes: 1728; time (us): 27572
+op/wr/cl bytes: 1728; time (us): 27532
+op/wr/cl bytes: 1728; time (us): 27560
+op/wr/cl bytes: 1728; time (us): 27540
+op/wr/cl bytes: 1728; time (us): 27544
+op/wr/cl bytes: 1728; time (us): 27508
+op/wr/cl bytes: 1728; time (us): 27564
+op/wr/cl bytes: 1728; time (us): 27472
+op/wr/cl bytes: 1728; time (us): 27504
+t avg (us): 28234
+
+op/wr/cl bytes: 1736; time (us): 34480
+op/wr/cl bytes: 1736; time (us): 27552
+op/wr/cl bytes: 1736; time (us): 27520
+op/wr/cl bytes: 1736; time (us): 27452
+op/wr/cl bytes: 1736; time (us): 27452
+op/wr/cl bytes: 1736; time (us): 27560
+op/wr/cl bytes: 1736; time (us): 27452
+op/wr/cl bytes: 1736; time (us): 27560
+op/wr/cl bytes: 1736; time (us): 27492
+op/wr/cl bytes: 1736; time (us): 27500
+t avg (us): 28202
+

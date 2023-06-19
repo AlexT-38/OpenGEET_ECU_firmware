@@ -1,0 +1,10 @@
+op/wr/cl bytes: 1574; bytes(tot): 5132; time (us): 87920
+op/wr/cl bytes: 1779; bytes(tot): 48916; time (us): 88200		43784
+op/wr/cl bytes: 1654; bytes(tot): 90886; time (us): 88404		41970
+op/wr/cl bytes: 1564; bytes(tot): 134804; time (us): 87016		43918
+op/wr/cl bytes: 1898; bytes(tot): 177317; time (us): 87376		42513
+op/wr/cl bytes: 1969; bytes(tot): 219703; time (us): 88736		42386
+op/wr/cl bytes: 1973; bytes(tot): 262901; time (us): 87544		43198
+op/wr/cl bytes: 1845; bytes(tot): 304767; time (us): 88192		41866
+op/wr/cl bytes: 1653; bytes(tot): 347935; time (us): 87384		43168
+op/wr/cl bytes: 1777; bytes(tot): 390362; time (us): 88680		42427
