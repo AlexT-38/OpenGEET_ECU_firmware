@@ -108,16 +108,19 @@
 
 #ifdef DEBUG                      //enable debugging readouts
 //#define DEBUG_LOOP              //mprint out loop markers and update time                 min(us)       typ(us)       max(us)
-//#define DEBUG_RECORD_TIME       //measure how long an update takes                    t:  356           360           380
-//#define DEBUG_DISPLAY_TIME      //measure how long draw screen takes                  t:  4600 5120 6444 7940
-//#define DEBUG_SDCARD_TIME       //measure how long SD card log write takes            t:  36208 45460 39320 39336 39848 36080 39248 40032 40068 40072 39944 36144 (sandisk class 10 16GB)
-                                                                                      //  39112 42512 42784 42784 40916 43956 44020 43880 43800 39348 53840 44808 44828 44684 42864 (INX 1GB)
-//#define DEBUG_SERIAL_TIME       //measure how long serial log write takes             t:  8092 8100 8104 8112
+//#define DEBUG_RECORD_TIME       //measure how long calculating averages takes         t:  356           360           380
+//#define DEBUG_BUFFER_TIME       //measure how long writing the data as a string takes t:  3876          3880          4520
+//#define DEBUG_DISPLAY_TIME      //measure how long draw screen takes                  t:         4600 5120 6444 7940
+//#define DEBUG_SDCARD_TIME       //measure how long SD card log write takes     write  t:                4000  
+//                                                                               flush  t:                3000          11000
+//#define DEBUG_SERIAL_TIME       //measure how long serial log write takes             t:             3936 4632
 //#define DEBUG_PID_TIME          //measure how long the pid loop takes                 t:     48(direct) 76(1ch)      
 //#define DEBUG_ANALOG_TIME       //measure how long analog read and processing takes   t:
 //#define DEBUG_DIGITAL_TIME      //measure how long reading from digital sensors takes t:  
 //#define DEBUG_TOUCH_TIME        //measure how long reading and processing touch input t:                125           300
 //#define DEBUG_RECORD  // n/a
+//#define DEBUG_SDCARD
+//#define DEBUG_BUFFER
 //#define DEBUG_ADC
 //#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
@@ -143,7 +146,9 @@
 //#define DEBUG_RTC
 //#define DEBUG_RTC_FORCE_UPDATE
 //#define DEBUG_SDCARD_TEST_FILE_OPEN
-//#define DEBUG_SDCARD_TEST_FILE_NAME "23061200.txt"
+//#define DEBUG_SDCARD_TEST_FILE_CREATE
+//#define DEBUG_SDCARD_TEST_FILE_OPEN_LOOP
+//#define DEBUG_SDCARD_TEST_FILE_NAME "23062003.txt"
 //#define DEBUG_POWER_CALC
 
 
@@ -229,8 +234,9 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
 #define UPDATE_INTERVAL_ms            500
 #define RECORD_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 0)      //setting update loops to start slightly offset so they aren't tying to execute at the same time
 #define SCREEN_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 10)
-#define SDCARD_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 200)
-#define SERIAL_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 300)
+#define SERIAL_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 200)    //serial report runs first
+#define SDCARD_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 300)    //sdcard runs second and removes the stale data from the buffer
+#define SDCARD_SYNC_START_ms        (UPDATE_INTERVAL_ms + 400)    //sdcard sync in a seperate slot, in the hopes of reducing overhead
 
 // digital themocouple update rate
 #define EGT_SAMPLE_INTERVAL_ms        250 //max update rate
@@ -261,6 +267,7 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
  *      F - finalise record                                             000                                     500     40    80ms till next spi use
  *      S - draw screen                                                 010                                     510
  *      D - write to SD card                                                            200                        
+ *      F - flush SD card                                                                               400
  *      R - write to serial                                                                     300
  *      T - touch                                                           080     180     280     380     480         10
  *      P - pid                                                         040 090 140 190 240 290 340 390 440 490 540     10, 30
@@ -271,10 +278,10 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
  *      3.33ms per char
  *         010   030   050   070   090   110   130   150   170   190   210   230   250   270   290   310   330   350   370   390   410   430   450   470   490
  *      000   020   040   060   080   100   120   140   160   180   200   220   240   260   280   300   320   340   360   380   400   420   440   460   480   500
- *      F  S        P        A  T  P     E        P        A  T  P  D           P        A  T  P  R           P     E  A  T  P              P        A  T  P  U
+ *      F  S        P        A  T  P     E        P        A  T  P  R           P        A  T  P  D           P     E  A  T  P  F           P        A  T  P  U
  *                                    
  *      500   520   540   560   580   600   620   640   660   680   700   720   740   760   780   800   820   840   860   880   900   920   940   960   980  1000
- *      F  S        P        A  T  P     E        P        A  T  P  D           P        A  T  P  R           P     E  A  T  P              P        A  T  P  U
+ *      F  S        P        A  T  P     E        P        A  T  P  R           P        A  T  P  D           P     E  A  T  P  F           P        A  T  P  U
  * 
  */
 
@@ -296,10 +303,10 @@ unsigned int KNOB_values[NO_OF_KNOBS];
 
 
 
-
 static int record_timestamp = 0; //not much I can do easily about these timestamps
 static int screen_timestamp = 0; //not much I can do easily about these timestamps
 static int sdcard_timestamp = 0; //not much I can do easily about these timestamps
+static int sdcard_sync_timestamp = 0; //not much I can do easily about these timestamps
 static int serial_timestamp = 0; //not much I can do easily about these timestamps
 static int analog_timestamp = 0; //could be optimised by using a timer and a progmem table of func calls
 static int egt_timestamp = 0;    //more optimal if all intervals have large common root
@@ -402,10 +409,13 @@ void setup() {
   }
   else
   {
+    // set date time callback function
+    //SdFile::dateTimeCallback(dateTime);
     GET_STRING(S_CARD_INITIALISED); //S_NO_SD_CARD);//
     flags_status.sdcard_available = true;
     Serial.println(F("SD Card init'ed succesfully."));
 #ifdef DEBUG_SDCARD_TEST_FILE_OPEN
+
     File dataFile = SD.open(DEBUG_SDCARD_TEST_FILE_NAME, FILE_WRITE);
     if(dataFile)
     {
@@ -421,6 +431,9 @@ void setup() {
       Serial.println(F("Test file open FAILED"));
     }
 #endif
+#ifdef DEBUG_SDCARD_TEST_FILE_CREATE
+    create_file();
+#endif
   }
 //  Serial.println(string);
   screen_draw_splash(S_FIRMWARE_NAME_str, string);
@@ -433,6 +446,10 @@ void setup() {
 
   //move all servos to minimum
   reset_servos();
+
+
+  //set up the buffer for logging output
+  configure_records();
 
 
   // test the map functions
@@ -530,8 +547,9 @@ void setup() {
   //set the initial times for the loop events
   record_timestamp = timenow + RECORD_UPDATE_START_ms;
   screen_timestamp = timenow + SCREEN_UPDATE_START_ms;
-  sdcard_timestamp = timenow + SDCARD_UPDATE_START_ms;
   serial_timestamp = timenow + SERIAL_UPDATE_START_ms;
+  sdcard_timestamp = timenow + SDCARD_UPDATE_START_ms;
+  sdcard_sync_timestamp = timenow + SDCARD_UPDATE_START_ms;
   
   analog_timestamp = timenow + ANALOG_UPDATE_START_ms;
   egt_timestamp = timenow + EGT_UPDATE_START_ms;
@@ -543,7 +561,7 @@ void setup() {
 
 
 
-void process_digital_inputs()
+void process_egt_sensors()
 {
   #ifdef DEBUG_DISABLE_DIGITAL
   return;
@@ -594,25 +612,7 @@ void loop() {
   }
   #endif //DEBUG_RPM_FAKE
 
-  #ifdef DEBUG_SDCARD_TEST_FILE_OPEN
-  static unsigned int sd_count = 0;
-  File dataFile = SD.open(DEBUG_SDCARD_TEST_FILE_NAME, FILE_WRITE);
-  if(dataFile)
-  {
-    //print the header
-    //dataFile.println(F("Test data"));
-    dataFile.close();
-    
-    Serial.print(F("SD OK   ")); Serial.println(sd_count);
-  }
-  else
-  {
-    //open failed on first attempt, do not attempt to save to this file
-    Serial.print(F("SD FAIL ")); Serial.println(sd_count);
-  }
-  sd_count++;
-  timenow = millis();
-  #endif  
+ 
 
   /* get time left till next update */
   elapsed_time = record_timestamp - timenow;
@@ -626,19 +626,8 @@ void loop() {
     #ifdef DEBUG_LOOP
     Serial.print(F("\nREC: ")); Serial.println(timenow);
     #endif
-
-    #ifdef DEBUG_RECORD_TIME
-    unsigned int timestamp_us = micros();
-    #endif //DEBUG_RECORD_TIME
     
-    reset_record();
-    finalise_record();
-
-    #ifdef DEBUG_RECORD_TIME
-    timestamp_us = micros() - timestamp_us;
-    Serial.print(F("t_rec us: "));
-    Serial.println(timestamp_us);
-    #endif //DEBUG_RECORD_TIME
+    update_record();
     
     //update the time
     timenow = millis();
@@ -674,35 +663,6 @@ void loop() {
   }
 
   /* get time left till next update */
-  elapsed_time = sdcard_timestamp - timenow;
-  /* execute update if update interval has elapsed */
-  if(elapsed_time < 0)
-  {
-    /* set the timestamp for the next update */
-    sdcard_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
-
-    // debug marker
-    #ifdef DEBUG_LOOP
-    Serial.print(F("\nSDC: ")); Serial.println(timenow);
-    #endif
-
-    #ifdef DEBUG_SDCARD_TIME
-    unsigned int timestamp_us = micros();
-    #endif //DEBUG_SDCARD_TIME
-    
-    write_sdcard_data_record();
-
-    #ifdef DEBUG_SDCARD_TIME
-    timestamp_us = micros() - timestamp_us;
-    Serial.print(F("t_sdc us: "));
-    Serial.println(timestamp_us);
-    #endif //DEBUG_SDCARD_TIME
-    
-    //update the time
-    timenow = millis();
-  }
-
-  /* get time left till next update */
   elapsed_time = serial_timestamp - timenow;
   /* execute update if update interval has elapsed */
   if(elapsed_time < 0)
@@ -715,18 +675,69 @@ void loop() {
     Serial.print(F("\nSER: ")); Serial.println(timenow);
     #endif
 
-    #ifdef DEBUG_SERIAL_TIME
-    unsigned int timestamp_us = micros();
-    #endif //DEBUG_SERIAL_TIME
-    
     write_serial_data_record();
-
-    #ifdef DEBUG_SERIAL_TIME
-    timestamp_us = micros() - timestamp_us;
-    Serial.print(F("t_ser us: "));
-    Serial.println(timestamp_us);
-    #endif //DEBUG_SERIAL_TIME
     
+    //update the time
+    timenow = millis();
+  }
+
+  /* get time left till next update */
+  elapsed_time = sdcard_timestamp - timenow;
+  /* execute update if update interval has elapsed */
+  if(elapsed_time < 0)
+  {
+    /* set the timestamp for the next update */
+    sdcard_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
+
+    // debug marker
+    #ifdef DEBUG_LOOP
+    Serial.print(F("\nSDC: ")); Serial.println(timenow);
+    #endif
+
+    #ifndef DEBUG_SDCARD_TEST_FILE_OPEN_LOOP
+    
+    write_sdcard_data_record();
+
+    #else
+      static unsigned int sd_count = 0;
+      File dataFile = SD.open(DEBUG_SDCARD_TEST_FILE_NAME, FILE_WRITE);
+      if(dataFile)
+      {
+        dataFile.close();
+        
+        Serial.print(F("SD OK   ")); 
+      }
+      else
+      {
+        Serial.print(F("SD FAIL ")); Serial.println(sd_count);
+      }
+      Serial.print(sd_count); Serial.print(" "); Serial.println(timenow);
+      sd_count++;
+    #endif 
+
+    //update the time
+    timenow = millis();
+  }
+
+    /* get time left till next update */
+  elapsed_time = sdcard_sync_timestamp - timenow;
+  /* execute update if update interval has elapsed */
+  if(elapsed_time < 0)
+  {
+    /* set the timestamp for the next update */
+    sdcard_sync_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
+
+    // debug marker
+    #ifdef DEBUG_LOOP
+    Serial.print(F("\nSDC: ")); Serial.println(timenow);
+    #endif
+
+    #ifndef DEBUG_SDCARD_TEST_FILE_OPEN_LOOP
+      
+    sync_sdcard_data_record();
+
+    #endif
+
     //update the time
     timenow = millis();
   }
@@ -744,7 +755,7 @@ void loop() {
     Serial.print(F("\nDIG: ")); Serial.println(timenow);
     #endif
     
-    process_digital_inputs();
+    process_egt_sensors();
     
     //update the time
     timenow = millis();

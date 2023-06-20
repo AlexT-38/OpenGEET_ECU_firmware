@@ -6,6 +6,7 @@
  *  meanwhile, we'll just overwrite older files
  */
  #define NO_IDX 0xff
+ #define RECORD_BUFFER_SIZE 2048
 
 /* the records to write to */
 DATA_RECORD Data_Records[2];
@@ -21,11 +22,24 @@ DATA_CONFIG Data_Config = {DATA_RECORD_VERSION, NO_OF_USER_INPUTS, NO_OF_MAP_SEN
 
 static DATA_STORAGE data_store;
 
-void generate_file_name()
+char output_filename[13] = ""; //8+3 format
+
+String dataBuffer;
+unsigned int recordStart; //length of dataBuffer at time of adding record to buffer;
+
+File dataFile;
+
+unsigned int lastRecordSize = 0;
+void configure_records()
+{
+  dataBuffer.reserve(RECORD_BUFFER_SIZE*2);
+}
+
+void create_file()
 {
   static byte file_index = 0;
   char *str_ptr;
-  
+
   int value;    //date value to be converted to string
   int count = 0;//count of tries to find non existant filename
 
@@ -56,36 +70,62 @@ void generate_file_name()
     {
       do_loop = false;
     }
+    
     else
     {
-      Serial.print(F("File exists: "));
+      #ifdef DEBUG_SDCARD
+      Serial.print(F("SD File exists: "));
       Serial.println(output_filename);
+      #endif
     }
+    
   }
+
   //report the selected filename
+  #ifdef DEBUG_SDCARD
   Serial.print(FS(S_OUTPUT_FILE_NAME_C));
   Serial.println(output_filename);
+  #endif
   
-  //check that the file can be opened
-  File dataFile = SD.open(output_filename, FILE_WRITE);
-  flags_status.file_openable = true;
   if(dataFile)
   {
-    //print the header
-    dataFile.print(FS(S_RECORD_VER_C));     dataFile.println(DATA_RECORD_VERSION);
-    stream_print_date_time(t_now, dataFile);
-    dataFile.println();
+    //the file shouldn't be open
     dataFile.close();
+
+    #ifdef DEBUG_SDCARD
+    Serial.println(F("SD Already open?"));
+    #endif
+  }
+  
+  //check that the file can be opened
+  dataFile = SD.open(output_filename, O_WRITE | O_CREAT);
+  
+  if(dataFile)
+  {
     
-    Serial.println(F("Opened OK"));
+    flags_status.file_openable = true;
+    #ifdef DEBUG_SDCARD
+    Serial.println(F("SD Opened"));
+    #endif
   }
   else
   {
     //open failed on first attempt, do not attempt to save to this file
-    Serial.println(F("Open FAILED"));
     flags_status.file_openable = false;
+    #ifdef DEBUG_SDCARD
+    Serial.println(F("SD Open FAILED"));
+    #endif
   }
 
+}
+
+void dateTime(uint16_t* date, uint16_t* time) {
+ DateTime t_now = DS1307_now();
+ // return date using FAT_DATE macro to format fields
+ *date = FAT_DATE(t_now.year, t_now.month, t_now.day);
+
+ // return time using FAT_TIME macro to format fields
+ *time = FAT_TIME(t_now.hour, t_now.minute, t_now.second);
 }
 
 /* generate a hash for the given data storage struct */
@@ -101,44 +141,46 @@ void hash_data(DATA_STORAGE *data)
   data->hash = hash;
 }
 
-void stream_print_int_array(Stream *file, int *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
+void string_print_int_array(String &dst, int *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
 {
-  if(idx < 0xff) file->print(idx);
-  file->print(FS(title_pgm));
-  for(int idx = 0; idx < array_size; idx++)
-  {
-    file->print(array_data[idx]);
-    file->print(FS(S_COMMA));
-  }
-  file->println();
-}
-void stream_print_byte_array(Stream *file, byte *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
-{
-  if(idx < 0xff) file->print(idx);
-  file->print(FS(title_pgm));
-  for(int idx = 0; idx < array_size; idx++)
-  {
-    file->print(array_data[idx]);
-    file->print(FS(S_COMMA));
-  }
-  file->println();
-}
-
-/* reset the back record after use */
-void reset_record()
-{
-  LAST_RECORD = (DATA_RECORD){0};
-  LAST_RECORD.timestamp = millis();
-}
-
-
-/* swap records and calculate averages */
-void finalise_record()
-{
-  /* switch the records */
-  Data_Record_write_idx = 1-Data_Record_write_idx; 
+  if(idx < 0xff) { dst += (idx);}
+  dst += (FS(title_pgm));
   
-  /* data record to read */
+  for(int idx = 0; idx < array_size; idx++)
+  {
+    dst += (array_data[idx]);
+    dst += (FS(S_COMMA));
+  }
+  dst += "\n";
+}
+void string_print_byte_array(String &dst, byte *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
+{
+  dst += (FS(title_pgm));
+  if(idx < 0xff) { dst += " "; dst += (idx);}
+  for(int idx = 0; idx < array_size; idx++)
+  {
+    dst += (array_data[idx]);
+    dst += (FS(S_COMMA));
+  }
+  dst += "\n";
+}
+
+
+
+/* swap records, calculate averages, generate text report */
+void update_record()
+{
+  #ifdef DEBUG_RECORD_TIME
+  unsigned int timestamp_us = micros();
+  #endif //DEBUG_RECORD_TIME
+  
+    
+  /* prepare the new record */
+  SWAP_RECORDS();
+  CURRENT_RECORD = (DATA_RECORD){0};
+  CURRENT_RECORD.timestamp = millis();
+  
+  /* get the previous record for processing */
   DATA_RECORD *data_record = &LAST_RECORD;
 
   /* calculate averages */
@@ -188,9 +230,6 @@ void finalise_record()
     }
   }
   /* RPM counter */
-  //keep elapsed time in a sensible range to avoid overflows
-  //rpm_clip_time();
-  // get the average rpm for this record 
   Data_Averages.RPM = get_rpm(data_record);
 
   /* Servos */
@@ -208,29 +247,13 @@ void finalise_record()
 
   /* Shaft Power */
 
-  //calculate shaft power
+  //power in (W?) product of torque(Nm) and speed(rad/s); rad/s = 0.10471975511965977461542144610932 per/rpm, Nm = 0.001 mNm
+  //power (W) = trq(mNm) * speed(rpm) * 0.000105
 
-  //this calculation is wrong
-  //the correct formula is Power (kW) = Torque (N.m) x Speed (RPM) / 9.5488
-  
-  //power in (W?) product of torque(Nm) and rpm(rad/s); rad/s = 0.10471975511965977461542144610932 per/rpm, Nm = 0.001 mNm
-  //rpm will have range ~150-450rad/s, torque in range +/- ~10Nm, result would be +/- ~4500W
-  //native range 4500(13bit) and 20000(15bit)
-  //native power units range +/- ~45,000,000 (27bits)
-  //convert to W (0.1W) multiply by 0.000105, range +/- ~4,712 (13bit)
-  //multiply by 224,884 (18bit) div by 2^31, intermediate is 45bit
-  //prescale by 8bit, power range now 19bit, intermediate is 37bit
-  //reduce multiplier by 5 bit, 7072 (13bit) div by 2^(26-8=18), intermediate is 32bit, result is 14bit
-  
-  //so max signed value is 45,000,000, >>8 =175,781, *7072 =1,243,123,232, >>18 = 4742W
-  //probably best to split the difference, 19/13 to 16/16
-  //prescale by 11bit, multiplier reduced by 2bit to 56,221, div by 2^(26-11=15) --wrong, out by 3 bits
-
+  // convert the float constant to an integer shift-multiply-shift
   #define POW_CALC_PRESCALE 10
   #define POW_CALC_POSTSCALE 15
-  //this define doesn't seem to evaluate at compile time
-  //#define POW_CALC_CONSTANT (long)(1.0471975511965977461542144610932e-4 * (float)_BV(POW_CALC_PRESCALE + POW_CALC_POSTSCALE))
-  #define POW_CALC_CONSTANT 3514
+  #define POW_CALC_CONSTANT 3514 // (int)(1.0471975511965977461542144610932e-4 * _BV(POW_CALC_PRESCALE + POW_CALC_POSTSCALE))
   
   long native_power = (long)Data_Averages.RPM * Data_Averages.TRQ;
 
@@ -261,110 +284,201 @@ void finalise_record()
   data_store.data = (byte*)data_record;
   data_store.bytes_stored = sizeof(DATA_STORAGE);
   hash_data(&data_store);
+
+  #ifdef DEBUG_BUFFER_TIME
+  unsigned int timestamp_buffer_us = micros();
+  #endif
+
+  if(flags_status.logging_active)  recordStart = write_data_record_to_buffer(data_record, dataBuffer, recordStart);
+
+  #ifdef DEBUG_BUFFER_TIME
+  timestamp_buffer_us = micros() - timestamp_buffer_us;
+  Serial.print(F("t_rec us: "));
+  Serial.println(timestamp_buffer_us);
+  #endif
+
+
+  #ifdef DEBUG_RECORD_TIME
+  timestamp_us = micros() - timestamp_us;
+  Serial.print(F("t_rec us: "));
+  Serial.println(timestamp_us);
+  #endif //DEBUG_RECORD_TIME
 }
 
-
-/* writes the current data record to serial port and SD card as required */
-static byte write_data_step = 0;
-
-void write_data_record_to_stream(DATA_RECORD *data_record, Stream &dst)//, byte write_data_step)
+unsigned int write_data_record_to_buffer(DATA_RECORD *data_record, String &dst, int prev_record_idx)
 {
+    //write the record to a temporary buffer, so that we can handle dst buffer overflows
+    String buf;
+    buf.reserve(RECORD_BUFFER_SIZE);
 
-          dst.println(FS(S_RECORD_MARKER));
-          dst.print(FS(S_TIMESTAMP_C));     dst.println(data_record->timestamp);
+    buf += FS(S_RECORD_MARKER); buf += "\n";
+    buf += FS(S_TIMESTAMP_C); buf += data_record->timestamp; buf += "\n";
 
-        for(byte idx = 0; idx < Data_Config.USR_no; idx++)
-        {
-          dst.print(idx); dst.print(FS(S_USR_C));     dst.println(Data_Averages.USR[idx]);
-        }
-        for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
-        {
-          dst.print(idx); dst.print(FS(S_MAP_C));     dst.println(Data_Averages.MAP[idx]);
-        }
-        for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
-        {
-          dst.print(idx); dst.print(FS(S_TMP_C));     dst.println(Data_Averages.TMP[idx]);
-        }
-        dst.print(FS(S_TRQ_C));     dst.println(Data_Averages.TRQ);
-        dst.print(FS(S_ANA_SAMPLES_C)); dst.println(data_record->ANA_no_of_samples);
+    for(byte idx = 0; idx < Data_Config.USR_no; idx++)
+    {
+      buf += (idx); buf += (FS(S_USR_C));     buf += (Data_Averages.USR[idx]); buf += "\n";
+    }
+    for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
+    {
+      buf += (idx); buf += (FS(S_MAP_C));     buf += (Data_Averages.MAP[idx]); buf += "\n";
+    }
+    for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
+    {
+      buf += (idx); buf += (FS(S_TMP_C));     buf += (Data_Averages.TMP[idx]); buf += "\n";
+    }
+    buf += (FS(S_TRQ_C));     buf += (Data_Averages.TRQ); buf += "\n";
+    buf += (FS(S_ANA_SAMPLES_C)); buf += (data_record->ANA_no_of_samples); buf += "\n";
 
-        for(byte idx = 0; idx < Data_Config.USR_no; idx++)
-        {
-          stream_print_int_array(&dst, data_record->USR[idx], data_record->ANA_no_of_samples, S_USR_C, idx);
-        }
+    for(byte idx = 0; idx < Data_Config.USR_no; idx++)
+    {
+      string_print_int_array(buf, data_record->USR[idx], data_record->ANA_no_of_samples, S_USR_C, idx);
+    }
 
-        for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
-        {
-          stream_print_int_array(&dst, data_record->MAP[idx], data_record->ANA_no_of_samples, S_MAP_C, idx);
-        }
+    for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
+    {
+      string_print_int_array(buf, data_record->MAP[idx], data_record->ANA_no_of_samples, S_MAP_C, idx);
+    }
 
-        for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
-        {
-          stream_print_int_array(&dst, data_record->TMP[idx], data_record->ANA_no_of_samples, S_TMP_C, idx);
-        }
+    for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
+    {
+      string_print_int_array(buf, data_record->TMP[idx], data_record->ANA_no_of_samples, S_TMP_C, idx);
+    }
 
-        stream_print_int_array(&dst, data_record->TRQ, data_record->ANA_no_of_samples, S_TRQ_C, NO_IDX);
+    string_print_int_array(buf, data_record->TRQ, data_record->ANA_no_of_samples, S_TRQ_C, NO_IDX);
 
 
-        for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
-        {
-          dst.print(idx); dst.print(FS(S_EGT_AVG_C));       dst.println(Data_Averages.EGT[idx]);
-        }
+    for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
+    {
+      buf += (idx); buf += (FS(S_EGT_AVG_C));       buf += (Data_Averages.EGT[idx]); buf += "\n";
+    }
 
-        dst.print(FS(S_EGT_SAMPLES_C)); dst.println(data_record->EGT_no_of_samples);
+    buf += (FS(S_EGT_SAMPLES_C)); buf += (data_record->EGT_no_of_samples); buf += "\n";
 
-        for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
-        {
-          stream_print_int_array(&dst, data_record->EGT[idx], data_record->EGT_no_of_samples, S_EGT_C, idx);
-        }
+    for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
+    {
+      string_print_int_array(buf, data_record->EGT[idx], data_record->EGT_no_of_samples, S_EGT_C, idx);
+    }
 
-        dst.print(FS(S_RPM_AVG));          dst.println(Data_Averages.RPM);
-        dst.print(FS(S_RPM_NO_OF_TICKS));  dst.println(data_record->RPM_no_of_ticks);
-        dst.print(FS(S_RPM_TICK_OFFSET));  dst.println(data_record->RPM_tick_offset_ms);
+    buf += (FS(S_RPM_AVG));          buf += (Data_Averages.RPM); buf += "\n";
+    buf += (FS(S_RPM_NO_OF_TICKS));  buf += (data_record->RPM_no_of_ticks); buf += "\n";
+    buf += (FS(S_RPM_TICK_OFFSET));  buf += (data_record->RPM_tick_offset_ms); buf += "\n";
 
-        stream_print_int_array(&dst, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES, NO_IDX);
-        dst.print(FS(S_POW_C));          dst.println(Data_Averages.POW);
-        dst.println(FS(S_RECORD_MARKER));
+    string_print_int_array(buf, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES, NO_IDX);
+    buf += (FS(S_POW_C));          buf += (Data_Averages.POW); buf += "\n";
+    buf += (FS(S_RECORD_MARKER)); buf += "\n";
 
-  
-  return;
+    int this_record_idx = dst.length();
+    
+    if( (this_record_idx + buf.length()) < RECORD_BUFFER_SIZE )
+    {
+      // add the new record to the output buffer
+      dst += buf;
+      
+      #ifdef DEBUG_BUFFER
+      Serial.println(F("BUF: Record appended"));
+      #endif
+    }
+    else if( (prev_record_idx + buf.length()) < RECORD_BUFFER_SIZE )
+    {
+      //over write the previous record, if not enough space
+      dst.remove(prev_record_idx, this_record_idx - prev_record_idx);
+      dst += buf;
+      this_record_idx = prev_record_idx;
+      
+      #ifdef DEBUG_BUFFER
+      Serial.println(F("BUF: Record overwrite"));
+      #endif
+    }
+    else 
+    {
+      #ifdef DEBUG_BUFFER
+      Serial.println(F("BUF: Record dropped"));
+      #endif
+    } //otherwise drop this record
+  #ifdef DEBUG_BUFFER
+  Serial.print(F("BUF (this idx, this size, buf size): "));
+  Serial.print(this_record_idx); Serial.print(", "); Serial.print(buf.length()); Serial.print(", "); Serial.println(dst.length());
+  #endif
+  return this_record_idx;
 }
+
 
 
 void write_serial_data_record()
 {
+  #ifdef DEBUG_SERIAL_TIME    
+  unsigned int timestamp_us = micros();
+  #endif
+    
   /* send the data to the serial port */
   if(flags_status.logging_active && flags_config.do_serial_write)
   {
-//    #ifdef DEBUG_SERIAL_TIME    
-//    unsigned int timestamp_us = micros();
-//    #endif
-
     /* data record to read */
     DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;//&LAST_RECORD;//
   
     if(flags_config.do_serial_write_hex)
     {
-      write_data_step = 0;
       Serial.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
       Serial.write(data_store.hash);                                              //write the hash value
       Serial.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
     }
     else
     {
-      write_data_record_to_stream(data_record, Serial);
+      //write_data_record_to_stream(data_record, Serial);
+      //check there's new data in the buffer
+      if(dataBuffer.length() > recordStart)
+      {
+        Serial.write(&dataBuffer.c_str()[recordStart]);
+      }
     }
-//    #ifdef DEBUG_SERIAL_TIME
-//    timestamp_us = micros() - timestamp_us;
-//    Serial.print(F("t_ser us: "));
-//    Serial.println(timestamp_us);
-//    #endif
   }
+
+  #ifdef DEBUG_SERIAL_TIME
+  timestamp_us = micros() - timestamp_us;
+  Serial.print(F("t_ser us: "));    Serial.println(timestamp_us);
+  #endif
+    
   return;
 }
 
-char output_filename[13] = ""; //8+3 format
 
+
+void sync_sdcard_data_record()
+{
+  #ifdef DEBUG_SDCARD_TIME    
+  unsigned int timestamp_us = micros();
+  #endif
+   
+  if(flags_status.logging_active)
+  {
+    
+    if(dataFile) 
+    {
+      dataFile.flush(); //sync the file - hopefully this will perform files system updates without blocking
+      #ifdef DEBUG_SDCARD
+      Serial.println(F("SD Flush"));
+      #endif
+    }
+    else
+    {
+      create_file(); //creating a file could involve long writes, so this task is scheduled here instead of during read_touch()
+    }
+  }
+  else if(dataFile)
+  {
+     // close the file if its open when not logging
+    dataFile.close(); 
+    #ifdef DEBUG_SDCARD
+    Serial.println(F("SD Close"));
+    #endif
+  }
+
+  #ifdef DEBUG_SDCARD_TIME
+  timestamp_us = micros() - timestamp_us;
+  Serial.print(F("t_sdf us: "));
+  Serial.println(timestamp_us);
+  #endif
+}
 /* writes a record to an sd card file 
  * returns true when complete
  * if it fails to write it will skip this record, but try again next time
@@ -373,78 +487,69 @@ char output_filename[13] = ""; //8+3 format
  */
 void write_sdcard_data_record()
 {
-  File log_data_file;
-  
-  /* send the data to the SD card, if available */
-  if(flags_status.logging_active && flags_config.do_sdcard_write && flags_status.sdcard_available && flags_status.file_openable)
-  {
-//    #ifdef DEBUG_SDCARD_TIME    
-//    unsigned int timestamp_us = micros();
-//    #endif
+  #ifdef DEBUG_SDCARD_TIME    
+  unsigned int timestamp_us = micros();
+  #endif
 
+  //if the data file is open, we write to it
+  if(dataFile)
+  {
     /* data record to read */
     DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;
 
-    
-    /* replace all these serial calls with SD card file calls */
+    /* write in hex format */
     if(flags_config.do_sdcard_write_hex)
     {
-      write_data_step = 0;
-      log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);
-      if (log_data_file)
-      {    
-       
-        log_data_file.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
-        log_data_file.write(data_store.hash);                                              //write the hash value
-        log_data_file.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
-        log_data_file.close();
-      }
-      else
-      {
-        Serial.print(F("failed to open: "));
-        Serial.println(output_filename);
-      }
+      //TODO: this also need to be buffered - however, we might not have enough ram for two different buffers
+      dataFile.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
+      dataFile.write(data_store.hash);                                              //write the hash value
+      dataFile.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
     }
+    /* write plain text format */
     else
     {
-      write_data_step = 0;
-      if (!log_data_file) 
-      {
-        log_data_file = SD.open(output_filename, O_WRITE | O_APPEND);
-      }
-      if (!log_data_file)
-      { 
-        Serial.print(F("failed to open: "));
-        Serial.println(output_filename);
-      }
-      else
-      {
-        write_data_record_to_stream(data_record, log_data_file);
-        log_data_file.close();
-      }
-    }
+      #ifdef DEBUG_SDCARD
+      unsigned int blocks_written = 0;
+      static unsigned long total_blocks_written = 0;
+      #endif
 
-//    #ifdef DEBUG_SDCARD_TIME
-//    timestamp_us = micros() - timestamp_us;
-//    Serial.print(F("t_sdc us: "));
-//    Serial.println(timestamp_us);
-//    #endif
+      #define BLOCK_SIZE 512
+      while (dataBuffer.length() >= BLOCK_SIZE)
+      {
+        // write a single block of data
+        if(dataFile.write(dataBuffer.c_str(), BLOCK_SIZE))
+        {
+          // remove written data from dataBuffer if write was sucessfull
+          dataBuffer.remove(0, BLOCK_SIZE);
+        }
+        else
+        {
+          Serial.println(F("File write failed"));
+          //if not logging to serial, stop logging
+          if(!flags_config.do_serial_write)
+          {
+            flags_status.logging_active = false;
+          }
+        }
+        
+        #ifdef DEBUG_SDCARD
+        blocks_written++;
+        #endif
+      }
+
+      #ifdef DEBUG_SDCARD
+      total_blocks_written += blocks_written;
+      Serial.print(F("SD blocks written: "));        Serial.println(blocks_written);
+      Serial.print(F("SD total blocks: "));        Serial.println(total_blocks_written);
+      #endif
+    } // format selection
   }
-  else if(log_data_file)
-  {
-    // close the file if its open, but we're not logging
-    log_data_file.close();
-  }
+
+  #ifdef DEBUG_SDCARD_TIME
+  timestamp_us = micros() - timestamp_us;
+  Serial.print(F("t_sdc us: "));
+  Serial.println(timestamp_us);
+  #endif
 
   return;
-}
-
-void stop_logging()
-{
-  
-}
-
-void start_logging()
-{
-  
 }

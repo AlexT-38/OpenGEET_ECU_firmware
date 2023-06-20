@@ -76,6 +76,7 @@ extern byte Data_Record_write_idx;
 
 #define CURRENT_RECORD    Data_Records[Data_Record_write_idx]
 #define LAST_RECORD       Data_Records[1-Data_Record_write_idx]
+#define SWAP_RECORDS()    Data_Record_write_idx = 1-Data_Record_write_idx
 
 extern DATA_AVERAGES Data_Averages;
 extern DATA_CONFIG Data_Config;

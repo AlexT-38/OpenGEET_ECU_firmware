@@ -206,7 +206,7 @@ void read_touch()
         {
           //if not previously logging and an sd card is available, generate the filename for logging
           flags_status.logging_active = ~flags_status.logging_active;
-          if(flags_status.sdcard_available && flags_config.do_sdcard_write && flags_status.logging_active) generate_file_name();
+          //if(flags_status.sdcard_available && flags_config.do_sdcard_write && flags_status.logging_active) create_file();
         }
         break;
       case TAG_CAL_SV0_MIN:
