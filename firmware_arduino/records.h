@@ -6,6 +6,7 @@
  */
 
 #define DATA_RECORD_VERSION     3
+#define JSON_RECORD_VERSION     4
 typedef struct data_config
 {
   unsigned int data_version;
@@ -84,7 +85,7 @@ extern DATA_CONFIG Data_Config;
 
 extern char output_filename[13]; //8+3 format
 
-extern File log_data_file; 
+extern File dataFile; 
 
 
 #endif //__RECORDS_H__

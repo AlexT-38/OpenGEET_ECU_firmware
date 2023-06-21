@@ -410,7 +410,7 @@ void setup() {
   else
   {
     // set date time callback function
-    //SdFile::dateTimeCallback(dateTime);
+    SdFile::dateTimeCallback(dateTime);
     GET_STRING(S_CARD_INITIALISED); //S_NO_SD_CARD);//
     flags_status.sdcard_available = true;
     Serial.println(F("SD Card init'ed succesfully."));

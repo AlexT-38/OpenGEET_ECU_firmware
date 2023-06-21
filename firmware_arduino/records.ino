@@ -22,12 +22,10 @@ DATA_CONFIG Data_Config = {DATA_RECORD_VERSION, NO_OF_USER_INPUTS, NO_OF_MAP_SEN
 
 static DATA_STORAGE data_store;
 
-char output_filename[13] = ""; //8+3 format
 
 String dataBuffer;
 unsigned int recordStart; //length of dataBuffer at time of adding record to buffer;
 
-File dataFile;
 
 unsigned int lastRecordSize = 0;
 void configure_records()
@@ -35,135 +33,8 @@ void configure_records()
   dataBuffer.reserve(RECORD_BUFFER_SIZE*2);
 }
 
-void create_file()
-{
-  static byte file_index = 0;
-  char *str_ptr;
 
-  int value;    //date value to be converted to string
-  int count = 0;//count of tries to find non existant filename
 
-  // set the file extension
-  str_ptr = output_filename + 8;
-  if(flags_config.do_sdcard_write_hex) {strcpy_P(str_ptr,S_DOT_RAW);}
-  else                          {strcpy_P(str_ptr,S_DOT_TXT);}
-
-  //set the base name from the year month and day
-  DateTime t_now = DS1307_now();
-  //fill in the digits backwards
-  str_ptr = output_filename + 5;
-  
-  value = t_now.day;    *str_ptr-- = DEC_CHAR(value); value /=10; *str_ptr-- = DEC_CHAR(value);
-  value = t_now.month;  *str_ptr-- = DEC_CHAR(value); value /=10; *str_ptr-- = DEC_CHAR(value);
-  value = t_now.year;   *str_ptr-- = DEC_CHAR(value); value /=10; *str_ptr-- = DEC_CHAR(value);
-
-  bool do_loop = true;
-  while (do_loop)
-  {
-    //set the iterator number
-    str_ptr = output_filename + 7;
-    value = file_index++;  *str_ptr-- = HEX_CHAR(value);  value >>=4;  *str_ptr-- = HEX_CHAR(value);
-
-    count++; // count how many indices we've tried
-    //break the loop if the target file doenst exist, or we have run out of indices
-    if (!SD.exists(output_filename) || count >= 256 )
-    {
-      do_loop = false;
-    }
-    
-    else
-    {
-      #ifdef DEBUG_SDCARD
-      Serial.print(F("SD File exists: "));
-      Serial.println(output_filename);
-      #endif
-    }
-    
-  }
-
-  //report the selected filename
-  #ifdef DEBUG_SDCARD
-  Serial.print(FS(S_OUTPUT_FILE_NAME_C));
-  Serial.println(output_filename);
-  #endif
-  
-  if(dataFile)
-  {
-    //the file shouldn't be open
-    dataFile.close();
-
-    #ifdef DEBUG_SDCARD
-    Serial.println(F("SD Already open?"));
-    #endif
-  }
-  
-  //check that the file can be opened
-  dataFile = SD.open(output_filename, O_WRITE | O_CREAT);
-  
-  if(dataFile)
-  {
-    
-    flags_status.file_openable = true;
-    #ifdef DEBUG_SDCARD
-    Serial.println(F("SD Opened"));
-    #endif
-  }
-  else
-  {
-    //open failed on first attempt, do not attempt to save to this file
-    flags_status.file_openable = false;
-    #ifdef DEBUG_SDCARD
-    Serial.println(F("SD Open FAILED"));
-    #endif
-  }
-
-}
-
-void dateTime(uint16_t* date, uint16_t* time) {
- DateTime t_now = DS1307_now();
- // return date using FAT_DATE macro to format fields
- *date = FAT_DATE(t_now.year, t_now.month, t_now.day);
-
- // return time using FAT_TIME macro to format fields
- *time = FAT_TIME(t_now.hour, t_now.minute, t_now.second);
-}
-
-/* generate a hash for the given data storage struct */
-void hash_data(DATA_STORAGE *data)
-{
-  byte hash = 0;
-  for (unsigned int next_byte = 0; next_byte < data->bytes_stored; next_byte++)
-  {
-    byte index = next_byte;
-    index += data->data[next_byte];
-    hash = hash ^ index;
-  }
-  data->hash = hash;
-}
-
-void string_print_int_array(String &dst, int *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
-{
-  if(idx < 0xff) { dst += (idx);}
-  dst += (FS(title_pgm));
-  
-  for(int idx = 0; idx < array_size; idx++)
-  {
-    dst += (array_data[idx]);
-    dst += (FS(S_COMMA));
-  }
-  dst += "\n";
-}
-void string_print_byte_array(String &dst, byte *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
-{
-  dst += (FS(title_pgm));
-  if(idx < 0xff) { dst += " "; dst += (idx);}
-  for(int idx = 0; idx < array_size; idx++)
-  {
-    dst += (array_data[idx]);
-    dst += (FS(S_COMMA));
-  }
-  dst += "\n";
-}
 
 
 
@@ -304,68 +175,73 @@ void update_record()
   Serial.println(timestamp_us);
   #endif //DEBUG_RECORD_TIME
 }
-
+bool log_format_is_json = true;
 unsigned int write_data_record_to_buffer(DATA_RECORD *data_record, String &dst, int prev_record_idx)
 {
     //write the record to a temporary buffer, so that we can handle dst buffer overflows
     String buf;
     buf.reserve(RECORD_BUFFER_SIZE);
 
-    buf += FS(S_RECORD_MARKER); buf += "\n";
-    buf += FS(S_TIMESTAMP_C); buf += data_record->timestamp; buf += "\n";
-
-    for(byte idx = 0; idx < Data_Config.USR_no; idx++)
+    if (log_format_is_json) write_record(buf, data_record);
+    else
     {
-      buf += (idx); buf += (FS(S_USR_C));     buf += (Data_Averages.USR[idx]); buf += "\n";
+  
+      buf += FS(S_RECORD_MARKER); buf += "\n";
+      buf += FS(S_TIMESTAMP_C); buf += data_record->timestamp; buf += "\n";
+  
+      for(byte idx = 0; idx < Data_Config.USR_no; idx++)
+      {
+        buf += (idx); buf += (FS(S_USR_C));     buf += (Data_Averages.USR[idx]); buf += "\n";
+      }
+      for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
+      {
+        buf += (idx); buf += (FS(S_MAP_C));     buf += (Data_Averages.MAP[idx]); buf += "\n";
+      }
+      for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
+      {
+        buf += (idx); buf += (FS(S_TMP_C));     buf += (Data_Averages.TMP[idx]); buf += "\n";
+      }
+      buf += (FS(S_TRQ_C));     buf += (Data_Averages.TRQ); buf += "\n";
+      buf += (FS(S_ANA_SAMPLES_C)); buf += (data_record->ANA_no_of_samples); buf += "\n";
+  
+      for(byte idx = 0; idx < Data_Config.USR_no; idx++)
+      {
+        string_print_int_array(buf, data_record->USR[idx], data_record->ANA_no_of_samples, S_USR_C, idx);
+      }
+  
+      for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
+      {
+        string_print_int_array(buf, data_record->MAP[idx], data_record->ANA_no_of_samples, S_MAP_C, idx);
+      }
+  
+      for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
+      {
+        string_print_int_array(buf, data_record->TMP[idx], data_record->ANA_no_of_samples, S_TMP_C, idx);
+      }
+  
+      string_print_int_array(buf, data_record->TRQ, data_record->ANA_no_of_samples, S_TRQ_C, NO_IDX);
+  
+  
+      for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
+      {
+        buf += (idx); buf += (FS(S_EGT_AVG_C));       buf += (Data_Averages.EGT[idx]); buf += "\n";
+      }
+  
+      buf += (FS(S_EGT_SAMPLES_C)); buf += (data_record->EGT_no_of_samples); buf += "\n";
+  
+      for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
+      {
+        string_print_int_array(buf, data_record->EGT[idx], data_record->EGT_no_of_samples, S_EGT_C, idx);
+      }
+  
+      buf += (FS(S_RPM_AVG));          buf += (Data_Averages.RPM); buf += "\n";
+      buf += (FS(S_RPM_NO_OF_TICKS));  buf += (data_record->RPM_no_of_ticks); buf += "\n";
+      buf += (FS(S_RPM_TICK_OFFSET));  buf += (data_record->RPM_tick_offset_ms); buf += "\n";
+  
+      string_print_int_array(buf, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES, NO_IDX);
+      buf += (FS(S_POW_C));          buf += (Data_Averages.POW); buf += "\n";
+      buf += (FS(S_RECORD_MARKER)); buf += "\n";
     }
-    for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
-    {
-      buf += (idx); buf += (FS(S_MAP_C));     buf += (Data_Averages.MAP[idx]); buf += "\n";
-    }
-    for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
-    {
-      buf += (idx); buf += (FS(S_TMP_C));     buf += (Data_Averages.TMP[idx]); buf += "\n";
-    }
-    buf += (FS(S_TRQ_C));     buf += (Data_Averages.TRQ); buf += "\n";
-    buf += (FS(S_ANA_SAMPLES_C)); buf += (data_record->ANA_no_of_samples); buf += "\n";
-
-    for(byte idx = 0; idx < Data_Config.USR_no; idx++)
-    {
-      string_print_int_array(buf, data_record->USR[idx], data_record->ANA_no_of_samples, S_USR_C, idx);
-    }
-
-    for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
-    {
-      string_print_int_array(buf, data_record->MAP[idx], data_record->ANA_no_of_samples, S_MAP_C, idx);
-    }
-
-    for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
-    {
-      string_print_int_array(buf, data_record->TMP[idx], data_record->ANA_no_of_samples, S_TMP_C, idx);
-    }
-
-    string_print_int_array(buf, data_record->TRQ, data_record->ANA_no_of_samples, S_TRQ_C, NO_IDX);
-
-
-    for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
-    {
-      buf += (idx); buf += (FS(S_EGT_AVG_C));       buf += (Data_Averages.EGT[idx]); buf += "\n";
-    }
-
-    buf += (FS(S_EGT_SAMPLES_C)); buf += (data_record->EGT_no_of_samples); buf += "\n";
-
-    for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
-    {
-      string_print_int_array(buf, data_record->EGT[idx], data_record->EGT_no_of_samples, S_EGT_C, idx);
-    }
-
-    buf += (FS(S_RPM_AVG));          buf += (Data_Averages.RPM); buf += "\n";
-    buf += (FS(S_RPM_NO_OF_TICKS));  buf += (data_record->RPM_no_of_ticks); buf += "\n";
-    buf += (FS(S_RPM_TICK_OFFSET));  buf += (data_record->RPM_tick_offset_ms); buf += "\n";
-
-    string_print_int_array(buf, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES, NO_IDX);
-    buf += (FS(S_POW_C));          buf += (Data_Averages.POW); buf += "\n";
-    buf += (FS(S_RECORD_MARKER)); buf += "\n";
 
     int this_record_idx = dst.length();
     
@@ -404,152 +280,181 @@ unsigned int write_data_record_to_buffer(DATA_RECORD *data_record, String &dst, 
 
 
 
-void write_serial_data_record()
+/* generate a hash for the given data storage struct */
+void hash_data(DATA_STORAGE *data)
 {
-  #ifdef DEBUG_SERIAL_TIME    
-  unsigned int timestamp_us = micros();
-  #endif
-    
-  /* send the data to the serial port */
-  if(flags_status.logging_active && flags_config.do_serial_write)
+  byte hash = 0;
+  for (unsigned int next_byte = 0; next_byte < data->bytes_stored; next_byte++)
   {
-    /* data record to read */
-    DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;//&LAST_RECORD;//
+    byte index = next_byte;
+    index += data->data[next_byte];
+    hash = hash ^ index;
+  }
+  data->hash = hash;
+}
+
+void string_print_int_array(String &dst, int *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
+{
+  dst += "\n";
+  if(idx < 0xff) { dst += (idx);}
+  dst += (FS(title_pgm));
   
-    if(flags_config.do_serial_write_hex)
-    {
-      Serial.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
-      Serial.write(data_store.hash);                                              //write the hash value
-      Serial.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
-    }
-    else
-    {
-      //write_data_record_to_stream(data_record, Serial);
-      //check there's new data in the buffer
-      if(dataBuffer.length() > recordStart)
-      {
-        Serial.write(&dataBuffer.c_str()[recordStart]);
-      }
-    }
+  for(int idx = 0; idx < array_size-1; idx++)
+  {
+    dst += (array_data[idx]);
+    dst += ",";
   }
-
-  #ifdef DEBUG_SERIAL_TIME
-  timestamp_us = micros() - timestamp_us;
-  Serial.print(F("t_ser us: "));    Serial.println(timestamp_us);
-  #endif
-    
-  return;
+  dst += (array_data[array_size-1]);
+  
+}
+void string_print_byte_array(String &dst, byte *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
+{
+  dst += (FS(title_pgm));
+  if(idx < 0xff) { dst += " "; dst += (idx);}
+  for(int idx = 0; idx < array_size; idx++)
+  {
+    dst += (array_data[idx]);
+    dst += (FS(S_COMMA));
+  }
+  dst += "\n";
 }
 
 
-
-void sync_sdcard_data_record()
+/* write the log header */
+void start_log(String &dst)
 {
-  #ifdef DEBUG_SDCARD_TIME    
-  unsigned int timestamp_us = micros();
-  #endif
-   
-  if(flags_status.logging_active)
-  {
+  json_start(dst);
+  
+  json_entry(dst);
+  json_label(dst, F("header"));
+  json_object(dst);
+    //add header content here
+  
+    json_obj(dst, F("version"), JSON_RECORD_VERSION);
+    json_obj(dst, F("firmware"), FS(S_FIRMWARE_NAME));
+    json_obj(dst, F("rate_ms"), UPDATE_INTERVAL_ms);
+  
+    DateTime t_now = DS1307_now();
+    char str[11];
     
-    if(dataFile) 
-    {
-      dataFile.flush(); //sync the file - hopefully this will perform files system updates without blocking
-      #ifdef DEBUG_SDCARD
-      Serial.println(F("SD Flush"));
-      #endif
-    }
-    else
-    {
-      create_file(); //creating a file could involve long writes, so this task is scheduled here instead of during read_touch()
-    }
-  }
-  else if(dataFile)
-  {
-     // close the file if its open when not logging
-    dataFile.close(); 
-    #ifdef DEBUG_SDCARD
-    Serial.println(F("SD Close"));
-    #endif
-  }
+    date_to_string(t_now, str);
+    json_obj(dst, F("date"), str);
+  
+    time_to_string(t_now, str);
+    json_obj(dst, F("time"), str);
+  
+    json_entry(dst);
+    json_label(dst, F("channels"));
+    json_object(dst);
+  
+      json_entry(dst);
+      json_label(dst, F("usr"));
+      json_object(dst);
+    
+        json_obj(dst, F("num"), Data_Config.USR_no);
+        json_obj(dst, F("rate_ms"), ANALOG_SAMPLE_INTERVAL_ms);
+        json_obj(dst, F("units"), F("LSB"));
+        json_obj(dst, F("min"), 0);
+        json_obj(dst, F("max"), 1023);
+    
+      json_close_object(dst); //usr
+    
+      json_entry(dst);
+      json_label(dst, F("map"));
+      json_object(dst);
+    
+        //map sensors may have different ranges, how to represent that here? substitute single vale with array
+        json_obj(dst, F("num"), Data_Config.MAP_no);
+        json_obj(dst, F("rate_ms"), ANALOG_SAMPLE_INTERVAL_ms);
+        json_obj(dst, F("units"), F("mbar"));
+        json_obj(dst, F("min"), SENSOR_MAP_CAL_MIN_mbar);
+        json_obj(dst, F("max"), SENSOR_MAP_CAL_MAX_mbar);
+    
+      json_close_object(dst); //map
 
-  #ifdef DEBUG_SDCARD_TIME
-  timestamp_us = micros() - timestamp_us;
-  Serial.print(F("t_sdf us: "));
-  Serial.println(timestamp_us);
-  #endif
+      json_entry(dst);
+      json_label(dst, F("egt"));
+      json_object(dst);
+    
+        json_obj(dst, F("num"), Data_Config.EGT_no);
+        json_obj(dst, F("rate_ms"), EGT_SAMPLE_INTERVAL_ms);
+        json_obj(dst, F("units"), F("°C"));
+        json_obj(dst, F("min"), 0);
+        json_obj(dst, F("max"), 1024);
+        json_obj(dst, F("div"), 4);
+    
+      json_close_object(dst); //egt
+
+      json_entry(dst);
+      json_label(dst, F("tmp"));
+      json_object(dst);
+    
+        //tmp sensors may have different ranges, how to represent that here? substitute single vale with array
+        json_obj(dst, F("num"), Data_Config.TMP_no);
+        json_obj(dst, F("rate_ms"), ANALOG_SAMPLE_INTERVAL_ms);
+        json_obj(dst, F("units"), F("°C"));
+        json_obj(dst, F("min"), 0);
+        json_obj(dst, F("max"), 255);
+    
+      json_close_object(dst); //egt
+
+      json_entry(dst);
+      json_label(dst, F("trq"));
+      json_object(dst);
+    
+        json_obj(dst, F("rate_ms"), ANALOG_SAMPLE_INTERVAL_ms);
+        json_obj(dst, F("units"), F("mN.m"));
+        json_obj(dst, F("min"), 0);
+        json_obj(dst, F("max"), 1024);
+    
+      json_close_object(dst); //trq
+
+      json_entry(dst);
+      json_label(dst, F("spd"));
+      json_object(dst);
+    
+        json_obj(dst, F("rate_pr"), 1);
+        json_obj(dst, F("units"), F("ms"));
+        json_obj(dst, F("min"), 1);
+        json_obj(dst, F("max"), 1000);
+    
+      json_close_object(dst); //spd
+
+      json_entry(dst);
+      json_label(dst, F("srv"));
+      json_object(dst);
+    
+        json_obj(dst, F("num"), Data_Config.SRV_no);
+        json_obj(dst, F("rate_ms"), 1);
+        json_obj(dst, F("units"), F("LSB"));
+        json_obj(dst, F("min"), 0);
+        json_obj(dst, F("max"), 1023);
+    
+      json_close_object(dst); //spd
+  
+  
+    json_close_object(dst); //channels
+  
+  json_close_object(dst); //header
+  
+  json_entry(dst);
+  json_label(dst, F("records"));
+  json_array(dst);
 }
-/* writes a record to an sd card file 
- * returns true when complete
- * if it fails to write it will skip this record, but try again next time
- * we might be able to optimise here by checking for elapsed time,
- * and if time has exceeded some threshold, the file will close
- */
-void write_sdcard_data_record()
+/* write the log footer */
+void finish_log(String &dst)
 {
-  #ifdef DEBUG_SDCARD_TIME    
-  unsigned int timestamp_us = micros();
-  #endif
+  json_close_array(dst);
+  json_close_object(dst);
+}
 
-  //if the data file is open, we write to it
-  if(dataFile)
-  {
-    /* data record to read */
-    DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;
+/* write a record into the "records" array */
+void write_record(String &dst, DATA_RECORD *data_record)
+{
+  json_entry(dst); //new array element
+  json_object(dst);//new element is an object
+  //add record elements here
 
-    /* write in hex format */
-    if(flags_config.do_sdcard_write_hex)
-    {
-      //TODO: this also need to be buffered - however, we might not have enough ram for two different buffers
-      dataFile.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
-      dataFile.write(data_store.hash);                                              //write the hash value
-      dataFile.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
-    }
-    /* write plain text format */
-    else
-    {
-      #ifdef DEBUG_SDCARD
-      unsigned int blocks_written = 0;
-      static unsigned long total_blocks_written = 0;
-      #endif
-
-      #define BLOCK_SIZE 512
-      while (dataBuffer.length() >= BLOCK_SIZE)
-      {
-        // write a single block of data
-        if(dataFile.write(dataBuffer.c_str(), BLOCK_SIZE))
-        {
-          // remove written data from dataBuffer if write was sucessfull
-          dataBuffer.remove(0, BLOCK_SIZE);
-        }
-        else
-        {
-          Serial.println(F("File write failed"));
-          //if not logging to serial, stop logging
-          if(!flags_config.do_serial_write)
-          {
-            flags_status.logging_active = false;
-          }
-        }
-        
-        #ifdef DEBUG_SDCARD
-        blocks_written++;
-        #endif
-      }
-
-      #ifdef DEBUG_SDCARD
-      total_blocks_written += blocks_written;
-      Serial.print(F("SD blocks written: "));        Serial.println(blocks_written);
-      Serial.print(F("SD total blocks: "));        Serial.println(total_blocks_written);
-      #endif
-    } // format selection
-  }
-
-  #ifdef DEBUG_SDCARD_TIME
-  timestamp_us = micros() - timestamp_us;
-  Serial.print(F("t_sdc us: "));
-  Serial.println(timestamp_us);
-  #endif
-
-  return;
+  
+  json_close_object(dst); //close this record's object
 }
