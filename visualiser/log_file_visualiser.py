@@ -26,9 +26,9 @@ mpl.rcParams['figure.figsize'] = [8.0, 6.0]
 mpl.rcParams['figure.dpi'] = 300
 
 #log file path
-log_file_folder = "../../controller logs/"
+log_file_folder = "../../controller logs/22-06-2023"
 #log_file_name = "23061202.TXT"
-log_file_name = "23061203.TXT"
+log_file_name = "23062005.TXT"
 log_file_path = os.path.join(log_file_folder, log_file_name)
 
 
@@ -57,6 +57,9 @@ RPM_calc = np.array([])
 
 #time stamps for each record
 AVG_t = np.array([])
+
+#timestamps from each record
+TIME_t = np.array([])
 
 #rpm interval times
 RPM_intervals_ms = np.array([])
@@ -96,11 +99,18 @@ add_ana_timestamps = True
 add_egt_timestamps = True
 add_srv_timestamps = True
 
-verbose = False
+tick_offset = 0
+first_tick = True
 
+verbose = False
+echo = False
+detailed_rpm = False
 
 line_no = 0
 record_no = 0
+
+
+
 
 
 
@@ -110,7 +120,7 @@ with open(log_file_path) as file:
     for line in file:
         line = line.strip()
         
-        print(f"{line_no}, {record_no}: {line}")
+        if echo : print(f"{line_no}, {record_no}: {line}")
         line_no = line_no+1
         
         #blank lines
@@ -120,14 +130,16 @@ with open(log_file_path) as file:
         #record marker
         if line == "----------":
             if read_avg == True:
-                #end of record, do per record processing
-                #add the record timestamp
+                #start of record
+                #add the inferred record timestamp
                 if len(AVG_t)>0:
                     timestamp = AVG_t[-1] + RECORD_INTERVAL
                     AVG_t = np.append(AVG_t, timestamp)
                     record_no = record_no+1
                 else:
                     AVG_t = np.array([0])
+                #reset the tick offset
+                tick_offset = -1
                 
             else: 
                 read_avg = True
@@ -170,8 +182,7 @@ with open(log_file_path) as file:
             
             #timestamp (present, but not currently used)
             if param == "Timestamp":
-                #print(line)
-                #AVG_t = np.append(AVG_t, values)
+                TIME_t = np.append(TIME_t, values)
                 continue
             
             #parse number of analog samples per record
@@ -318,19 +329,65 @@ with open(log_file_path) as file:
                 RPM_no = np.append(RPM_no, values)
                 if verbose: print("RPM no.:", RPM_no[-1])
                 continue
+            #rpm counter tick offset
+            if param == "RPM tick offset (ms)":
+                tick_offset = values[0]
+                if verbose: print("RPM tick offset (ms):", RPM_no[-1])
+                continue
             #rpm counter tick intervals
             if param == "RPM times (ms)":
                 if len(values) == 0:
                     continue
+                
+                
+                
+                #check if this is the first recorded tick
+                if len(RPM_intervals_ms) == 0:
+                    #in which case, ignore this tick
+                    values= values [1:]
+                    first_tick = True
+                    print("first tick")
+                #also ignore any values less than 1
+                if len(values[values<=0]) > 0:
+                    print("some ticks ignored:", np.argwhere(values<=0), ":", values[values<=0])
+                    values = values[values>0]
+                    
                 RPM_intervals_ms = np.append(RPM_intervals_ms, values)
                 if verbose: print("RPM intervals (ms):", RPM_intervals_ms[-len(values):])
-                #convert to seconds
-                values = values
-                #cumalative sum to get the timestamps relative to the last tick
+                
+                #this mostly works...
+                    
+                #instead of accumilating times from the start of logging,
+                #we will use the 1st tick offset from the current record's timestamp
+                # using AVG_t starting at 0ms, rather than TIME_t, which does not start at 0
+                # if a tick offset hasnt been read out, default to the old method
+                if tick_offset >=0:
+                    #if this is the first tick in the log file,the first ick is ignored
+                    #so we must add the tick offset to the next tick (which is the time since the first uncounted tick)
+                    if first_tick:
+                        first_tick =  False;
+                        values[0] = values[0]+(AVG_t[-1]*1000) + tick_offset
+                    else:
+                        values[0] = (AVG_t[-1]*1000) + tick_offset
+                    #cumalative sum to get the timestamps relative to the last tick
+                    
+                else:
+                    
+                    print("tick times, but no tick offset")
+                    #this is an error, but we can recover
+                    
+                    #add the previous tick time, if there was one
+                    if len(RPM_tick_times_ms) > 0:
+                        values[0] = values[0] + RPM_tick_times_ms[-1]
+                    else:
+                        print("also no previous times recorded")
+                        #just use the record timestamp
+                        values[0] = (AVG_t[-1]*1000)
+                        
+                #add up all the intervals to get the timestamps for each tick
                 values = np.cumsum(values)
-                #add the previous tick time, if there was one
-                if len(RPM_tick_times_ms) > 0:
-                    values = values + RPM_tick_times_ms[-1]
+                    
+                
                 #check that the last timestamps is not after the end of the record
                 """
                 overtime = values[-1] - (AVG_t[-1] + RECORD_INTERVAL)
@@ -375,7 +432,8 @@ def plot_data():
         plt.plot(ANA_t, n)
         labels.append(f'USR {m}')
     for (m,n) in enumerate(USR_avg):
-        plt.plot(AVG_t, n)
+        ln = min(len(AVG_t),len(n))
+        plt.plot(AVG_t[:ln], n[:ln])
         labels.append(f'USR avg. {m}')
         
     show_plot('User Input (LSB, max 1023)')
@@ -384,7 +442,8 @@ def plot_data():
         plt.plot(ANA_t, n)
         labels.append(f'MAP {m}')
     for (m,n) in enumerate(MAP_avg):
-        plt.plot(AVG_t, n)
+        ln = min(len(AVG_t),len(n))
+        plt.plot(AVG_t[:ln], n)[:ln]
         labels.append(f'MAP avg. {m}')
         
     show_plot('MAP (mbar)')
@@ -394,7 +453,8 @@ def plot_data():
         plt.plot(ANA_t, n)
         labels.append(f'TMP {m}')
     for (m,n) in enumerate(TMP_avg):
-        plt.plot(AVG_t, n)
+        ln = min(len(AVG_t),len(n))
+        plt.plot(AVG_t[:ln], n[:ln])
         labels.append(f'TMP avg. {m}')
     
     show_plot('Thermistor (°C)')
@@ -404,73 +464,89 @@ def plot_data():
         plt.plot(EGT_t[m], EGT[m])
         labels.append(f'EGT {m}')
     for (m,n) in enumerate(EGT_avg):
-        plt.plot(AVG_t, n)
-        labels.append(f'EGT avg. {m}')    
+        ln = min(len(AVG_t),len(n))
+        plt.plot(AVG_t[:ln], n[:ln])
+        labels.append(f'EGT avg. {m}')  
     
     show_plot('EGT (°C)')
     
     
     
     plt.plot(ANA_t, TRQ)
-    labels.append(f'TRQ')
+    labels.append('TRQ')
     
-    plt.plot(AVG_t, TRQ_avg/1000)
-    labels.append(f'TRQ avg.')
+    ln = min(len(AVG_t),len(TRQ_avg))
+    plt.plot(AVG_t[:ln], TRQ_avg[:ln]/1000)
+    labels.append('TRQ avg.')
     
     show_plot('Torque (N.m)')
 
     RPM_calc = 60*RPM_no/RECORD_INTERVAL
     RPM_ticks = 60000/RPM_intervals_ms
     
+    ln = min(len(AVG_t),len(RPM_calc))
+    plt.plot(AVG_t[:ln], RPM_calc[:ln])
+    labels.append('avg. from count')
     
-    plt.plot(AVG_t, RPM_calc)
-    labels.append(f'avg. from count')
+    ln = min(len(AVG_t),len(RPM_avg))
+    plt.plot(AVG_t[:ln], RPM_avg[:ln])
+    labels.append('reported avg.')
     
-    plt.plot(AVG_t, RPM_avg)
-    labels.append(f'reported avg.')
     
     plt.plot(RPM_tick_times_ms/1000, RPM_ticks)
-    labels.append(f'avg. from tick times')
+    labels.append('avg. from tick times')
     
     show_plot('Engine Speed (RPM)')
     
-    duration_ms = np.ceil(RPM_tick_times_ms[-1]).astype(np.int32) + 1
-    ticks = np.zeros(duration_ms)
-    ticks_t = np.arange(duration_ms)/1000
     
-    np.put(ticks, np.round(RPM_tick_times_ms).astype(np.int32), RPM_ticks)
+    ln = min(len(AVG_t),len(POW_avg))
+    plt.plot(AVG_t[:ln], POW_avg[:ln])
+    labels.append('brake power avg.')
     
+    show_plot('Power (W)')
     
+    if detailed_rpm:
     
-    
-    
-    
-    step = 2
-    for start in range ( np.ceil(duration_ms/1000).astype(np.int32) - step):
-        stop = start+step
-        
-        if start is not None: start_rpm = int(start/RECORD_INTERVAL)
-        else: start_rpm = None
-        if stop is not None: stop_rpm = int(stop/RECORD_INTERVAL)+1
-        else: stop_rpm = None
-        
-        plt.plot(AVG_t[start_rpm:stop_rpm], RPM_calc[start_rpm:stop_rpm])
-        labels.append(f'avg. from count')
-        
-        
-    
-        
-        if start is not None: start_tick = int(start*1000)
-        else: start_tick = None
-        if stop is not None: stop_tick = int(stop*1000)
-        else: stop_tick = None
-        
-        plt.plot(ticks_t[start_tick:stop_tick], ticks[start_tick:stop_tick])
-        labels.append(f'avg. from ticks')
-        
-        plt.ylim(0,4500)
-        
-        show_plot('Engine Speed (RPM)')
+        try:
+            duration_ms = np.ceil(RPM_tick_times_ms[-1]).astype(np.int32) + 1
+            ticks = np.zeros(duration_ms)
+            ticks_t = np.arange(duration_ms)/1000
+            
+            np.put(ticks, np.round(RPM_tick_times_ms).astype(np.int32), RPM_ticks)
+            
+            
+            
+            
+            
+            
+            step = 2
+            for start in range ( np.ceil(duration_ms/1000).astype(np.int32) - step):
+                stop = start+step
+                
+                if start is not None: start_rpm = int(start/RECORD_INTERVAL)
+                else: start_rpm = None
+                if stop is not None: stop_rpm = int(stop/RECORD_INTERVAL)+1
+                else: stop_rpm = None
+                
+                plt.plot(AVG_t[start_rpm:stop_rpm], RPM_calc[start_rpm:stop_rpm])
+                labels.append('avg. from count')
+                
+                
+            
+                
+                if start is not None: start_tick = int(start*1000)
+                else: start_tick = None
+                if stop is not None: stop_tick = int(stop*1000)
+                else: stop_tick = None
+                
+                plt.plot(ticks_t[start_tick:stop_tick], ticks[start_tick:stop_tick])
+                labels.append('avg. from ticks')
+                
+                plt.ylim(0,5000)
+                
+                show_plot('Engine Speed (RPM)')
+        except IndexError as e:
+            print (e)
 
 plot_data()
     
