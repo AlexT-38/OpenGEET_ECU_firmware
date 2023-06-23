@@ -18,4 +18,7 @@
 
 extern volatile unsigned long rpm_last_tick_time_ms;
 
+extern volatile unsigned int rpm_total_ms;
+extern volatile unsigned int rpm_total_tk;
+
 #endif //__RPM_COUNTER_H__

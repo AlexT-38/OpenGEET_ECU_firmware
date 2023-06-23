@@ -258,6 +258,8 @@ void process_pid_loop()
     sv_targets[n] = KNOB_values[n];
   }
   n=0; //reset the index
+
+  static unsigned int rpm_avg_since_last_pid;
   
   switch(sys_mode)
   {
@@ -270,13 +272,21 @@ void process_pid_loop()
       }
       break;
     case MODE_PID_RPM_CARB:
+      //get the average tick time since last pid update
+      if(rpm_total_tk)      rpm_avg_since_last_pid = rpm_total_ms / rpm_total_tk;
+      //if there haven't been any ticks, add the PID update interval to the previous value, up to a maximum.
+      else if(rpm_avg_since_last_pid < PID_RPM_MAX_FB_TIME_MS)  rpm_avg_since_last_pid += PID_UPDATE_INTERVAL_ms;
       // convert control input to target rpm 
       RPM_control.target = amap(sv_targets[0], RPM_MIN_SET_ms, RPM_MAX_SET_ms);
       // run the PID calculation
-      sv_targets[0] = update_PID(&RPM_control, rpm_last_tick_time_ms);
+      sv_targets[0] = update_PID(&RPM_control, rpm_avg_since_last_pid);
       
       break;
   }
+
+  //reset the rpm pid counters
+  rpm_total_ms = 0;
+  rpm_total_tk = 0;
   
 
   

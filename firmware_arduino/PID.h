@@ -15,6 +15,8 @@
 #define PID_OUTPUT_MIN          (0)
 #define PID_OUTPUT_CENTRE       ( (PID_OUTPUT_MAX + PID_OUTPUT_MIN) >> 1 )
 
+#define PID_RPM_MAX_FB_TIME_MS  1000
+
 
 /* PWL approximation of LOG2 and POW2 */
 #define LOG_PAR_MIN_BITS      (4)

@@ -1,6 +1,10 @@
 
-/* time of last tick, stored as microseconds for the benefit of PID */
+/* time of last tick */
 volatile unsigned long rpm_last_tick_time_ms = 0;
+
+/* total ticks and ms since last pid update */
+volatile unsigned int rpm_total_ms;
+volatile unsigned int rpm_total_tk;
 
 //#define RPM_CALC_SIMPLE
 #define RPM_SCALE_BITS 2
@@ -118,6 +122,10 @@ void rpm_count(void)
     /* get time now and time elapsed since last tick */
     unsigned long timenow_ms = millis();
     unsigned int elapsed_time = timenow_ms - rpm_last_tick_time_ms;
+
+    /* data for pid control */
+    rpm_total_ms += elapsed_time;
+    rpm_total_tk++;
     
     /* update last tick time to current tick */
     rpm_last_tick_time_ms = timenow_ms;
