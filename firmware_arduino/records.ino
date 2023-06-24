@@ -17,7 +17,8 @@ byte Data_Record_write_idx = 0;
 DATA_AVERAGES Data_Averages;
 
 /* list of numbers of parameter types in data record */
-DATA_CONFIG Data_Config = {DATA_RECORD_VERSION, NO_OF_USER_INPUTS, NO_OF_MAP_SENSORS, NO_OF_TMP_SENSORS, NO_OF_EGT_SENSORS, NO_OF_SERVOS};
+//this might work better as a bit mask for the channels that are enabled
+DATA_CONFIG Data_Config = {DATA_RECORD_VERSION, NO_OF_USER_INPUTS, NO_OF_MAP_SENSORS, NO_OF_TMP_SENSORS, NO_OF_EGT_SENSORS, NO_OF_SERVOS, NO_OF_PIDS};
 
 
 static DATA_STORAGE data_store;
@@ -35,7 +36,19 @@ void configure_records()
 
 
 
-
+void toggle_logging()
+{
+  switch (flags_status.logging_state)
+  {
+    case LOG_STOPPED:
+      flags_status.logging_state = LOG_STARTING;
+      break;
+    case LOG_STARTED:
+      flags_status.logging_state = LOG_STOPPING;
+      break;
+    //if we already starting or stopping, ignore the request.
+  }
+}
 
 
 /* swap records, calculate averages, generate text report */
@@ -160,7 +173,11 @@ void update_record()
   unsigned int timestamp_buffer_us = micros();
   #endif
 
-  if(flags_status.logging_active)  recordStart = write_data_record_to_buffer(data_record, dataBuffer, recordStart);
+  // convert data to string report if logging and either sdcard or serial is configured for text output
+  if(flags_status.logging_state && (!flags_config.do_serial_write_hex || !flags_config.do_sdcard_write_hex))
+  {
+    recordStart = write_data_record_to_buffer(data_record, dataBuffer, recordStart);
+  }
 
   #ifdef DEBUG_BUFFER_TIME
   timestamp_buffer_us = micros() - timestamp_buffer_us;
@@ -176,13 +193,32 @@ void update_record()
   #endif //DEBUG_RECORD_TIME
 }
 bool log_format_is_json = true;
+
 unsigned int write_data_record_to_buffer(DATA_RECORD *data_record, String &dst, int prev_record_idx)
 {
     //write the record to a temporary buffer, so that we can handle dst buffer overflows
     String buf;
     buf.reserve(RECORD_BUFFER_SIZE);
 
-    if (log_format_is_json) write_record(buf, data_record);
+    if (log_format_is_json) 
+    {
+      switch (flags_status.logging_state)
+      {
+          case LOG_STARTING:
+            start_log(buf);
+            break;
+          case LOG_STARTED:
+            write_record(buf, data_record);
+            break;
+          case LOG_STOPPING:
+            finish_log(buf);
+            break;
+      }
+      #ifdef DEBUG_RECORD
+      Serial.print(F("buf.len: ")); Serial.println(dataBuffer.length());
+      #endif
+      
+    }
     else
     {
   
@@ -242,6 +278,8 @@ unsigned int write_data_record_to_buffer(DATA_RECORD *data_record, String &dst, 
       buf += (FS(S_POW_C));          buf += (Data_Averages.POW); buf += "\n";
       buf += (FS(S_RECORD_MARKER)); buf += "\n";
     }
+
+    ///////////////////////////////////////////////////////////////////////////////////
 
     int this_record_idx = dst.length();
     
@@ -319,131 +357,157 @@ void string_print_byte_array(String &dst, byte *array_data, unsigned int array_s
   dst += "\n";
 }
 
+void log_io_info( String &dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units)
+{
+    if(name_pgm)             json_append(dst, F("name"), name_pgm);
+    if(number > 1)           json_append(dst, F("num"), number);
+    if(rate)                 json_append(dst, F("rate"), rate);
+    if(rate_units)           json_append(dst, F("rate_units"), rate_units);
+    if(units)                json_append(dst, F("units"), units);
 
+}
+void log_io_info( String &dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units,
+                  int low, int high, char scale)
+{
+  log_io_info(dst, name_pgm, number, rate, units, rate_units);
+  json_append(dst, F("min"), low);
+  json_append(dst, F("max"), high);
+  if(scale)
+  {
+    json_append(dst, F("scale"), scale); //scale is power of 2 multiplier, ie negative for fractional values, eg -2 gives steps of 0.25 units
+  }
+}
 /* write the log header */
 void start_log(String &dst)
 {
-  json_start(dst);
+  #ifdef DEBUG_RECORD
+  Serial.println(F("log wr head"));
+  #endif
   
-  json_entry(dst);
-  json_label(dst, F("header"));
-  json_object(dst);
-    //add header content here
+  json_wr_start(dst);
   
-    json_obj(dst, F("version"), JSON_RECORD_VERSION);
-    json_obj(dst, F("firmware"), FS(S_FIRMWARE_NAME));
-    json_obj(dst, F("rate_ms"), UPDATE_INTERVAL_ms);
+  json_append_obj(dst, F("header"));
+  
+    //basic record info
+    json_append(dst, F("version"), JSON_RECORD_VERSION);
+    json_append(dst, F("firmware"), FS(S_FIRMWARE_NAME));
+    json_append(dst, F("rate_ms"), UPDATE_INTERVAL_ms);
   
     DateTime t_now = DS1307_now();
     char str[11];
-    
     date_to_string(t_now, str);
-    json_obj(dst, F("date"), str);
-  
+    json_append(dst, F("date"), str);
     time_to_string(t_now, str);
-    json_obj(dst, F("time"), str);
-  
-    json_entry(dst);
-    json_label(dst, F("channels"));
-    json_object(dst);
-  
-      json_entry(dst);
-      json_label(dst, F("usr"));
-      json_object(dst);
-    
-        json_obj(dst, F("num"), Data_Config.USR_no);
-        json_obj(dst, F("rate_ms"), ANALOG_SAMPLE_INTERVAL_ms);
-        json_obj(dst, F("units"), F("LSB"));
-        json_obj(dst, F("min"), 0);
-        json_obj(dst, F("max"), 1023);
-    
-      json_close_object(dst); //usr
-    
-      json_entry(dst);
-      json_label(dst, F("map"));
-      json_object(dst);
-    
-        //map sensors may have different ranges, how to represent that here? substitute single vale with array
-        json_obj(dst, F("num"), Data_Config.MAP_no);
-        json_obj(dst, F("rate_ms"), ANALOG_SAMPLE_INTERVAL_ms);
-        json_obj(dst, F("units"), F("mbar"));
-        json_obj(dst, F("min"), SENSOR_MAP_CAL_MIN_mbar);
-        json_obj(dst, F("max"), SENSOR_MAP_CAL_MAX_mbar);
-    
-      json_close_object(dst); //map
+    json_append(dst, F("time"), str);
 
-      json_entry(dst);
-      json_label(dst, F("egt"));
-      json_object(dst);
+    //info about the sensors being recorded
     
-        json_obj(dst, F("num"), Data_Config.EGT_no);
-        json_obj(dst, F("rate_ms"), EGT_SAMPLE_INTERVAL_ms);
-        json_obj(dst, F("units"), F("°C"));
-        json_obj(dst, F("min"), 0);
-        json_obj(dst, F("max"), 1024);
-        json_obj(dst, F("div"), 4);
+    json_append_arr(dst, F("sensors"));
     
-      json_close_object(dst); //egt
+      // user inputs
+      if(Data_Config.USR_no > 0)
+      {
+        json_append_obj(dst);
+          log_io_info(dst, F("usr"), Data_Config.USR_no, ANALOG_SAMPLE_INTERVAL_ms, F("LSB"), F("ms"),   0, 1023, 0);
+        json_close_object(dst);
+      }
+      
+      // pressure sensors
+      if(Data_Config.MAP_no > 0)
+      {
+        json_append_obj(dst);
+          log_io_info(dst, F("map"), Data_Config.MAP_no, ANALOG_SAMPLE_INTERVAL_ms, F("mbar"), F("ms"));
+        json_close_object(dst); //map
+      }
 
-      json_entry(dst);
-      json_label(dst, F("tmp"));
-      json_object(dst);
-    
-        //tmp sensors may have different ranges, how to represent that here? substitute single vale with array
-        json_obj(dst, F("num"), Data_Config.TMP_no);
-        json_obj(dst, F("rate_ms"), ANALOG_SAMPLE_INTERVAL_ms);
-        json_obj(dst, F("units"), F("°C"));
-        json_obj(dst, F("min"), 0);
-        json_obj(dst, F("max"), 255);
-    
-      json_close_object(dst); //egt
+      // thermocouple sensors
+      if(Data_Config.EGT_no > 0)
+      {
+        json_append_obj(dst);
+          log_io_info(dst, F("egt"), Data_Config.EGT_no, EGT_SAMPLE_INTERVAL_ms, F("°C"), F("ms"), 0, 1024, -2);
+        json_close_object(dst); //egt
+      }
 
-      json_entry(dst);
-      json_label(dst, F("trq"));
-      json_object(dst);
-    
-        json_obj(dst, F("rate_ms"), ANALOG_SAMPLE_INTERVAL_ms);
-        json_obj(dst, F("units"), F("mN.m"));
-        json_obj(dst, F("min"), 0);
-        json_obj(dst, F("max"), 1024);
-    
+      // thermistor sensors
+      if(Data_Config.TMP_no > 0)
+      {
+        json_append_obj(dst);
+          log_io_info(dst, F("tmp"), Data_Config.TMP_no, ANALOG_SAMPLE_INTERVAL_ms, F("°C"), F("ms"), 0, 256, -2);
+        json_close_object(dst); //tmp
+      }
+
+      //torque sensor
+      json_append_obj(dst);
+        log_io_info(dst, F("trq"), 1, ANALOG_SAMPLE_INTERVAL_ms, F("mN.m"), F("ms"), -32000, 32000, 0);
       json_close_object(dst); //trq
-
-      json_entry(dst);
-      json_label(dst, F("spd"));
-      json_object(dst);
-    
-        json_obj(dst, F("rate_pr"), 1);
-        json_obj(dst, F("units"), F("ms"));
-        json_obj(dst, F("min"), 1);
-        json_obj(dst, F("max"), 1000);
-    
+      
+      //rotation time sensor
+      json_append_obj(dst);
+        log_io_info(dst, F("spd"), 1, 1, F("ms"), F("pr"));
       json_close_object(dst); //spd
 
-      json_entry(dst);
-      json_label(dst, F("srv"));
-      json_object(dst);
+      //derived rpm
+      json_append_obj(dst);
+        log_io_info(dst, F("rpm"), 1, 0, F("rpm"), NULL); //rate of zero (or 1?) and no rate units -> avg per record
+      json_close_object(dst); //rpm
+
+      //derived power
+      json_append_obj(dst);
+        log_io_info(dst, F("pow"), 1, 0, F("W"), NULL);
+      json_close_object(dst); //pow
+
+    json_close_array(dst); ////////////////////////////////////////////////////// end of sensors
     
-        json_obj(dst, F("num"), Data_Config.SRV_no);
-        json_obj(dst, F("rate_ms"), 1);
-        json_obj(dst, F("units"), F("LSB"));
-        json_obj(dst, F("min"), 0);
-        json_obj(dst, F("max"), 1023);
+    json_append_obj(dst, F("servos"));
+      //common parameters
+      log_io_info(dst, NULL, Data_Config.SRV_no, PID_UPDATE_INTERVAL_ms, F("LSB"), F("ms"), 0, 1023, 0);
+
+      json_append_arr(dst, F("names"));
+        json_add(dst, F("throttle"));
+        json_wr_list(dst);
+        json_add(dst, F("mixture"));
+        json_wr_list(dst);
+        json_add(dst, F("brake"));
+      json_close_array(dst);
+    json_close_object(dst);
+
+    json_append_obj(dst, F("pid"));
+      log_io_info(dst, NULL, Data_Config.PID_no, PID_UPDATE_INTERVAL_ms, NULL, F("ms"));
+      json_append(dst, F("k_frac"), PID_FP_FRAC_BITS);
+      
+      json_append_arr(dst, F("configs"));
+        json_append_obj(dst);
+          json_append(dst, F("name"), F("rpm"));
+          json_append(dst, F("src"), F("spd"));
+          json_append(dst, F("dst"), F("throttle"));
+          json_append(dst, F("kp"), PIDs[PID_RPM].k.p);
+          json_append(dst, F("ki"), PIDs[PID_RPM].k.i);
+          json_append(dst, F("kd"), PIDs[PID_RPM].k.d);
+        json_close_object(dst); //pid_rpm
+        json_append_obj(dst);
+          json_append(dst, F("name"), F("vac"));
+          json_append(dst, F("src"), F("map"));
+          json_append(dst, F("idx"), 0);
+          json_append(dst, F("dst"), F("mixture"));
+          json_append(dst, F("kp"), PIDs[PID_VAC].k.p);
+          json_append(dst, F("ki"), PIDs[PID_VAC].k.i);
+          json_append(dst, F("kd"), PIDs[PID_VAC].k.d);
+        json_close_object(dst); //pid_rpm
+      json_close_array(dst); //configs
+      
+    json_close_object(dst); //pid
     
-      json_close_object(dst); //spd
-  
-  
-    json_close_object(dst); //channels
-  
   json_close_object(dst); //header
   
-  json_entry(dst);
-  json_label(dst, F("records"));
-  json_array(dst);
+  json_append_arr(dst, F("records"));
 }
 /* write the log footer */
 void finish_log(String &dst)
 {
+  #ifdef DEBUG_RECORD
+  Serial.println(F("log wr tail"));
+  #endif
+  
   json_close_array(dst);
   json_close_object(dst);
 }
@@ -451,10 +515,72 @@ void finish_log(String &dst)
 /* write a record into the "records" array */
 void write_record(String &dst, DATA_RECORD *data_record)
 {
-  json_entry(dst); //new array element
-  json_object(dst);//new element is an object
-  //add record elements here
-
+  #ifdef DEBUG_RECORD
+  Serial.println(F("log wr rec"));
+  #endif
   
-  json_close_object(dst); //close this record's object
+  json_append_obj(dst);
+  //add this records members here
+  
+    json_append(dst, F("timestamp"), data_record->timestamp);
+
+    if(Data_Config.USR_no > 0)
+    {
+      json_append_arr(dst, F("usr"));
+      for(byte idx = 0; idx < Data_Config.USR_no; idx++ )
+      {
+        json_append_arr(dst, data_record->USR[idx], data_record->ANA_no_of_samples);
+      }
+      json_close_array(dst);  
+    }
+    
+    if(Data_Config.MAP_no > 0)
+    {
+      json_append_arr(dst, F("map"));
+      for(byte idx = 0; idx < Data_Config.MAP_no; idx++ )
+      {
+        json_append_arr(dst, data_record->MAP[idx], data_record->ANA_no_of_samples);
+      }
+      json_close_array(dst);
+    }
+
+    if(Data_Config.TMP_no > 0)
+    {
+      json_append_arr(dst, F("tmp"));
+      for(byte idx = 0; idx < Data_Config.TMP_no; idx++ )
+      {
+        json_append_arr(dst, data_record->TMP[idx], data_record->ANA_no_of_samples);
+      }
+      json_close_array(dst);
+    }
+
+    if(Data_Config.EGT_no > 0)
+    {
+      json_append_arr(dst, F("egt"));
+      for(byte idx = 0; idx < Data_Config.EGT_no; idx++ )
+      {
+        json_append_arr(dst, data_record->EGT[idx], data_record->EGT_no_of_samples);
+      }
+      json_close_array(dst);
+    }
+
+    json_append_arr(dst, F("trq"), data_record->TRQ, data_record->ANA_no_of_samples);
+    
+    json_append(dst, F("spd_t0"), data_record->RPM_tick_offset_ms);
+    json_append_arr(dst, F("spd"), data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks);
+
+    if(Data_Config.SRV_no > 0)
+    {
+      json_append_arr(dst, F("srv"));
+      for(byte idx = 0; idx < Data_Config.SRV_no; idx++ )
+      {
+        json_append_arr(dst, data_record->SRV[idx], data_record->SRV_no_of_samples);
+      }
+      json_close_array(dst);
+    }
+    
+  
+
+  //complete the record
+  json_close_object(dst); 
 }

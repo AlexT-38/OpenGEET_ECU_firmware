@@ -10,7 +10,8 @@
 typedef struct data_config
 {
   unsigned int data_version;
-  byte USR_no, MAP_no, TMP_no, EGT_no, SRV_no;
+  byte USR_no, MAP_no, TMP_no, EGT_no, SRV_no, PID_no;
+  
   
 }DATA_CONFIG;
 
@@ -56,6 +57,8 @@ typedef struct data_record
 //servo outputs
   byte SRV_no_of_samples;
   int SRV[NO_OF_SERVOS][PID_LOOPS_PER_UPDATE];
+
+  PID_RECORD PIDs[NO_OF_PIDS];
   
 } DATA_RECORD; //... bytes per record with current settings
 
@@ -68,7 +71,12 @@ typedef struct data_storage
 }DATA_STORAGE;
 
 
-
+typedef enum log_state {
+  LOG_STOPPED,
+  LOG_STARTING,
+  LOG_STARTED,
+  LOG_STOPPING
+}LOG_STATE;
 
 /* the records to write to */
 extern DATA_RECORD Data_Records[2];

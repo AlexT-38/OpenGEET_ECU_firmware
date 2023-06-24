@@ -6,7 +6,7 @@ void write_serial_data_record()
   #endif
     
   /* send the data to the serial port */
-  if(flags_status.logging_active && flags_config.do_serial_write)
+  if(flags_status.logging_state && flags_config.do_serial_write)
   {
     /* data record to read */
     DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;//&LAST_RECORD;//
@@ -25,6 +25,7 @@ void write_serial_data_record()
       {
         Serial.write(&dataBuffer.c_str()[recordStart]);
       }
+      // buffer will be cleared in the next sdcard update call
     }
   }
 

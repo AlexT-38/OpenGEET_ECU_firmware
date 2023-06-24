@@ -1,3 +1,6 @@
+#define BLOCK_SIZE 512
+
+
 char output_filename[13] = ""; //8+3 format
 File dataFile;
 
@@ -17,10 +20,10 @@ void sync_sdcard_data_record()
   #ifdef DEBUG_SDCARD_TIME    
   unsigned int timestamp_us = micros();
   #endif
-   
-  if(flags_status.logging_active)
+
+  
+  if(flags_status.logging_state && flags_config.do_sdcard_write && flags_status.file_openable)
   {
-    
     if(dataFile) 
     {
       dataFile.flush(); //sync the file - hopefully this will perform files system updates without blocking
@@ -28,9 +31,14 @@ void sync_sdcard_data_record()
       Serial.println(F("SD Flush"));
       #endif
     }
-    else
+    else if (flags_status.logging_state == LOG_STARTING)
     {
       create_file(); //creating a file could involve long writes, so this task is scheduled here instead of during read_touch()
+    }
+    else
+    {
+      flags_status.file_openable = false;
+      Serial.println(F("no file open while logging"));
     }
   }
   else if(dataFile)
@@ -48,11 +56,9 @@ void sync_sdcard_data_record()
   Serial.println(timestamp_us);
   #endif
 }
-/* writes a record to an sd card file 
- * returns true when complete
- * if it fails to write it will skip this record, but try again next time
- * we might be able to optimise here by checking for elapsed time,
- * and if time has exceeded some threshold, the file will close
+/* writes data to an sd card file 
+ * if it fails to write it close the file, and if not logging to serial, stop logging.
+ * if writing is inactive or fails, the buffer is cleared
  */
 void write_sdcard_data_record()
 {
@@ -60,59 +66,95 @@ void write_sdcard_data_record()
   unsigned int timestamp_us = micros();
   #endif
 
-  //if the data file is open, we write to it
-  if(dataFile)
+  bool clear_buffer = true;
+  
+  //first check if we're logging to sd card
+  if(flags_config.do_sdcard_write)
   {
-    /* data record to read */
-    DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;
-
-    /* write in hex format */
-    if(flags_config.do_sdcard_write_hex)
+    //write only if logging active and dataFile ready for writes
+    if(flags_status.logging_state && dataFile )
     {
-      //TODO: this also need to be buffered - however, we might not have enough ram for two different buffers
-      dataFile.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
-      dataFile.write(data_store.hash);                                              //write the hash value
-      dataFile.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
-    }
-    /* write plain text format */
-    else
-    {
-      #ifdef DEBUG_SDCARD
-      unsigned int blocks_written = 0;
-      static unsigned long total_blocks_written = 0;
-      #endif
-
-      #define BLOCK_SIZE 512
-      while (dataBuffer.length() >= BLOCK_SIZE)
+      // write blocks of data
+      /* write in hex format */
+      if(flags_config.do_sdcard_write_hex)
       {
-        // write a single block of data
-        if(dataFile.write(dataBuffer.c_str(), BLOCK_SIZE))
+        /* data record to read */
+        DATA_RECORD *data_record = (DATA_RECORD *)data_store.data;
+  
+        dataFile.write((byte*)data_store.bytes_stored, sizeof(data_store.bytes_stored));    //write the number of bytes sent
+        dataFile.write(data_store.hash);                                              //write the hash value
+        dataFile.write(data_store.data, sizeof(data_store.bytes_stored));            //write the data
+        
+        //for now, we can just pad each write to make up the block size
+        int bytes_left = (sizeof(data_store.bytes_stored) + sizeof(data_store.hash) + data_store.bytes_stored);
+        bytes_left %= BLOCK_SIZE;
+        bytes_left = BLOCK_SIZE - bytes_left;
+        byte pad[bytes_left] = {0};
+        dataFile.write(pad, bytes_left);
+      }
+      /* write plain text format */
+      else
+      {
+        #ifdef DEBUG_SDCARD
+        unsigned int blocks_written = 0;
+        static unsigned long total_blocks_written = 0;
+        #endif
+  
+        
+        while (dataBuffer.length() >= BLOCK_SIZE)
         {
-          // remove written data from dataBuffer if write was sucessfull
-          dataBuffer.remove(0, BLOCK_SIZE);
-        }
-        else
-        {
-          Serial.println(F("File write failed"));
-          //if not logging to serial, stop logging
-          if(!flags_config.do_serial_write)
+          // write a single block of data
+          if(dataFile.write(dataBuffer.c_str(), BLOCK_SIZE))
           {
-            flags_status.logging_active = false;
+            // remove written data from dataBuffer if write was sucessfull
+            dataBuffer.remove(0, BLOCK_SIZE);
+            clear_buffer = false;
+
+            #ifdef DEBUG_SDCARD
+            blocks_written++;
+            #endif
           }
+          else
+          {
+            Serial.println(F("File write failed"));
+            //if not logging to serial, stop logging
+            if(!flags_config.do_serial_write)
+            {
+              flags_status.logging_state = LOG_STOPPED; //go straight to stop, do not pass LOG_STOPPING, do not collect £200.
+              clear_buffer = true;
+              break; //exit the while loop
+            }
+          }
+          
+          
         }
+
+        if(flags_status.logging_state == LOG_STOPPING)
+        {
+          // write the last of the data, even if it's less than one block
+          // if this results in long waits, pad the buffer with zeros before writing.
+          // non buffer sized writes typically are a few ms longer, 
+          // and only seem to cause big delays after many non buffer sized writes
+          dataFile.write(dataBuffer.c_str(), dataBuffer.length());
+        }
+
         
         #ifdef DEBUG_SDCARD
-        blocks_written++;
+        total_blocks_written += blocks_written;
+        Serial.print(F("SD blocks written: "));        Serial.println(blocks_written);
+        Serial.print(F("SD total blocks: "));        Serial.println(total_blocks_written);
         #endif
-      }
-
-      #ifdef DEBUG_SDCARD
-      total_blocks_written += blocks_written;
-      Serial.print(F("SD blocks written: "));        Serial.println(blocks_written);
-      Serial.print(F("SD total blocks: "));        Serial.println(total_blocks_written);
-      #endif
-    } // format selection
+      } // format selection
+    } //is logging and file is open
+    
   }
+  
+  if(clear_buffer)
+  {
+    //clear the buffer when not logging to sdcard
+    dataBuffer = "";
+  }
+
 
   #ifdef DEBUG_SDCARD_TIME
   timestamp_us = micros() - timestamp_us;

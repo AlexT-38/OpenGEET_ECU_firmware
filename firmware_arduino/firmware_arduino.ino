@@ -118,7 +118,7 @@
 //#define DEBUG_ANALOG_TIME       //measure how long analog read and processing takes   t:
 //#define DEBUG_DIGITAL_TIME      //measure how long reading from digital sensors takes t:  
 //#define DEBUG_TOUCH_TIME        //measure how long reading and processing touch input t:                125           300
-//#define DEBUG_RECORD  // n/a
+//#define DEBUG_RECORD  
 //#define DEBUG_SDCARD
 //#define DEBUG_BUFFER
 //#define DEBUG_ADC
@@ -163,15 +163,9 @@
 #define NO_OF_TMP_SENSORS         0     // analog low temperature NTC / PTC sensors, manifold inlet temperatures etc
 #define NO_OF_EGT_SENSORS         1     // digital thermocouple sensors, MAX6675
 #define NO_OF_SERVOS              3
+#define NO_OF_PIDS                2
 
-#include "torque_sensor.h"
-#include "PID.h"
-#include "strings.h"
-#include "screens.h"
-#include "RPM_counter.h"
-#include "servos.h"
-#include "flags.h"
-#include "eeprom.h"
+
 
 
 //front panel status LED
@@ -285,7 +279,14 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
  * 
  */
 
-
+#include "torque_sensor.h"
+#include "PID.h"
+#include "strings.h"
+#include "screens.h"
+#include "RPM_counter.h"
+#include "servos.h"
+#include "flags.h"
+#include "eeprom.h"
 #include "records.h"
 
 

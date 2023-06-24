@@ -14,17 +14,20 @@
 
 
                  //target,  kp,                ki,                kd,  p,  i, d, invert                                                  
-PID RPM_control = {0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1};  
+//PID RPM_control = {0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1};  
                   // pid will track tick time instead of rpm, to avoid costly division ops
                   // quantisation from the low resolution may cause problems with the loop, 
-PID VAC_control;  // in which case we'd have to keep a 2x or 4x averaged version, or use units of 100us instead of ms
+//PID VAC_control;  // in which case we'd have to keep a 2x or 4x averaged version, or use units of 100us instead of ms
                   // the greatest problem is at the high end of rpm range where 1ms represents a larger change in RPM
                   // at these speeds, there are at least 2 ticks per pid update, so averaging the last two would not
                   // increase the overal loop time
 
+PID PIDs[NO_OF_PIDS] = { {0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1},
+                         {0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1}     };
+
 void configure_PID()
 {
-  RPM_control.target = rpm_last_tick_time_ms;
+  RPM_control.target = RPM_MIN_SET_ms;
   RPM_control.p = 0;
   RPM_control.i = 0;
 }
@@ -36,15 +39,15 @@ unsigned int update_PID(struct pid *pid, int feedback)
 #endif
   
   int result = 0;
-  int err = pid->target - feedback;
-  byte do_integrate = ((err > 0) && (pid->i < (PID_FP_MAX-err))) || ((err < 0) && (pid->i > -(PID_FP_MAX+err)));
+  pid->err = pid->target - feedback;
+  byte do_integrate = ((pid->err > 0) && (pid->i < (PID_FP_MAX-pid->err))) || ((pid->err < 0) && (pid->i > -(PID_FP_MAX+pid->err)));
 
-  pid->d = err - pid->p;
-  pid->p = err;
+  pid->d = pid->err - pid->p;
+  pid->p = pid->err;
   //prevent pid->i from overflowing
   if( do_integrate ) 
   {
-    pid->i += err;
+    pid->i += pid->err;
   }
   #ifdef DEBUG_PID
   else 
@@ -68,19 +71,20 @@ unsigned int update_PID(struct pid *pid, int feedback)
   if (result < PID_OUTPUT_MIN)
   {
     result = 0;
-    if((err < 0) != (pid->invert!=0) ) 
+    if((pid->err < 0) != (pid->invert!=0) ) 
     {
-      pid->i -= err; //revert integral to previous value to prevent runaway, if ki*err is contributing to overflow
+      pid->i -= pid->err; //revert integral to previous value to prevent runaway, if ki*err is contributing to overflow
     }
   }
   else if (result > PID_OUTPUT_MAX)
   {
     result = PID_OUTPUT_MAX;
-    if((err > 0) != (pid->invert!=0) ) 
+    if((pid->err > 0) != (pid->invert!=0) ) 
     {
-      pid->i -= err;
+      pid->i -= pid->err;
     }
   }
+  pid->output = result;
   #ifdef DEBUG_PID
   
   Serial.print(F("PID kp, ki, kd:   "));
@@ -96,7 +100,7 @@ unsigned int update_PID(struct pid *pid, int feedback)
   Serial.print(FS(S_COMMA));
   Serial.print(feedback);
   Serial.print(FS(S_COMMA));
-  Serial.print(err);
+  Serial.print(pid->err);
   Serial.print(FS(S_COMMA));
   Serial.print(p);
   Serial.print(FS(S_COMMA));
@@ -260,7 +264,10 @@ void process_pid_loop()
   n=0; //reset the index
 
   static unsigned int rpm_avg_since_last_pid;
-  
+
+  // I'm not sure this MODE idea is the rgth way to do this
+  // it might be better to use a matrix to set connectivity between inputs(sensors), outputs(servos) and controllers(PID / other logic)
+  // this would make experimentation with control methods easier, since the configuration can be set with a function call
   switch(sys_mode)
   {
     default:

@@ -47,14 +47,34 @@ typedef struct pid
 {
   int target;
   PID_K k;
+  int err;
+  int output;
   int p;
   long i;
   int d;
   byte invert;
 }PID;
 
-extern PID RPM_control; 
-extern PID VAC_control;
+typedef struct pid_record
+{
+  int target[PID_LOOPS_PER_UPDATE];
+  int err[PID_LOOPS_PER_UPDATE];
+  int output[PID_LOOPS_PER_UPDATE];
+  int p[PID_LOOPS_PER_UPDATE];
+  long i[PID_LOOPS_PER_UPDATE];
+  int d[PID_LOOPS_PER_UPDATE];
+}PID_RECORD;
+
+#define RPM_control PIDs[PID_RPM] 
+#define VAC_control PIDs[PID_VAC]
+
+typedef enum pids
+{
+  PID_RPM = 0,
+  PID_VAC
+}PIDS;
+
+extern PID PIDs[NO_OF_PIDS];
 
 
 #endif //__PID_H__

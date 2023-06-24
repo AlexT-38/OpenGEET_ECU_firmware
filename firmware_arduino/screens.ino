@@ -204,9 +204,7 @@ void read_touch()
       case TAG_LOG_TOGGLE:
         if(touch_event == TOUCH_OFF)
         {
-          //if not previously logging and an sd card is available, generate the filename for logging
-          flags_status.logging_active = ~flags_status.logging_active;
-          //if(flags_status.sdcard_available && flags_config.do_sdcard_write && flags_status.logging_active) create_file();
+          toggle_logging();
         }
         break;
       case TAG_CAL_SV0_MIN:
@@ -276,16 +274,16 @@ void read_touch()
 //        }
 //        break;
       case TAG_LOG_TOGGLE_SDCARD:
-        if(touch_event == TOUCH_ON && !flags_status.logging_active) { flags_config.do_sdcard_write ^=1; }
+        if(touch_event == TOUCH_ON && !flags_status.logging_state) { flags_config.do_sdcard_write ^=1; }
         break;
       case TAG_LOG_TOGGLE_SDCARD_HEX:
-        if(touch_event == TOUCH_ON && !(flags_status.logging_active&&flags_config.do_sdcard_write)) { flags_config.do_sdcard_write_hex ^=1; }
+        if(touch_event == TOUCH_ON && !(flags_status.logging_state&&flags_config.do_sdcard_write)) { flags_config.do_sdcard_write_hex ^=1; }
         break;
       case TAG_LOG_TOGGLE_SERIAL:
-        if(touch_event == TOUCH_ON && !flags_status.logging_active) { flags_config.do_serial_write ^=1; }
+        if(touch_event == TOUCH_ON && !flags_status.logging_state) { flags_config.do_serial_write ^=1; }
         break;
       case TAG_LOG_TOGGLE_SERIAL_HEX:
-        if(touch_event == TOUCH_ON && !(flags_status.logging_active&&flags_config.do_serial_write)) { flags_config.do_serial_write_hex ^=1; }
+        if(touch_event == TOUCH_ON && !(flags_status.logging_state&&flags_config.do_serial_write)) { flags_config.do_serial_write_hex ^=1; }
         break;
       case TAG_MODE_SET_PID_RPM:
         if(touch_event == TOUCH_ON) {
@@ -784,7 +782,7 @@ void draw_log_toggle_button(int x, int y, byte sx, byte sy)
 
   int opt = (GD.inputs.tag == TAG_LOG_TOGGLE) ? OPT_FLAT : 0;
 
-  if(flags_status.logging_active)
+  if(flags_status.logging_state)
   {
     GD.cmd_fgcolor(C_BTN_LOGGING);
   }
