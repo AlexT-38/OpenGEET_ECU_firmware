@@ -6,7 +6,8 @@
  *  meanwhile, we'll just overwrite older files
  */
  #define NO_IDX 0xff
- #define RECORD_BUFFER_SIZE 2048
+ #define RECORD_RECORD_SIZE 1500
+ #define RECORD_BUFFER_SIZE (2*RECORD_RECORD_SIZE)
 
 /* the records to write to */
 DATA_RECORD Data_Records[2];
@@ -31,24 +32,89 @@ unsigned int recordStart; //length of dataBuffer at time of adding record to buf
 unsigned int lastRecordSize = 0;
 void configure_records()
 {
-  dataBuffer.reserve(RECORD_BUFFER_SIZE*2);
+  dataBuffer.reserve(RECORD_BUFFER_SIZE);
 }
 
 
-
+/* UI calls to start or stop logging
+ *  defers actual state changes till log_state_update()
+ */
 void toggle_logging()
+{
+  flags_status.logging_requested ^= 1;
+  
+  #ifdef DEBUG_LOG_STATE
+  if (flags_status.logging_requested)
+    Serial.println(F("log start requested"));
+  else
+    Serial.println(F("log stop requested"));
+  #endif
+}
+
+/* called every record update, after procesing data, but before stringifying
+ * handles the process of changing logging state, logging state should only change here
+ * depending on request state, current log state, log output config, datafile access, databuffer length
+ */
+void log_state_update()
 {
   switch (flags_status.logging_state)
   {
     case LOG_STOPPED:
-      flags_status.logging_state = LOG_STARTING;
+      if(flags_status.logging_requested) 
+      {
+        flags_status.logging_state = LOG_STARTING;
+        #ifdef DEBUG_LOG_STATE
+        Serial.println(F("log starting"));
+        #endif
+      }
       break;
     case LOG_STARTED:
-      flags_status.logging_state = LOG_STOPPING;
+      if(!flags_status.logging_requested) 
+      {
+        flags_status.logging_state = LOG_STOPPING;
+        #ifdef DEBUG_LOG_STATE
+        Serial.println(F("log stopping"));
+        #endif
+      }
       break;
-    //if we already starting or stopping, ignore the request.
+    case LOG_STARTING:
+      
+      if(flags_config.do_sdcard_write && dataFile && flags_status.file_openable)
+      { //move to the started state if logging to sd card and the file is open and openable
+        flags_status.logging_state = LOG_STARTED;
+        #ifdef DEBUG_LOG_STATE
+        Serial.println(F("log started (sd)"));
+        #endif
+      }
+      else if(flags_config.do_serial_write)
+      { //otherwise, move to the started state if serial logging is enabled
+        flags_status.logging_state = LOG_STARTED;
+        #ifdef DEBUG_LOG_STATE
+        Serial.println(F("log started (com)"));
+        #endif
+      }
+      else
+      { //otherwise stop logging
+        flags_status.logging_state = LOG_STOPPED;
+        #ifdef DEBUG_LOG_STATE
+        Serial.println(F("log start failed"));
+        #endif
+      }
+      break;
+
+    case LOG_STOPPING:
+      if(!dataBuffer.length())
+      {
+        flags_status.logging_state = LOG_STOPPED;
+        #ifdef DEBUG_LOG_STATE
+        Serial.println(F("log stopped"));
+        #endif
+      }
+      break;
   }
+  
 }
+
 
 
 /* swap records, calculate averages, generate text report */
@@ -173,8 +239,10 @@ void update_record()
   unsigned int timestamp_buffer_us = micros();
   #endif
 
-  // convert data to string report if logging and either sdcard or serial is configured for text output
-  if(flags_status.logging_state && (!flags_config.do_serial_write_hex || !flags_config.do_sdcard_write_hex))
+  log_state_update();
+
+  // convert data to string report if logging and either sdcard or serial is configured for output and in text format
+  if(flags_status.logging_state && ( (!flags_config.do_serial_write_hex && flags_config.do_serial_write) || (!flags_config.do_sdcard_write_hex && flags_config.do_sdcard_write) ))
   {
     recordStart = write_data_record_to_buffer(data_record, dataBuffer, recordStart);
   }
@@ -198,7 +266,7 @@ unsigned int write_data_record_to_buffer(DATA_RECORD *data_record, String &dst, 
 {
     //write the record to a temporary buffer, so that we can handle dst buffer overflows
     String buf;
-    buf.reserve(RECORD_BUFFER_SIZE);
+    buf.reserve(RECORD_RECORD_SIZE);
 
     if (log_format_is_json) 
     {
@@ -409,7 +477,7 @@ void start_log(String &dst)
       {
         json_append_obj(dst);
           log_io_info(dst, F("usr"), Data_Config.USR_no, ANALOG_SAMPLE_INTERVAL_ms, F("LSB"), F("ms"),   0, 1023, 0);
-        json_close_object(dst);
+        json_append_close_object(dst);
       }
       
       // pressure sensors
@@ -417,7 +485,7 @@ void start_log(String &dst)
       {
         json_append_obj(dst);
           log_io_info(dst, F("map"), Data_Config.MAP_no, ANALOG_SAMPLE_INTERVAL_ms, F("mbar"), F("ms"));
-        json_close_object(dst); //map
+        json_append_close_object(dst); //map
       }
 
       // thermocouple sensors
@@ -425,7 +493,7 @@ void start_log(String &dst)
       {
         json_append_obj(dst);
           log_io_info(dst, F("egt"), Data_Config.EGT_no, EGT_SAMPLE_INTERVAL_ms, F("°C"), F("ms"), 0, 1024, -2);
-        json_close_object(dst); //egt
+        json_append_close_object(dst); //egt
       }
 
       // thermistor sensors
@@ -433,30 +501,30 @@ void start_log(String &dst)
       {
         json_append_obj(dst);
           log_io_info(dst, F("tmp"), Data_Config.TMP_no, ANALOG_SAMPLE_INTERVAL_ms, F("°C"), F("ms"), 0, 256, -2);
-        json_close_object(dst); //tmp
+        json_append_close_object(dst); //tmp
       }
 
       //torque sensor
       json_append_obj(dst);
         log_io_info(dst, F("trq"), 1, ANALOG_SAMPLE_INTERVAL_ms, F("mN.m"), F("ms"), -32000, 32000, 0);
-      json_close_object(dst); //trq
+      json_append_close_object(dst); //trq
       
       //rotation time sensor
       json_append_obj(dst);
         log_io_info(dst, F("spd"), 1, 1, F("ms"), F("pr"));
-      json_close_object(dst); //spd
+      json_append_close_object(dst); //spd
 
       //derived rpm
       json_append_obj(dst);
         log_io_info(dst, F("rpm"), 1, 0, F("rpm"), NULL); //rate of zero (or 1?) and no rate units -> avg per record
-      json_close_object(dst); //rpm
+      json_append_close_object(dst); //rpm
 
       //derived power
       json_append_obj(dst);
         log_io_info(dst, F("pow"), 1, 0, F("W"), NULL);
-      json_close_object(dst); //pow
+      json_append_close_object(dst); //pow
 
-    json_close_array(dst); ////////////////////////////////////////////////////// end of sensors
+    json_append_close_array(dst); ////////////////////////////////////////////////////// end of sensors
     
     json_append_obj(dst, F("servos"));
       //common parameters
@@ -469,7 +537,7 @@ void start_log(String &dst)
         json_wr_list(dst);
         json_add(dst, F("brake"));
       json_close_array(dst);
-    json_close_object(dst);
+    json_append_close_object(dst);
 
     json_append_obj(dst, F("pid"));
       log_io_info(dst, NULL, Data_Config.PID_no, PID_UPDATE_INTERVAL_ms, NULL, F("ms"));
@@ -483,7 +551,7 @@ void start_log(String &dst)
           json_append(dst, F("kp"), PIDs[PID_RPM].k.p);
           json_append(dst, F("ki"), PIDs[PID_RPM].k.i);
           json_append(dst, F("kd"), PIDs[PID_RPM].k.d);
-        json_close_object(dst); //pid_rpm
+        json_append_close_object(dst); //pid_rpm
         json_append_obj(dst);
           json_append(dst, F("name"), F("vac"));
           json_append(dst, F("src"), F("map"));
@@ -492,12 +560,12 @@ void start_log(String &dst)
           json_append(dst, F("kp"), PIDs[PID_VAC].k.p);
           json_append(dst, F("ki"), PIDs[PID_VAC].k.i);
           json_append(dst, F("kd"), PIDs[PID_VAC].k.d);
-        json_close_object(dst); //pid_rpm
-      json_close_array(dst); //configs
+        json_append_close_object(dst); //pid_rpm
+      json_append_close_array(dst); //configs
       
-    json_close_object(dst); //pid
+    json_append_close_object(dst); //pid
     
-  json_close_object(dst); //header
+  json_append_close_object(dst); //header
   
   json_append_arr(dst, F("records"));
 }
@@ -508,8 +576,8 @@ void finish_log(String &dst)
   Serial.println(F("log wr tail"));
   #endif
   
-  json_close_array(dst);
-  json_close_object(dst);
+  json_append_close_array(dst);
+  json_append_close_object(dst);
 }
 
 /* write a record into the "records" array */
@@ -531,7 +599,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       {
         json_append_arr(dst, data_record->USR[idx], data_record->ANA_no_of_samples);
       }
-      json_close_array(dst);  
+      json_append_close_array(dst);  
     }
     
     if(Data_Config.MAP_no > 0)
@@ -541,7 +609,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       {
         json_append_arr(dst, data_record->MAP[idx], data_record->ANA_no_of_samples);
       }
-      json_close_array(dst);
+      json_append_close_array(dst);
     }
 
     if(Data_Config.TMP_no > 0)
@@ -551,7 +619,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       {
         json_append_arr(dst, data_record->TMP[idx], data_record->ANA_no_of_samples);
       }
-      json_close_array(dst);
+      json_append_close_array(dst);
     }
 
     if(Data_Config.EGT_no > 0)
@@ -561,7 +629,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       {
         json_append_arr(dst, data_record->EGT[idx], data_record->EGT_no_of_samples);
       }
-      json_close_array(dst);
+      json_append_close_array(dst);
     }
 
     json_append_arr(dst, F("trq"), data_record->TRQ, data_record->ANA_no_of_samples);
@@ -576,11 +644,11 @@ void write_record(String &dst, DATA_RECORD *data_record)
       {
         json_append_arr(dst, data_record->SRV[idx], data_record->SRV_no_of_samples);
       }
-      json_close_array(dst);
+      json_append_close_array(dst);
     }
     
   
 
   //complete the record
-  json_close_object(dst); 
+  json_append_close_object(dst); 
 }

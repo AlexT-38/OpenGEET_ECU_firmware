@@ -32,7 +32,7 @@
  * for the sake of brevity, labels should always be stored in flash
  */
 
-
+#define JSON_TAB '\t'
 #define JSON_MAX_DEPTH 255
 byte json_depth;          // how many levels of recursion in the object structure
 bool json_first;          //set true when entering into a new collection so that a comma is not added
@@ -71,17 +71,21 @@ void json_up()
 void json_wr_start(String &dst)
 {
   dst = "{";
-  json_depth = 0;
+  json_depth = 1;
   json_first = true;
 }
 
 /* new line, add tabs to depth*/
 void json_wr_nl(String &dst)
 {
-  char tabs[json_depth+1];
-  memset(tabs,'\t',json_depth);
   dst += "\n";
-  dst += tabs;
+  if (JSON_TAB)
+  {
+    char tabs[json_depth+1];
+    memset(tabs,JSON_TAB,json_depth);
+    tabs[json_depth] = 0;
+    dst += tabs;
+  }
 }
 
 /* add a new entry to the current collection */
@@ -121,18 +125,22 @@ void json_add_label(String &dst, const __FlashStringHelper *label_pgm)
 void json_add(String &dst, int value)
 {
   dst += value;
+  json_first = false;
 }
 void json_add(String &dst, unsigned int value)
 {
   dst += value;
+  json_first = false;
 }
 void json_add(String &dst, long value)
 {
   dst += value;
+  json_first = false;
 }
 void json_add(String &dst, unsigned long value)
 {
   dst += value;
+  json_first = false;
 }
 
 /* add a string from sram */
@@ -141,6 +149,7 @@ void json_add(String &dst, const char *string)
   dst += "\"";
   dst += string;
   dst += "\"";
+  json_first = false;
 }
 /* append a string from progmem */
 void json_add(String &dst, const __FlashStringHelper *string)
@@ -148,6 +157,7 @@ void json_add(String &dst, const __FlashStringHelper *string)
   dst += "\"";
   dst += string;
   dst += "\"";
+  json_first = false;
 }
 
 
@@ -167,10 +177,17 @@ void json_open_array(String &dst)
 /* end the current array */
 void json_close_array(String &dst)
 {
-  dst += "]";
   json_up();
+  dst += "]";
+  json_first = false;
 }
-
+void json_append_close_array(String &dst)
+{
+  json_up();
+  json_wr_nl(dst);
+  dst += "]";
+  json_first = false;
+}
 
 
 /* add an array and populate with numbers */
@@ -211,8 +228,16 @@ void json_open_object(String &dst)
 /* end the current object */
 void json_close_object(String &dst)
 {
-  dst += "}";
   json_up();
+  dst += "}";
+  json_first = false;
+}
+void json_append_close_object(String &dst)
+{
+  json_up();
+  json_wr_nl(dst);
+  dst += "}";
+  json_first = false;
 }
 
 /* add an entry to an object on a new line with the given label */
@@ -254,6 +279,7 @@ void json_append_obj(String &dst, const __FlashStringHelper * label )
   json_append_label(dst, label);
   json_open_object(dst);
 }
+
 
 
 // Append array ///////////////////////////////////////////////////////////////////////////////////////

@@ -15,6 +15,7 @@ void dateTime(uint16_t* date, uint16_t* time) {
  *time = FAT_TIME(t_now.hour, t_now.minute, t_now.second);
 }
 
+
 void sync_sdcard_data_record()
 {
   #ifdef DEBUG_SDCARD_TIME    
@@ -22,9 +23,9 @@ void sync_sdcard_data_record()
   #endif
 
   
-  if(flags_status.logging_state && flags_config.do_sdcard_write && flags_status.file_openable)
+  if(flags_status.logging_state && flags_config.do_sdcard_write )
   {
-    if(dataFile) 
+    if(dataFile && flags_status.file_openable) 
     {
       dataFile.flush(); //sync the file - hopefully this will perform files system updates without blocking
       #ifdef DEBUG_SDCARD
@@ -49,6 +50,10 @@ void sync_sdcard_data_record()
     Serial.println(F("SD Close"));
     #endif
   }
+
+  
+  
+  
 
   #ifdef DEBUG_SDCARD_TIME
   timestamp_us = micros() - timestamp_us;
@@ -117,16 +122,10 @@ void write_sdcard_data_record()
           else
           {
             Serial.println(F("File write failed"));
-            //if not logging to serial, stop logging
-            if(!flags_config.do_serial_write)
-            {
-              flags_status.logging_state = LOG_STOPPED; //go straight to stop, do not pass LOG_STOPPING, do not collect £200.
-              clear_buffer = true;
-              break; //exit the while loop
-            }
+            flags_status.file_openable = false;
+            clear_buffer = true;
+            break; //exit the while loop
           }
-          
-          
         }
 
         if(flags_status.logging_state == LOG_STOPPING)
@@ -136,6 +135,7 @@ void write_sdcard_data_record()
           // non buffer sized writes typically are a few ms longer, 
           // and only seem to cause big delays after many non buffer sized writes
           dataFile.write(dataBuffer.c_str(), dataBuffer.length());
+          clear_buffer = true;
         }
 
         

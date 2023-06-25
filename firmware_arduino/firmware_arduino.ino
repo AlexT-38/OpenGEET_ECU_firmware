@@ -119,6 +119,8 @@
 //#define DEBUG_DIGITAL_TIME      //measure how long reading from digital sensors takes t:  
 //#define DEBUG_TOUCH_TIME        //measure how long reading and processing touch input t:                125           300
 //#define DEBUG_RECORD  
+//#define DEBUG_LOG_STATE  
+
 //#define DEBUG_SDCARD
 //#define DEBUG_BUFFER
 //#define DEBUG_ADC

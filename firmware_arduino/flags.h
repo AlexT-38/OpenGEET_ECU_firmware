@@ -42,6 +42,7 @@ typedef struct {
     byte update_eeprom:1;
     byte sdcard_available:1;
     byte file_openable:1;
+    byte logging_requested:1;
     byte logging_state:2;
     byte redraw_pending:1;
     byte update_active:1;

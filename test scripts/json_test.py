@@ -6,7 +6,10 @@ Created on Sun Jun 18 20:25:42 2023
 """
 import json
 
-test_file_path = "data/test.json"
+#test_file_path = "data/test.json"
+test_file_path = "data/sample.json"
+
+
 
 with open(test_file_path,"r") as file:
     
