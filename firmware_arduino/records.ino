@@ -592,6 +592,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
   
     json_append(dst, F("timestamp"), data_record->timestamp);
 
+////////////////////////////////////////////////////////////////////////// report user inputs
     if(Data_Config.USR_no > 0)
     {
       json_append_arr(dst, F("usr"));
@@ -601,7 +602,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       }
       json_append_close_array(dst);  
     }
-    
+////////////////////////////////////////////////////////////////////////// report MAP sensors    
     if(Data_Config.MAP_no > 0)
     {
       json_append_arr(dst, F("map"));
@@ -611,7 +612,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       }
       json_append_close_array(dst);
     }
-
+////////////////////////////////////////////////////////////////////////// report thermistors
     if(Data_Config.TMP_no > 0)
     {
       json_append_arr(dst, F("tmp"));
@@ -621,7 +622,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       }
       json_append_close_array(dst);
     }
-
+////////////////////////////////////////////////////////////////////////// report thermocouples
     if(Data_Config.EGT_no > 0)
     {
       json_append_arr(dst, F("egt"));
@@ -631,12 +632,13 @@ void write_record(String &dst, DATA_RECORD *data_record)
       }
       json_append_close_array(dst);
     }
-
+////////////////////////////////////////////////////////////////////////// report toque and speed
     json_append_arr(dst, F("trq"), data_record->TRQ, data_record->ANA_no_of_samples);
     
     json_append(dst, F("spd_t0"), data_record->RPM_tick_offset_ms);
     json_append_arr(dst, F("spd"), data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks);
 
+////////////////////////////////////////////////////////////////////////// report servo outputs
     if(Data_Config.SRV_no > 0)
     {
       json_append_arr(dst, F("srv"));
@@ -646,6 +648,68 @@ void write_record(String &dst, DATA_RECORD *data_record)
       }
       json_append_close_array(dst);
     }
+////////////////////////////////////////////////////////////////////////// report pid states
+    if(Data_Config.PID_no > 0)
+    {
+      json_append_arr(dst, F("pid"));
+      for(byte idx = 0; idx < Data_Config.PID_no; idx++ )
+      {
+        json_append_obj(dst);
+          //could do with a mask to set which fields are reported
+          json_append_arr(dst, F("trg"), data_record->PIDs[idx].target, data_record->SRV_no_of_samples);
+          json_append_arr(dst, F("err"), data_record->PIDs[idx].err, data_record->SRV_no_of_samples);
+          json_append_arr(dst, F("out"), data_record->PIDs[idx].output, data_record->SRV_no_of_samples);
+          json_append_arr(dst, F("p"), data_record->PIDs[idx].p, data_record->SRV_no_of_samples);
+          json_append_arr(dst, F("i"), data_record->PIDs[idx].i, data_record->SRV_no_of_samples);
+          json_append_arr(dst, F("d"), data_record->PIDs[idx].d, data_record->SRV_no_of_samples);
+        json_append_close_object(dst);
+      }
+      json_append_close_array(dst);
+    }
+
+////////////////////////////////////////////////////////////////////////// report averages and other 1ce per record values
+    json_append_obj(dst, F("avg"));
+
+      if(Data_Config.USR_no > 0)
+      {
+          json_append_arr(dst, F("usr"), Data_Averages.USR, Data_Config.USR_no);
+      }
+      if(Data_Config.MAP_no > 0)
+      {
+          json_append_arr(dst, F("map"), Data_Averages.MAP, Data_Config.MAP_no);
+      }
+      if(Data_Config.TMP_no > 0)
+      {
+          json_append_arr(dst, F("tmp"), Data_Averages.TMP, Data_Config.TMP_no);
+      }
+      if(Data_Config.EGT_no > 0)
+      {
+          json_append_arr(dst, F("egt"), Data_Averages.EGT, Data_Config.EGT_no);
+      }
+      json_append(dst, F("trq"), Data_Averages.TRQ);
+      json_append(dst, F("rpm"), Data_Averages.RPM);
+      json_append(dst, F("pow"), Data_Averages.POW);
+      if(Data_Config.SRV_no > 0)
+      {
+          json_append_arr(dst, F("egt"), Data_Averages.SRV, Data_Config.SRV_no);
+      }
+      //report latest PID coeffs
+      if(Data_Config.PID_no > 0)
+      {
+          json_append_arr(dst, F("pid"));
+          for(byte idx = 0; idx < Data_Config.PID_no; idx++)
+          {
+            json_append_obj(dst);
+              json_add(dst, F("kp"),PIDs[idx].k.p);
+              json_add(dst, F("ki"),PIDs[idx].k.i);
+              json_add(dst, F("kd"),PIDs[idx].k.d);
+            json_append_close_object(dst);
+          }
+            
+      }
+
+
+    json_append_close_object(dst);
     
   
 

@@ -160,6 +160,58 @@ void json_add(String &dst, const __FlashStringHelper *string)
   json_first = false;
 }
 
+// add with label and list separator ///////////////////////////////////////////////////////////
+/* add an integer value */
+void json_add(String &dst, const __FlashStringHelper *label_pgm, int value)
+{
+  json_wr_list(dst);
+  json_add_label(dst, label_pgm);
+  dst += value;
+  json_first = false;
+}
+void json_add(String &dst, const __FlashStringHelper *label_pgm, unsigned int value)
+{
+  json_wr_list(dst);
+  json_add_label(dst, label_pgm);
+  dst += value;
+  json_first = false;
+}
+void json_add(String &dst, const __FlashStringHelper *label_pgm, long value)
+{
+  json_wr_list(dst);
+  json_add_label(dst, label_pgm);
+  dst += value;
+  json_first = false;
+}
+void json_add(String &dst, const __FlashStringHelper *label_pgm, unsigned long value)
+{
+  json_wr_list(dst);
+  json_add_label(dst, label_pgm);
+  dst += value;
+  json_first = false;
+}
+
+/* add a string from sram */
+void json_add(String &dst, const __FlashStringHelper *label_pgm, const char *string)
+{
+  json_wr_list(dst);
+  json_add_label(dst, label_pgm);
+  dst += "\"";
+  dst += string;
+  dst += "\"";
+  json_first = false;
+}
+/* append a string from progmem */
+void json_add(String &dst, const __FlashStringHelper *label_pgm, const __FlashStringHelper *string)
+{
+  json_wr_list(dst);
+  json_add_label(dst, label_pgm);
+  dst += "\"";
+  dst += string;
+  dst += "\"";
+  json_first = false;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // array elements 
@@ -202,6 +254,26 @@ void json_add_array(String &dst, int * values, unsigned int count)
   json_close_array(dst);
 }
 void json_add_array(String &dst, unsigned int * values, unsigned int count)
+{
+  json_open_array(dst);
+  while(count--)
+  {
+    json_wr_list(dst);
+    json_add(dst,*values++);
+  }
+  json_close_array(dst);
+}
+void json_add_array(String &dst, long * values, unsigned int count)
+{
+  json_open_array(dst);
+  while(count--)
+  {
+    json_wr_list(dst);
+    json_add(dst,*values++);
+  }
+  json_close_array(dst);
+}
+void json_add_array(String &dst, unsigned long * values, unsigned int count)
 {
   json_open_array(dst);
   while(count--)
@@ -297,25 +369,52 @@ void json_append_arr(String &dst, const __FlashStringHelper * label )
 }
 
 // Append int array ///////////////////////////////////////////////////////////////////////////////////////
+/* add an array of ints to an array on a new line */
 void json_append_arr(String &dst, int * values, unsigned int count)
 {
   json_wr_append(dst);
   json_add_array(dst, values,  count);
 }
-/* add an object to an object with the given label on a new line */
+/* add an array of ints to an object with the given label on a new line */
 void json_append_arr(String &dst, const __FlashStringHelper * label, int * values, unsigned int count )
 {
   json_append_label(dst, label);
   json_add_array(dst,  values,  count);
 }
-//unsigned overloads
+/* add an array of unsigned ints to an array on a new line */
 void json_append_arr(String &dst, unsigned int * values, unsigned int count)
 {
   json_wr_append(dst);
   json_add_array(dst, values,  count);
 }
-/* add an object to an object with the given label on a new line */
+/* add an array of unsigned ints to an object with the given label on a new line */
 void json_append_arr(String &dst, const __FlashStringHelper * label, unsigned int * values, unsigned int count )
+{
+  json_append_label(dst, label);
+  json_add_array(dst,  values,  count);
+}
+
+/* add an array of unsigned long ints to an array on a new line */
+void json_append_arr(String &dst, unsigned long * values, unsigned int count )
+{
+  json_wr_append(dst);
+  json_add_array(dst,  values,  count);
+}
+/* add an array of unsigned long ints to an object with the given label on a new line */
+void json_append_arr(String &dst, const __FlashStringHelper * label, unsigned long * values, unsigned int count )
+{
+  json_append_label(dst, label);
+  json_add_array(dst,  values,  count);
+}
+
+/* add an array of long ints to an array on a new line */
+void json_append_arr(String &dst, long * values, unsigned int count )
+{
+  json_wr_append(dst);
+  json_add_array(dst,  values,  count);
+}
+/* add an array of long ints to an object with the given label on a new line */
+void json_append_arr(String &dst, const __FlashStringHelper * label, long * values, unsigned int count )
 {
   json_append_label(dst, label);
   json_add_array(dst,  values,  count);

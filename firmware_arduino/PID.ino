@@ -85,6 +85,8 @@ unsigned int update_PID(struct pid *pid, int feedback)
     }
   }
   pid->output = result;
+
+  
   #ifdef DEBUG_PID
   
   Serial.print(F("PID kp, ki, kd:   "));
@@ -277,6 +279,8 @@ void process_pid_loop()
       {
         n=NO_OF_SERVOS;
       }
+      //set the number of pids to report
+      Data_Config.PID_no = 0;
       break;
     case MODE_PID_RPM_CARB:
       //get the average tick time since last pid update
@@ -288,6 +292,8 @@ void process_pid_loop()
       // run the PID calculation
       sv_targets[0] = update_PID(&RPM_control, rpm_avg_since_last_pid);
       
+      //set the number of pids to report
+      Data_Config.PID_no = 1;
       break;
   }
 
@@ -303,12 +309,21 @@ void process_pid_loop()
     set_servo_position(n, sv_targets[n]);
   }
 
-  // log the new servo values
+  // log the new servo values and PID states
   if (CURRENT_RECORD.SRV_no_of_samples < PID_LOOPS_PER_UPDATE)
   {
     for(byte idx = 0; idx<Data_Config.SRV_no; idx++)
     {
       CURRENT_RECORD.SRV[idx][CURRENT_RECORD.SRV_no_of_samples] = sv_targets[idx];
+    }
+    for(byte idx = 0; idx<Data_Config.PID_no; idx++)
+    {
+      CURRENT_RECORD.PIDs[idx].target [CURRENT_RECORD.SRV_no_of_samples] = PIDs[idx].target;
+      CURRENT_RECORD.PIDs[idx].err    [CURRENT_RECORD.SRV_no_of_samples] = PIDs[idx].err;
+      CURRENT_RECORD.PIDs[idx].output [CURRENT_RECORD.SRV_no_of_samples] = PIDs[idx].output;
+      CURRENT_RECORD.PIDs[idx].p      [CURRENT_RECORD.SRV_no_of_samples] = PIDs[idx].p;
+      CURRENT_RECORD.PIDs[idx].i      [CURRENT_RECORD.SRV_no_of_samples] = PIDs[idx].i;
+      CURRENT_RECORD.PIDs[idx].d      [CURRENT_RECORD.SRV_no_of_samples] = PIDs[idx].d;
     }
     CURRENT_RECORD.SRV_no_of_samples++;
   }
