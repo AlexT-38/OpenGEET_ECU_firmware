@@ -111,6 +111,7 @@ const char S_LOAD[] PROGMEM = "LOAD";
 
 const char S_EXPORT[] PROGMEM = "EXPORT";
 const char S_IMPORT[] PROGMEM = "IMPORT";
+const char S_INV_PID[] PROGMEM = "INV PID";
 
 
 const char S_BASIC[] PROGMEM = "Basic";

@@ -16,8 +16,8 @@
 #define PID_DEFAULT_THROTTLE 200  //pid throttle position when engine is not running (time to last pulse > max pulse time)
 
 
-                 //target,  kp,                ki,                kd,  p,  i, d, invert                                                  
-//PID RPM_control = {0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1};  
+                 //target,  actual, kp,                ki,                kd,  p,  i, d, invert                                                  
+//PID RPM_control = {0, 0,      {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1};  //don't initialise like this - changing the struct messes with the init.
                   // pid will track tick time instead of rpm, to avoid costly division ops
                   // quantisation from the low resolution may cause problems with the loop, 
 //PID VAC_control;  // in which case we'd have to keep a 2x or 4x averaged version, or use units of 100us instead of ms
@@ -25,13 +25,16 @@
                   // at these speeds, there are at least 2 ticks per pid update, so averaging the last two would not
                   // increase the overal loop time
 
-PID PIDs[NO_OF_PIDS] = { {0,0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1},
-                         {0,0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1}     };
+PID PIDs[NO_OF_PIDS];
 
 void configure_PID()
 {
-  RPM_control.target = RPM_MIN_SET_ms;
-  RPM_control.p = 0;
+  RPM_control.invert = PID_FLAG_INVERT;
+  RPM_control.k = (PID_K){PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0};
+}
+
+void reset_RPM_PID()
+{
   RPM_control.i = 0;
 }
 
@@ -75,7 +78,7 @@ unsigned int update_PID(struct pid *pid, int feedback)
   if (result < PID_OUTPUT_MIN)
   {
     result = 0;
-    if((pid->err < 0) != (pid->invert!=0) ) 
+    if((pid->err < 0) != (pid->invert==PID_FLAG_INVERT) ) 
     {
       pid->i -= pid->err; //revert integral to previous value to prevent runaway, if ki*err is contributing to overflow
     }
@@ -83,7 +86,7 @@ unsigned int update_PID(struct pid *pid, int feedback)
   else if (result > PID_OUTPUT_MAX)
   {
     result = PID_OUTPUT_MAX;
-    if((pid->err > 0) != (pid->invert!=0) ) 
+    if((pid->err > 0) != (pid->invert==PID_FLAG_INVERT) ) 
     {
       pid->i -= pid->err;
     }

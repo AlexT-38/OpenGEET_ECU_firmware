@@ -17,6 +17,7 @@
 
 #define PID_RPM_MAX_FB_TIME_MS  1000
 
+#define PID_FLAG_INVERT       1
 
 /* PWL approximation of LOG2 and POW2 */
 #define LOG_PAR_MIN_BITS      (4)

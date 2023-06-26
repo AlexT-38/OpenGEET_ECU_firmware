@@ -395,7 +395,8 @@ void setup() {
   flags_config.do_serial_write = true;
   flags_config.do_sdcard_write = true;
 
-  
+  //set default parameters fo rthe PID
+  configure_PID();
 
   //load eeprom, write defualts if a different version
   initialise_eeprom();

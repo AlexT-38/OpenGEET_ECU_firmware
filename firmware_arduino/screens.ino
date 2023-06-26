@@ -295,7 +295,7 @@ void read_touch()
           {
             if(sys_mode == MODE_DIRECT)
             {
-              configure_PID();
+              reset_RPM_PID();
             }
             sys_mode = MODE_PID_RPM_CARB; //we need some sort of 'change mode' function to take care of intialisation
           }
@@ -353,6 +353,9 @@ void read_touch()
           flags_status.hold_direct_input ^= 1;
           flags_status.redraw_pending = true;
         }
+        break;
+      case TAG_PID_INVERT:
+        PIDs[0].invert ^= PID_FLAG_INVERT;
         break;
       default:
 //        flags_status.redraw_pending = true;
