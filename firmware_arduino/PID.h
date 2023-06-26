@@ -46,6 +46,7 @@ typedef struct pid_k
 typedef struct pid
 {
   int target;
+  int actual;
   PID_K k;
   int err;
   int output;
@@ -58,6 +59,7 @@ typedef struct pid
 typedef struct pid_record
 {
   int target[PID_LOOPS_PER_UPDATE];
+  int actual[PID_LOOPS_PER_UPDATE];
   int err[PID_LOOPS_PER_UPDATE];
   int output[PID_LOOPS_PER_UPDATE];
   int p[PID_LOOPS_PER_UPDATE];

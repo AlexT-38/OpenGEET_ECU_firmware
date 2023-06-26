@@ -6,11 +6,14 @@
  *
  *
  */
-//#define DEBUG_PID
+
 //#define DEBUG_PID_LOG_FUNC
 //#define DEBUG_PID_EXP_FUNC
 //#define DEBUG_PID_FEEDBACK
+
 #define DEBUG_PID_FEEDBACK_VALUE  RPM_TO_MS((RPM_MIN_SET + RPM_MAX_SET)>>1)
+
+#define PID_DEFAULT_THROTTLE 200  //pid throttle position when engine is not running (time to last pulse > max pulse time)
 
 
                  //target,  kp,                ki,                kd,  p,  i, d, invert                                                  
@@ -22,8 +25,8 @@
                   // at these speeds, there are at least 2 ticks per pid update, so averaging the last two would not
                   // increase the overal loop time
 
-PID PIDs[NO_OF_PIDS] = { {0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1},
-                         {0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1}     };
+PID PIDs[NO_OF_PIDS] = { {0,0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1},
+                         {0,0,       {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1}     };
 
 void configure_PID()
 {
@@ -39,6 +42,7 @@ unsigned int update_PID(struct pid *pid, int feedback)
 #endif
   
   int result = 0;
+  pid->actual = feedback;
   pid->err = pid->target - feedback;
   byte do_integrate = ((pid->err > 0) && (pid->i < (PID_FP_MAX-pid->err))) || ((pid->err < 0) && (pid->i > -(PID_FP_MAX+pid->err)));
 
@@ -281,16 +285,33 @@ void process_pid_loop()
       }
       //set the number of pids to report
       Data_Config.PID_no = 0;
+      //reset the derived pid inputs
+      rpm_avg_since_last_pid = RPM_MIN_SET_ms;
       break;
     case MODE_PID_RPM_CARB:
+
+      // convert control input to target rpm 
+      RPM_control.target = amap(sv_targets[0], RPM_MIN_SET_ms, RPM_MAX_SET_ms);
+      
       //get the average tick time since last pid update
       if(rpm_total_tk)      rpm_avg_since_last_pid = rpm_total_ms / rpm_total_tk;
       //if there haven't been any ticks, add the PID update interval to the previous value, up to a maximum.
       else if(rpm_avg_since_last_pid < PID_RPM_MAX_FB_TIME_MS)  rpm_avg_since_last_pid += PID_UPDATE_INTERVAL_ms;
-      // convert control input to target rpm 
-      RPM_control.target = amap(sv_targets[0], RPM_MIN_SET_ms, RPM_MAX_SET_ms);
-      // run the PID calculation
-      sv_targets[0] = update_PID(&RPM_control, rpm_avg_since_last_pid);
+      
+      // run the PID calculation, only if rpm avg hasn't reached max
+      if(rpm_avg_since_last_pid < PID_RPM_MAX_FB_TIME_MS) sv_targets[0] = update_PID(&RPM_control, rpm_avg_since_last_pid);
+      else 
+      {
+        //the engine is not running, or running too slowly
+        #ifdef DEBUG_PID
+        if(RPM_control.i)  Serial.println(F("PID rpm: reset due to low speed"));
+        #endif
+        //hold the throttle at the default
+        sv_targets[0] = PID_DEFAULT_THROTTLE;
+        //clear the pid's integral
+        RPM_control.i = 0;
+        
+      }
       
       //set the number of pids to report
       Data_Config.PID_no = 1;
@@ -319,6 +340,7 @@ void process_pid_loop()
     for(byte idx = 0; idx<Data_Config.PID_no; idx++)
     {
       CURRENT_RECORD.PIDs[idx].target [CURRENT_RECORD.SRV_no_of_samples] = PIDs[idx].target;
+      CURRENT_RECORD.PIDs[idx].actual [CURRENT_RECORD.SRV_no_of_samples] = PIDs[idx].actual;
       CURRENT_RECORD.PIDs[idx].err    [CURRENT_RECORD.SRV_no_of_samples] = PIDs[idx].err;
       CURRENT_RECORD.PIDs[idx].output [CURRENT_RECORD.SRV_no_of_samples] = PIDs[idx].output;
       CURRENT_RECORD.PIDs[idx].p      [CURRENT_RECORD.SRV_no_of_samples] = PIDs[idx].p;

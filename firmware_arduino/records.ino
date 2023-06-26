@@ -657,6 +657,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
         json_append_obj(dst);
           //could do with a mask to set which fields are reported
           json_append_arr(dst, F("trg"), data_record->PIDs[idx].target, data_record->SRV_no_of_samples);
+          json_append_arr(dst, F("act"), data_record->PIDs[idx].actual, data_record->SRV_no_of_samples);
           json_append_arr(dst, F("err"), data_record->PIDs[idx].err, data_record->SRV_no_of_samples);
           json_append_arr(dst, F("out"), data_record->PIDs[idx].output, data_record->SRV_no_of_samples);
           json_append_arr(dst, F("p"), data_record->PIDs[idx].p, data_record->SRV_no_of_samples);

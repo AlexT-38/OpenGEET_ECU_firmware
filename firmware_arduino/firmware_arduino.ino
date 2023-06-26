@@ -122,9 +122,10 @@
 //#define DEBUG_LOG_STATE  
 
 //#define DEBUG_SDCARD
-#define DEBUG_BUFFER
+//#define DEBUG_BUFFER
 //#define DEBUG_ADC
 //#define DEBUG_SERVO
+//#define DEBUG_PID
 //#define DEBUG_EEP_RESET
 //#define DEBUG_EEP_CONTENT
 //#define DEBUG_RPM_COUNTER
