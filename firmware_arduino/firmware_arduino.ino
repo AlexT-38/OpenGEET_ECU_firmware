@@ -122,7 +122,7 @@
 //#define DEBUG_LOG_STATE  
 
 //#define DEBUG_SDCARD
-//#define DEBUG_BUFFER
+#define DEBUG_BUFFER
 //#define DEBUG_ADC
 //#define DEBUG_SERVO
 //#define DEBUG_EEP_RESET
@@ -631,6 +631,9 @@ void loop() {
     #endif
     
     update_record();
+    if(flags_status.logging_state) digitalWrite(PIN_LED, !digitalRead(PIN_LED));
+    else digitalWrite(PIN_LED, LED_ON);
+    
     
     //update the time
     timenow = millis();

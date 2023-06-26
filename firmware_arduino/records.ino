@@ -283,7 +283,7 @@ unsigned int write_data_record_to_buffer(DATA_RECORD *data_record, String &dst, 
             break;
       }
       #ifdef DEBUG_RECORD
-      Serial.print(F("buf.len: ")); Serial.println(dataBuffer.length());
+      Serial.print(F("buf.len: ")); Serial.println(buf.length());
       #endif
       
     }

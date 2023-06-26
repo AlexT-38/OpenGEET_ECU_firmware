@@ -104,8 +104,8 @@ void write_sdcard_data_record()
         unsigned int blocks_written = 0;
         static unsigned long total_blocks_written = 0;
         #endif
-  
-        
+
+        clear_buffer = false;
         while (dataBuffer.length() >= BLOCK_SIZE)
         {
           // write a single block of data
@@ -113,7 +113,7 @@ void write_sdcard_data_record()
           {
             // remove written data from dataBuffer if write was sucessfull
             dataBuffer.remove(0, BLOCK_SIZE);
-            clear_buffer = false;
+            
 
             #ifdef DEBUG_SDCARD
             blocks_written++;
@@ -136,6 +136,9 @@ void write_sdcard_data_record()
           // and only seem to cause big delays after many non buffer sized writes
           dataFile.write(dataBuffer.c_str(), dataBuffer.length());
           clear_buffer = true;
+          #ifdef DEBUG_SDCARD
+          blocks_written += (dataBuffer.length()>0);
+          #endif
         }
 
         
@@ -146,12 +149,21 @@ void write_sdcard_data_record()
         #endif
       } // format selection
     } //is logging and file is open
+    else if(flags_status.logging_state == LOG_STARTING && !dataFile )
+    {
+      //don't clear the buffer if starting and file not open 
+      clear_buffer = false;
+    }
     
   }
   
   if(clear_buffer)
   {
     //clear the buffer when not logging to sdcard
+    #ifdef DEBUG_BUFFER
+    if(dataBuffer.length())    {Serial.print(F("BUF: clearing ")); Serial.println(dataBuffer.length());}
+    #endif
+
     dataBuffer = "";
   }
 
