@@ -1,10 +1,4 @@
-/* generate a filename from the rtc date/time
- *  if more than 255 files are required in a day, we'll
- *  have to make use of sub folders (or increase the base of NN to 36)
- *  eg /001/YY_MM_DD.txt
- *  or /YYYMMDD/LOG_0001.txt
- *  meanwhile, we'll just overwrite older files
- */
+
  #define NO_IDX 0xff
  #define RECORD_RECORD_SIZE 1500
  #define RECORD_BUFFER_SIZE (2*RECORD_RECORD_SIZE)
@@ -23,8 +17,6 @@ DATA_CONFIG Data_Config = {DATA_RECORD_VERSION, NO_OF_USER_INPUTS, NO_OF_MAP_SEN
 
 
 static DATA_STORAGE data_store;
-
-bool log_format_is_json = true;
 
 
 String dataBuffer;
@@ -270,84 +262,22 @@ unsigned int write_data_record_to_buffer(DATA_RECORD *data_record, String &dst, 
     String buf;
     buf.reserve(RECORD_RECORD_SIZE);
 
-    if (log_format_is_json) 
+    switch (flags_status.logging_state)
     {
-      switch (flags_status.logging_state)
-      {
-          case LOG_STARTING:
-            start_log(buf);
-            break;
-          case LOG_STARTED:
-            write_record(buf, data_record);
-            break;
-          case LOG_STOPPING:
-            finish_log(buf);
-            break;
-      }
-      #ifdef DEBUG_RECORD
-      Serial.print(F("buf.len: ")); Serial.println(buf.length());
-      #endif
+        case LOG_STARTING:
+          start_log(buf);
+          break;
+        case LOG_STARTED:
+          write_record(buf, data_record);
+          break;
+        case LOG_STOPPING:
+          finish_log(buf);
+          break;
+    }
+    #ifdef DEBUG_RECORD
+    Serial.print(F("buf.len: ")); Serial.println(buf.length());
+    #endif
       
-    }
-    else
-    {
-  
-      buf += FS(S_RECORD_MARKER); buf += "\n";
-      buf += FS(S_TIMESTAMP_C); buf += data_record->timestamp; buf += "\n";
-  
-      for(byte idx = 0; idx < Data_Config.USR_no; idx++)
-      {
-        buf += (idx); buf += (FS(S_USR_C));     buf += (Data_Averages.USR[idx]); buf += "\n";
-      }
-      for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
-      {
-        buf += (idx); buf += (FS(S_MAP_C));     buf += (Data_Averages.MAP[idx]); buf += "\n";
-      }
-      for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
-      {
-        buf += (idx); buf += (FS(S_TMP_C));     buf += (Data_Averages.TMP[idx]); buf += "\n";
-      }
-      buf += (FS(S_TRQ_C));     buf += (Data_Averages.TRQ); buf += "\n";
-      buf += (FS(S_ANA_SAMPLES_C)); buf += (data_record->ANA_no_of_samples); buf += "\n";
-  
-      for(byte idx = 0; idx < Data_Config.USR_no; idx++)
-      {
-        string_print_int_array(buf, data_record->USR[idx], data_record->ANA_no_of_samples, S_USR_C, idx);
-      }
-  
-      for(byte idx = 0; idx < Data_Config.MAP_no; idx++)
-      {
-        string_print_int_array(buf, data_record->MAP[idx], data_record->ANA_no_of_samples, S_MAP_C, idx);
-      }
-  
-      for(byte idx = 0; idx < Data_Config.TMP_no; idx++)
-      {
-        string_print_int_array(buf, data_record->TMP[idx], data_record->ANA_no_of_samples, S_TMP_C, idx);
-      }
-  
-      string_print_int_array(buf, data_record->TRQ, data_record->ANA_no_of_samples, S_TRQ_C, NO_IDX);
-  
-  
-      for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
-      {
-        buf += (idx); buf += (FS(S_EGT_AVG_C));       buf += (Data_Averages.EGT[idx]); buf += "\n";
-      }
-  
-      buf += (FS(S_EGT_SAMPLES_C)); buf += (data_record->EGT_no_of_samples); buf += "\n";
-  
-      for(byte idx = 0; idx < Data_Config.EGT_no; idx++)
-      {
-        string_print_int_array(buf, data_record->EGT[idx], data_record->EGT_no_of_samples, S_EGT_C, idx);
-      }
-  
-      buf += (FS(S_RPM_AVG));          buf += (Data_Averages.RPM); buf += "\n";
-      buf += (FS(S_RPM_NO_OF_TICKS));  buf += (data_record->RPM_no_of_ticks); buf += "\n";
-      buf += (FS(S_RPM_TICK_OFFSET));  buf += (data_record->RPM_tick_offset_ms); buf += "\n";
-  
-      string_print_int_array(buf, data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks, S_RPM_TICK_TIMES, NO_IDX);
-      buf += (FS(S_POW_C));          buf += (Data_Averages.POW); buf += "\n";
-      buf += (FS(S_RECORD_MARKER)); buf += "\n";
-    }
 
     ///////////////////////////////////////////////////////////////////////////////////
 
@@ -401,31 +331,6 @@ void hash_data(DATA_STORAGE *data)
   data->hash = hash;
 }
 
-void string_print_int_array(String &dst, int *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
-{
-  dst += "\n";
-  if(idx < 0xff) { dst += (idx);}
-  dst += (FS(title_pgm));
-  
-  for(int idx = 0; idx < array_size-1; idx++)
-  {
-    dst += (array_data[idx]);
-    dst += ",";
-  }
-  dst += (array_data[array_size-1]);
-  
-}
-void string_print_byte_array(String &dst, byte *array_data, unsigned int array_size, const char *title_pgm, const byte idx)
-{
-  dst += (FS(title_pgm));
-  if(idx < 0xff) { dst += " "; dst += (idx);}
-  for(int idx = 0; idx < array_size; idx++)
-  {
-    dst += (array_data[idx]);
-    dst += (FS(S_COMMA));
-  }
-  dst += "\n";
-}
 
 void log_io_info( String &dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units)
 {

@@ -6,15 +6,32 @@
  * 
  * Open GEET Engine Control Unit firmware
  *
- * Reads sensor values (rpm, egt, map, torque) and user inputs, control valve positions. 
- * Optionally drives fuel injection and ignition, reads magnetic fields. Logs all values to sd card.
- * Initially, control inputs will be mapped directly to valve positions. 
- * Once the behaviour of the reactor and engine are better understood, 
- *  control input can be reduced to rpm control via PID loops. 
- * A 3-phase BLDC motor can then be added to provide engine start and power generation 
- *  using an off the shelf motor controller. Control input can then be tied to output power draw.
- * Hardware will initially be an Arduino Uno with a datalogger sheild. 
- * Upgrade to an STM10x or 40x device can be made later if required.
+ * Reads sensor values (rpm, temp, map, torque), user inputs, servo outputs, and pid parameters. 
+ * Optionally drives fuel injection and ignition, reads magnetic fields.
+ * Logs all values to sd card and or serial, as raw binary data or as json. Optionally, BSON or equiv.
+ * Display and control via a touch screen, 4 knobs, and 2 buttons (todo).
+ * Configuration stored in EEPROM, export/import to sdcard or serial (todo).
+ * Support for prony brake or BLDC starter/generator, shaft power calculation.
+ *
+ * Multiple operation modes:
+ *  - direct control over all servo outputs via user inputs
+ *  - PID control of RPM using throttle servo output.
+ * Todo:
+ *  - PID Control of reactor vacuum
+ *  - PID control of brake/BLDC to control shaft torque
+ *  - Control of shaft power via rpm/torque set points
+ *  - Logic to detirmine system state, configure controls accordingly
+ *  
+ *  Current Hardware:
+ *    Arduino MEGA2560,
+ *    deek-robot DataLogger
+ *    GameduinoIII
+ *    HX711 Loadcell interface (torque)
+ *    MAX6675 Thermocouple interface (EGT)
+ *    Hall switch RPM counter
+ *    5.1V Buck converter for high current servos
+ *    Filtered AREF for analog sensors.
+ *    
  */
 
 
@@ -36,6 +53,7 @@
  *  the servos from a 12-15v 1A supply
  *  MAP sensor draws ~7.5mA, and each pot draws 0.5mA
  */
+ 
 /* MEGA PIN MAP / Circuit description:
  *  MEGA Pin    I/O     Function/name
  *  0           I       USB Serial Rx
@@ -64,32 +82,6 @@
  *  
  */
 
-  /* latest on ram usage:
-   *  adding a PID struct and it's output to the record struct
-   *  has brought free ram down to 443 bytes.
-   *  it may be necessary to increase the update rate to 2 per second
-   *  we might be able to scrape a few bytes using bitfields for the numbers of samples
-   *  
-   */
- /* ram usage has rapidly become an issue
-  *  for the SD, SPI, GD2, MAX6675 and Servo libraries, 830 bytes are used
-  *  instanciating MAX6675 and GD2 objects uses an additional 101 bytes,
-  *  total ram usage for libraries alone is 931 bytes,
-  *  leaving 1117 bytes for everything else, including string literals.
-  *  
-  *  to sample the analog pins at 20 samples per second over 4 channels, plus 75 rpm ticks
-  *  DATA_RECORD is aprox 375 bytes per record
-  *  two records is 750 bytes, which leaves only 367 bytes for the stack and string literals.
-  *  
-  *  to avoid the need for a double buffer, we must be able to write the data record to SD card 
-  *  and serial port in under 13.3 ms , or else drop data from the rpm counter.
-  *  
-  *  SD card access is taking approximately 30ms, so double buffering is required.
-  *  SD card access delay can be larger than this and is dependant on the card's buffer size.
-  *  
-  *  to avoid string literals, strings must be placed into progmem
-  *  and read out into a temporary buffer as per https://www.arduino.cc/reference/en/language/variables/utilities/progmem/
-  */
 #include <EEPROM.h>
 #include <SD.h>         //sd card library
 #include <SPI.h>        //needed for gameduino
@@ -114,7 +106,7 @@
 //#define DEBUG_SDCARD_TIME       //measure how long SD card log write takes     write  t:                4000  
 //                                                                               flush  t:                3000          11000
 //#define DEBUG_SERIAL_TIME       //measure how long serial log write takes             t:             3936 4632
-//#define DEBUG_PID_TIME          //measure how long the pid loop takes                 t:     48(direct) 76(1ch)      
+//#define DEBUG_PID_TIME          //measure how long the pid loop takes                 t:     64(direct) 94-150(1ch)      
 //#define DEBUG_ANALOG_TIME       //measure how long analog read and processing takes   t:
 //#define DEBUG_DIGITAL_TIME      //measure how long reading from digital sensors takes t:  
 //#define DEBUG_TOUCH_TIME        //measure how long reading and processing touch input t:                125           300

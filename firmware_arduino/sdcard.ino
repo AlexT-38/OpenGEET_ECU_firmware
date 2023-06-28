@@ -177,7 +177,13 @@ void write_sdcard_data_record()
   return;
 }
 
-
+/* generate a filename from the rtc date/time
+ *  if more than 255 files are required in a day, we'll
+ *  have to make use of sub folders (or increase the base of NN to 36)
+ *  eg /001/YY_MM_DD.txt
+ *  or /YYYMMDD/LOG_0001.txt
+ *  meanwhile, we'll just overwrite older files
+ */
 void create_file()
 {
   static byte file_index = 0;
@@ -189,8 +195,7 @@ void create_file()
   // set the file extension
   str_ptr = output_filename + 8;
   if(flags_config.do_sdcard_write_hex)  {strcpy_P(str_ptr,S_DOT_RAW);}
-  else if(log_format_is_json)           {strcpy_P(str_ptr,S_DOT_JSN);}
-  else                                  {strcpy_P(str_ptr,S_DOT_TXT);}
+  else                                  {strcpy_P(str_ptr,S_DOT_JSN);}
 
   //set the base name from the year month and day
   DateTime t_now = DS1307_now();
