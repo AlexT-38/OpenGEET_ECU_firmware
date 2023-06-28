@@ -601,7 +601,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       json_append(dst, F("pow"), Data_Averages.POW);
       if(Data_Config.SRV_no > 0)
       {
-          json_append_arr(dst, F("egt"), Data_Averages.SRV, Data_Config.SRV_no);
+          json_append_arr(dst, F("srv"), Data_Averages.SRV, Data_Config.SRV_no);
       }
       //report latest PID coeffs
       if(Data_Config.PID_no > 0)

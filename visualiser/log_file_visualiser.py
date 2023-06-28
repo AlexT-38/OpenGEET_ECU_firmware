@@ -13,6 +13,11 @@ Parses version 3 log files.
 1) load log file
 2) parse data
 3) use matplotlib to plot the data
+
+data is now supplied as json and imported as dict/list structures
+parsing should work by collecting all arrays of values in each record into a single record with the same overall structure
+and adding timestamps for each, preferably reading the sample interval from the header using the same key,
+so that groups of parameters that always have the same sample times only need the one timestamp channel
 """
 
 
@@ -58,7 +63,6 @@ class log_file:
     SRV_avg = []#[np.array([])]
     RPM_avg = np.array([])
     TRQ_avg = np.array([])
-    RPM_avg = np.array([])
     POW_avg = np.array([])
 #number of rpm counter ticks each record
     RPM_no = np.array([]) 
@@ -86,6 +90,7 @@ class log_file:
     TRQ = np.array([])
 #timestamps for analog samples
     ANA_t = np.array([])
+    MAP_t = np.array([])
 
 #egt samples
     EGT = []#[np.array([])]
@@ -103,6 +108,7 @@ class log_file:
 
     PID_k = [{}]
 
+    
 
     def parse_v4(self, file):
         print("parse_v4")
@@ -120,39 +126,125 @@ class log_file:
         
         self.RECORD_INTERVAL=header['rate_ms']/1000
         
+        
+        def update_length(src, trg):
+            length = len(src)
+            avail = len(trg)
+            if length > avail:
+                if self.verbose:
+                    print("len usr:", length)
+                    print("len USR:", avail)
+                diff = length - avail
+                trg.extend([np.array([])]*diff)
+            return length
+                
+            
+        def append_multi(rec, src, trg):
+            try:
+                src = rec[src]
+                for n in range(update_length(src,trg)):
+                    trg[n] = np.append(trg[n], np.array(src[n]))
+            except KeyError as e:
+                if self.verbose : print(e)
+                pass
+        
+        def append_single(rec, src, trg):
+            try:
+                src = rec[src]
+                setattr( self, trg, np.append(getattr(self,trg), np.array(src[n])) )
+            except AttributeError as e:
+                if self.verbose : print(e)
+                pass
+        
+        
+        
         t0 = 0
         timestamp = 0
         pid_records = 0
         pid_samples = 0
         for r in records:
-            ###print()
+            if self.verbose: print()
             time_s = r['timestamp']/1000
             #record timestamp
             if len(self.AVG_t)>0:
                 timestamp = time_s - t0
-                ###print("t:",timestamp)
+                if self.verbose: print("t:",timestamp)
                 self.AVG_t = np.append(self.AVG_t, timestamp)
             else:
                 #first timestamp, set as t0
                 t0 = time_s
-                ###print("t0:",t0)
+                if self.verbose: print("t0:",t0)
                 self.AVG_t = np.array([0])
             
+            
             #user inputs
-            length = len(r['usr'])
-            avail = len(self.USR)
-            if length > avail:
-                ###print("len usr:", length)
-                ###print("len USR:", avail)
-                diff = length - avail
-                self.USR.extend([np.array([])]*diff)
-            for n in range(length):
-                self.USR[n] = np.append(self.USR[n], np.array(r['usr'][n]))
-                
+            append_multi(r,'usr',self.USR)
             #analog sample times
-            ###print("len usr0:", len(r['usr'][0]))
+
+            #10Hz analog time axis
             values = np.linspace(self.AVG_t[-1],self.AVG_t[-1]+self.RECORD_INTERVAL, len(r['usr'][0]),endpoint=False)
-            self.ANA_t = np.append(self.ANA_t, values)    
+            self.ANA_t = np.append(self.ANA_t, values)   
+            
+            #user inputs
+            append_multi(r,'map',self.MAP)
+            
+            #map sensor time axis, if different
+            if len(r['usr'][0]) != len(r['map'][0]):
+                values = np.linspace(self.AVG_t[-1],self.AVG_t[-1]+self.RECORD_INTERVAL, len(r['map'][0]),endpoint=False)
+                self.MAP_t = np.append(self.MAP_t, values)   
+
+            #thermistors
+            append_multi(r,'tmp',self.TMP)
+            
+            #thermocouples
+            append_multi(r,'egt', self.EGT)
+            
+            #thermocouple time axis per sensor
+            for n in range(update_length(r['egt'], self.EGT_t)):
+                values = np.linspace(self.AVG_t[-1],self.AVG_t[-1]+self.RECORD_INTERVAL, len(r['egt'][n]),endpoint=False)
+                self.EGT_t[n] = np.append(self.EGT_t[n], values)
+            
+            
+            #torque
+            append_single(r,'trq', 'TRQ')
+            
+            #servos
+            append_multi(r,'srv', self.SRV)
+            
+            #servo time axis
+            values = np.linspace(self.AVG_t[-1],self.AVG_t[-1]+self.RECORD_INTERVAL, len(r['srv'][0]),endpoint=False)
+            self.SRV_t = np.append(self.SRV_t, values) 
+            
+            #record averages
+            avg = r['avg']
+            
+            #each category we are to collect
+            avgs_src = ['usr','map' ,'tmp' ,'egt' ,'srv','rpm','trq','pow']
+            avgs_dst = [x.upper() + '_avg' for x in avgs_src]
+                
+            for n in range(len(avgs_src)):
+                try:
+                    #get the source and destination
+                    src = avg[avgs_src[n]]
+                    dst = getattr(self, avgs_dst[n])
+                    #add to lists
+                    if type(src) == list:
+                        #loop through entry indices
+                        for m in range(update_length(src, dst)):
+                            dst[m] = np.append(dst[m], src[m])
+                    #add to dicts
+                    elif type(src) == dict:
+                        pass #todo
+                    #add single values
+                    else:
+                        setattr(self, avgs_dst[n], np.append(dst, src))
+                except KeyError as e:
+                    if self.verbose: print(e)
+                except AttributeError as e:
+                    print ('Error!',e)
+            
+                
+            
             
             #read pids
             try:
@@ -205,9 +297,20 @@ class log_file:
             except KeyError as e:
                 ###print("no key", e)
                 pass
-             
+            ##end record r
+            
+        rpm_pid = self.PID[0]
+        #print(rpm_pid.keys())
+        rpm_pid['trg_rpm'] = 60000/rpm_pid['trg']
+        rpm_pid['act_rpm'] = 60000/rpm_pid['act']
+        rpm_pid['err_rpm'] = rpm_pid['trg_rpm']-rpm_pid['act_rpm']
+        rpm_pid['i'] = -rpm_pid['i']
+        
+        for n in range(len(self.EGT)):
+            self.EGT[n] = self.EGT[n] * self.EGT_FRACTION
             
     
+        #end parse v4
     
     
     def parse_v3(self, file):
@@ -526,111 +629,71 @@ class log_file:
             labels.clear()
         
         
-            
+        def draw_plot(data, time, name):
+            ln = min(len(time),len(data))
+            plt.plot(time[:ln], data[:ln])
+            labels.append(name)
+        def draw_plots(data, time, base_name):
+            for (m,n) in enumerate(data):
+                draw_plot(n,time,f'{base_name} {m}')
+        def draw_plots_t(data, times, base_name):
+            for (m,n) in enumerate(data):
+                draw_plot(n,times[m],f'{base_name} {m}')
         
-        for (m,n) in enumerate(self.USR):
-            plt.plot(self.ANA_t, n)
-            labels.append(f'USR {m}')
-        for (m,n) in enumerate(self.USR_avg):
-            ln = min(len(self.AVG_t),len(n))
-            plt.plot(self.AVG_t[:ln], n[:ln])
-            labels.append(f'USR avg. {m}')
-            
+        draw_plots(self.USR,self.ANA_t,'USR')
+        draw_plots(self.USR_avg,self.AVG_t,'USR avg.')
         show_plot('User Input (LSB, max 1023)',labels)
-            
-        for (m,n) in enumerate(self.MAP):
-            plt.plot(self.ANA_t, n)
-            labels.append(f'MAP {m}')
-        for (m,n) in enumerate(self.MAP_avg):
-            ln = min(len(self.AVG_t),len(n))
-            plt.plot(self.AVG_t[:ln], n)[:ln]
-            labels.append(f'MAP avg. {m}')
-            
+        
+        if self.MAP_t.size > 0:
+            time_axis = self.MAP_t
+        else:
+            time_axis = self.ANA_t
+        draw_plots(self.MAP,time_axis,'MAP')
+        draw_plots(self.MAP_avg,self.AVG_t,'MAP avg.')
         show_plot('MAP (mbar)', labels)
         
-            
-        for (m,n) in enumerate(self.TMP):
-            plt.plot(self.ANA_t, n)
-            labels.append(f'TMP {m}')
-        for (m,n) in enumerate(self.TMP_avg):
-            ln = min(len(self.AVG_t),len(n))
-            plt.plot(self.AVG_t[:ln], n[:ln])
-            labels.append(f'TMP avg. {m}')
-        
+        draw_plots(self.TMP,self.ANA_t,'TMP')
+        draw_plots(self.TMP_avg,self.AVG_t,'TMP avg.')   
         show_plot('Thermistor (°C)', labels)
         
-        
-        for (m,n) in enumerate(self.EGT):
-            plt.plot(self.EGT_t[m], self.EGT[m])
-            labels.append(f'EGT {m}')
-        for (m,n) in enumerate(self.EGT_avg):
-            ln = min(len(self.AVG_t),len(n))
-            plt.plot(self.AVG_t[:ln], n[:ln])
-            labels.append(f'EGT avg. {m}')  
-        
+        draw_plots_t(self.EGT,self.EGT_t,'EGT')
+        draw_plots(self.EGT_avg,self.AVG_t,'EGT avg.') 
         show_plot('EGT (°C)', labels)
         
-        ln = min(len(self.AVG_t),len(self.TRQ))
-        plt.plot(self.ANA_t[:ln], self.TRQ[:ln])
-        labels.append('TRQ')
-        
-        ln = min(len(self.AVG_t),len(self.TRQ_avg))
-        plt.plot(self.AVG_t[:ln], self.TRQ_avg[:ln]/1000)
-        labels.append('TRQ avg.')
-    
-        show_plot('Torque (N.m)', labels)
+        draw_plot(self.TRQ, self.ANA_t, 'TRQ')
+        draw_plot(self.TRQ_avg, self.AVG_t, 'TRQ avg.')
+        show_plot('Torque (mN.m)', labels)
         
         
         
         RPM_calc = 60*self.RPM_no/self.RECORD_INTERVAL
         RPM_ticks = 60000/self.RPM_intervals_ms
         
-        ln = min(len(self.AVG_t),len(RPM_calc))
-        plt.plot(self.AVG_t[:ln], RPM_calc[:ln])
-        labels.append('avg. from count')
-        
-        plt.plot(self.RPM_tick_times_ms/1000, RPM_ticks)
-        labels.append('avg. from tick times')
-        
-        ln = min(len(self.AVG_t),len(self.RPM_avg))
-        plt.plot(self.AVG_t[:ln], self.RPM_avg[:ln])
-        labels.append('reported avg.')
-        
+        draw_plot(RPM_calc, self.AVG_t, 'avg. from count')
+        draw_plot(self.RPM_tick_times_ms/1000, RPM_ticks, 'avg. from tick times')
+        draw_plot(self.RPM_avg, self.AVG_t, 'reported avg.')
         show_plot('Engine Speed (RPM)', labels)
         
         
-        
-        ln = min(len(self.AVG_t),len(self.POW_avg))
-        plt.plot(self.AVG_t[:ln], self.POW_avg[:ln])
-        labels.append('brake power avg.')
-        
+        draw_plot(self.POW_avg, self.AVG_t, 'brake power avg.')
         show_plot('Power (W)', labels)
             
         
         for n,pid in enumerate(self.PID):
             #print("plotting pid,",pid)
             for key in pid:
-                ln = min(len(self.PID_t[n]),len(pid[key]))
-                plt.plot(self.PID_t[n][:ln], pid[key][:ln])
-                labels.append(key)
-        
+                draw_plot(pid[key], self.PID_t[n], key)
             show_plot('PID', labels)
         
         
         if self.detailed_rpm:
-        
             try:
                 duration_ms = np.ceil(self.RPM_tick_times_ms[-1]).astype(np.int32) + 1
                 ticks = np.zeros(duration_ms)
                 ticks_t = np.arange(duration_ms)/1000
                 
                 np.put(ticks, np.round(self.RPM_tick_times_ms).astype(np.int32), RPM_ticks)
-                
-                
-                
-                
-                
-                
+
                 step = 2
                 for start in range ( np.ceil(duration_ms/1000).astype(np.int32) - step):
                     stop = start+step
@@ -642,9 +705,6 @@ class log_file:
                     
                     plt.plot(self.AVG_t[start_rpm:stop_rpm], RPM_calc[start_rpm:stop_rpm])
                     labels.append('avg. from count')
-                    
-                    
-                
                     
                     if start is not None: start_tick = int(start*1000)
                     else: start_tick = None
