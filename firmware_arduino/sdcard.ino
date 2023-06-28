@@ -188,8 +188,9 @@ void create_file()
 
   // set the file extension
   str_ptr = output_filename + 8;
-  if(flags_config.do_sdcard_write_hex) {strcpy_P(str_ptr,S_DOT_RAW);}
-  else                          {strcpy_P(str_ptr,S_DOT_TXT);}
+  if(flags_config.do_sdcard_write_hex)  {strcpy_P(str_ptr,S_DOT_RAW);}
+  else if(log_format_is_json)           {strcpy_P(str_ptr,S_DOT_JSN);}
+  else                                  {strcpy_P(str_ptr,S_DOT_TXT);}
 
   //set the base name from the year month and day
   DateTime t_now = DS1307_now();

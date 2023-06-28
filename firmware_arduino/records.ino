@@ -24,6 +24,8 @@ DATA_CONFIG Data_Config = {DATA_RECORD_VERSION, NO_OF_USER_INPUTS, NO_OF_MAP_SEN
 
 static DATA_STORAGE data_store;
 
+bool log_format_is_json = true;
+
 
 String dataBuffer;
 unsigned int recordStart; //length of dataBuffer at time of adding record to buffer;
@@ -260,7 +262,7 @@ void update_record()
   Serial.println(timestamp_us);
   #endif //DEBUG_RECORD_TIME
 }
-bool log_format_is_json = true;
+
 
 unsigned int write_data_record_to_buffer(DATA_RECORD *data_record, String &dst, int prev_record_idx)
 {
@@ -586,6 +588,8 @@ void write_record(String &dst, DATA_RECORD *data_record)
   #ifdef DEBUG_RECORD
   Serial.println(F("log wr rec"));
   #endif
+
+  byte depth = json_depth;
   
   json_append_obj(dst);
   //add this records members here
@@ -704,8 +708,9 @@ void write_record(String &dst, DATA_RECORD *data_record)
               json_add(dst, F("kp"),PIDs[idx].k.p);
               json_add(dst, F("ki"),PIDs[idx].k.i);
               json_add(dst, F("kd"),PIDs[idx].k.d);
-            json_append_close_object(dst);
+            json_close_object(dst);
           }
+          json_close_array(dst);
             
       }
 
@@ -716,4 +721,10 @@ void write_record(String &dst, DATA_RECORD *data_record)
 
   //complete the record
   json_append_close_object(dst); 
+
+  if(json_depth != depth)
+  {
+    Serial.println(F("Record Error, JSON depth wrong"));
+    flags_status.logging_requested = false;
+  }
 }

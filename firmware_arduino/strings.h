@@ -60,6 +60,8 @@ const char S_EGT_SAMPLES_C[] PROGMEM = "EGT no.: ";
 
 const char S_DOT_TXT[] PROGMEM = ".txt";
 const char S_DOT_RAW[] PROGMEM = ".raw";
+const char S_DOT_JSN[] PROGMEM = ".jsn";
+
 
 const char S_EGT_DEGC[] PROGMEM = "EGT degC";
 const char S_RPM[] PROGMEM = "RPM";
