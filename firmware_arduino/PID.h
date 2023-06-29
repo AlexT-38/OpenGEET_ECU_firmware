@@ -16,6 +16,7 @@
 #define PID_OUTPUT_CENTRE       ( (PID_OUTPUT_MAX + PID_OUTPUT_MIN) >> 1 )
 
 #define PID_RPM_MAX_FB_TIME_MS  1000
+#define PID_RPM_MIN_FB_RPM      60
 
 #define PID_FLAG_INVERT       1
 

@@ -13,17 +13,23 @@
 
 #define DEBUG_PID_FEEDBACK_VALUE  RPM_TO_MS((RPM_MIN_SET + RPM_MAX_SET)>>1)
 
+#define PID_RPM_DECAY_SCALE 2 //scale of 1 or 2 or gives a similar-ish curve to adding interval_ms
+
 #define PID_DEFAULT_THROTTLE 200  //pid throttle position when engine is not running (time to last pulse > max pulse time)
 
-
-                 //target,  actual, kp,                ki,                kd,  p,  i, d, invert                                                  
-//PID RPM_control = {0, 0,      {PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0},  0,  0, 0, 1};  //don't initialise like this - changing the struct messes with the init.
-                  // pid will track tick time instead of rpm, to avoid costly division ops
-                  // quantisation from the low resolution may cause problems with the loop, 
-//PID VAC_control;  // in which case we'd have to keep a 2x or 4x averaged version, or use units of 100us instead of ms
-                  // the greatest problem is at the high end of rpm range where 1ms represents a larger change in RPM
-                  // at these speeds, there are at least 2 ticks per pid update, so averaging the last two would not
-                  // increase the overal loop time
+/* 
+ *  RPM PID can track rpm directly, or via rpm intervals. A division is required either way.
+ *  By tracking RPM, we may get better resolution at high speeds because we can convert the
+ *  accumulated times to rpm first and then multiply by the number of ticks. 
+ *  This minimises truncation.
+ *  On the other hand, tracking tick times reduces the size of error terms at high speeds
+ *  and may (or may not) help to stabilise the response under some load conditions.
+ *  If this is at all needed, it may be better to have a lookup table for pid coefs that 
+ *  adapt for engine speed (available torque/power), and shaft load.
+ *  
+ *  Either way, quantisation from the low time resolution may cause problems with the loop, 
+ *  see issue #11 about using input capture to get a more precise, acurate and latency free pulse time.
+ */
 
 PID PIDs[NO_OF_PIDS];
 
@@ -33,9 +39,9 @@ void configure_PID()
   RPM_control.k = (PID_K){PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0};
 }
 
-void reset_RPM_PID()
+void reset_PID(struct pid *pid)
 {
-  RPM_control.i = 0;
+  pid->i = 0;
 }
 
 unsigned int update_PID(struct pid *pid, int feedback)
@@ -130,24 +136,7 @@ unsigned int update_PID(struct pid *pid, int feedback)
  *  use k to px to convert pid parameters to screen slider space
  *  use px to k to convert screen slider values to pid parameter space
  */
- /* to do, if needed */
 
-/* PWL approximation of LOG2 and POW2 
-#define LOG_PAR_MIN_BITS      (4)
-#define LOG_PAR_BITS          (16)
-#define LOG_PAR_LIM           (1<<LOG_PAR_BITS)
-#define LOG_PAR_MAX           (1<<LOG_PAR_BITS)
-#define LOG_SCR_BITS          (8)
-#define LOG_SCR_LIM           (1<<LOG_SCR_BITS)
-#define LOG_SCR_MAX           (LOG_SCR_LIM-1)
-#define LOG_STEP_BITS         (LOG_SCR_BITS-4)
-#define LOG_STEP              (1<<LOG_STEP_BITS)
-#define LOG_STEPS             (LOG_SCR_MAX/LOG_STEP)
-#define LOG_SCR_MAX           (LOG_SCR_LIM-1)
-#define LOG_SCR_MIN           ((LOG_SCR_LIM * LOG_PAR_MIN_BITS) / LOG_PAR_BITS)
-#define LOG_PAR_MIN           (1<<LOG_PAR_MIN_BITS)
-#define LOG_WH_OFFSET         (LOG_STEP_BITS-2)
-*/
 /* convert parameter space to screen space */
 int pid_convert_k_to_px(unsigned int val_lin)
 {
@@ -292,28 +281,90 @@ void process_pid_loop()
       rpm_avg_since_last_pid = RPM_MIN_SET_ms;
       break;
     case MODE_PID_RPM_CARB:
-
-      // convert control input to target rpm 
-      RPM_control.target = amap(sv_targets[0], RPM_MIN_SET_ms, RPM_MAX_SET_ms);
-      
-      //get the average tick time since last pid update
-      if(rpm_total_tk)      rpm_avg_since_last_pid = rpm_total_ms / rpm_total_tk;
-      //if there haven't been any ticks, add the PID update interval to the previous value, up to a maximum.
-      else if(rpm_avg_since_last_pid < PID_RPM_MAX_FB_TIME_MS)  rpm_avg_since_last_pid += PID_UPDATE_INTERVAL_ms;
-      
-      // run the PID calculation, only if rpm avg hasn't reached max
-      if(rpm_avg_since_last_pid < PID_RPM_MAX_FB_TIME_MS) sv_targets[0] = update_PID(&RPM_control, rpm_avg_since_last_pid);
-      else 
+      if(flags_config.pid_rpm_use_ms) /////////////////////////// rotation time control
       {
-        //the engine is not running, or running too slowly
-        #ifdef DEBUG_PID
-        if(RPM_control.i)  Serial.println(F("PID rpm: reset due to low speed"));
-        #endif
-        //hold the throttle at the default
-        sv_targets[0] = PID_DEFAULT_THROTTLE;
-        //clear the pid's integral
-        RPM_control.i = 0;
+        // we need to reduce throtte to increase time, so enable inversion
+        if(!RPM_control.invert)
+        {
+          RPM_control.invert = true;
+          //clear the pid's integral
+          reset_PID(&RPM_control);
+        }
         
+        // get the target as a ms figure
+        RPM_control.target = amap(sv_targets[0], RPM_MIN_SET_ms, RPM_MAX_SET_ms);
+        
+        //get the average tick time since last pid update
+        if(rpm_total_tk)
+        {
+          rpm_avg_since_last_pid = rpm_total_ms / rpm_total_tk;
+        }
+        //if there haven't been any ticks, add the PID update interval to the previous value, up to a maximum.
+        else if(rpm_avg_since_last_pid < PID_RPM_MAX_FB_TIME_MS)
+        {
+          rpm_avg_since_last_pid += PID_UPDATE_INTERVAL_ms;
+        }
+        
+        // run the PID calculation, only if rpm avg hasn't reached max
+        if(rpm_avg_since_last_pid < PID_RPM_MAX_FB_TIME_MS)
+        {
+          sv_targets[0] = update_PID(&RPM_control, rpm_avg_since_last_pid);
+        }
+        else  
+        {
+          //the engine is not running, or running too slowly
+          #ifdef DEBUG_PID
+          if(RPM_control.i)  Serial.println(F("PID rpm: reset due to low speed"));
+          #endif
+          //hold the throttle at the default
+          sv_targets[0] = PID_DEFAULT_THROTTLE;
+          //clear the pid's integral
+          reset_PID(&RPM_control);
+          
+        }
+      }
+      else    ////////////////////////////////////// rotation rate control
+      {
+        // we need to increase throtte to increase rate, so disable inversion
+        if(RPM_control.invert)
+        {
+          RPM_control.invert = false;
+          //clear the pid's integral
+          reset_PID(&RPM_control);
+        }
+        
+        //get the target as an rpm figure
+        RPM_control.target = amap(sv_targets[0], RPM_MIN_SET, RPM_MAX_SET);
+
+        //get the average rpm from ticks since last pid update
+        if(rpm_total_tk)
+        {
+          rpm_avg_since_last_pid = MS_TO_RPM(rpm_total_ms) * rpm_total_tk;
+        }
+        //if there haven't been any ticks, add the PID update interval to the previous value, up to a maximum.
+        
+        else if(rpm_avg_since_last_pid > PID_RPM_MIN_FB_RPM)
+        {
+          rpm_avg_since_last_pid = (rpm_avg_since_last_pid*(_BV(PID_RPM_DECAY_SCALE)-1))>>PID_RPM_DECAY_SCALE;
+        }
+
+        // run the PID calculation, only if rpm avg hasn't reached max
+        if(rpm_avg_since_last_pid > PID_RPM_MIN_FB_RPM)
+        {
+          sv_targets[0] = update_PID(&RPM_control, rpm_avg_since_last_pid);
+        }
+        else  
+        {
+          //the engine is not running, or running too slowly
+          #ifdef DEBUG_PID
+          if(RPM_control.i)  Serial.println(F("PID rpm: reset due to low speed"));
+          #endif
+          //hold the throttle at the default
+          sv_targets[0] = PID_DEFAULT_THROTTLE;
+          //clear the pid's integral
+          reset_PID(&RPM_control);
+          
+        }
       }
       
       //set the number of pids to report

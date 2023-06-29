@@ -295,7 +295,7 @@ void read_touch()
           {
             if(sys_mode == MODE_DIRECT)
             {
-              reset_RPM_PID();
+              reset_PID(&RPM_control);
             }
             sys_mode = MODE_PID_RPM_CARB; //we need some sort of 'change mode' function to take care of intialisation
           }
@@ -355,7 +355,10 @@ void read_touch()
         }
         break;
       case TAG_PID_INVERT:
-        PIDs[0].invert ^= PID_FLAG_INVERT;
+        if(touch_event == TOUCH_OFF)
+        {
+          flags_config.pid_rpm_use_ms = !flags_config.pid_rpm_use_ms;
+        }
         break;
       default:
 //        flags_status.redraw_pending = true;
