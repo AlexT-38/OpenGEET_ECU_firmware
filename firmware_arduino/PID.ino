@@ -14,7 +14,6 @@
 #define DEBUG_PID_FEEDBACK_VALUE  RPM_TO_MS((RPM_MIN_SET + RPM_MAX_SET)>>1)
 
 #define PID_RPM_DECAY_SCALE 2 //scale of 1 or 2 or gives a similar-ish curve to adding interval_ms
-
 #define PID_DEFAULT_THROTTLE 200  //pid throttle position when engine is not running (time to last pulse > max pulse time)
 
 /* 
@@ -35,13 +34,22 @@ PID PIDs[NO_OF_PIDS];
 
 void configure_PID()
 {
-  RPM_control.invert = PID_FLAG_INVERT;
-  RPM_control.k = (PID_K){PID_FL_TO_FP(10),  PID_FL_TO_FP(0.1),  0};
+  // set default coefficients
+  RPM_control.k = (PID_K){PID_FL_TO_FP(1.0),  PID_FL_TO_FP(0.25),  PID_FL_TO_FP(0.05)}; 
 }
 
 void reset_PID(struct pid *pid)
 {
   pid->i = 0;
+  if (!pid->i_max)  pid->i_max = INT16_MAX;
+}
+/* reset the pid and reduce by the given power of two 
+ * this should be the least bits needed to store the largest error value likely to be seen
+ */
+void reset_PID(struct pid *pid, byte i_max_rsh)
+{
+  pid->i = 0;
+  pid->i_max = INT32_MAX>>i_max_rsh; 
 }
 
 unsigned int update_PID(struct pid *pid, int feedback)
@@ -52,24 +60,64 @@ unsigned int update_PID(struct pid *pid, int feedback)
   
   int result = 0;
   pid->actual = feedback;
-  pid->err = pid->target - feedback;
-  byte do_integrate = ((pid->err > 0) && (pid->i < (PID_FP_MAX-pid->err))) || ((pid->err < 0) && (pid->i > -(PID_FP_MAX+pid->err)));
+  if(!pid->invert) pid->err = pid->target - feedback;
+  else pid->err = feedback - pid->target;
 
   pid->d = pid->err - pid->p;
-  pid->p = pid->err;
-  //prevent pid->i from overflowing
-  if( do_integrate ) 
+  pid->p = pid->err; //this is a bit redundant, unless we store the scaled p and d here
+  
+  char clip_integral;
+  char block_integration;
+  if(pid->k.i)
   {
-    pid->i += pid->err;
+    //only integrate if integral is not saturated
+    if (( (pid->err > 0) && (pid->i >=  (pid->i_max - pid->err)) )  || ( (pid->err < 0) && (pid->i <= ( -pid->i_max - pid->err))  ))
+      clip_integral = true;
+    else clip_integral = false;
+  
+    //do we also pause integration when the output is saturated?
+    if ( ((pid->err > 0) && (pid->output >= PID_OUTPUT_MAX)) && ((pid->err < 0) && (pid->output <= PID_OUTPUT_MIN)) )
+      block_integration = true;
+    else block_integration = 0;
+    
+  
+    //stop integrating when the output is saturated
+    if(!block_integration)
+    {
+      //prevent pid->i from overflowing
+      if( !clip_integral ) 
+      {
+        pid->i += pid->err;
+        #ifdef DEBUG_PID
+        Serial.println(F("pid intgt"));
+        #endif
+      }
+      else 
+      {
+        if(pid->err > 0)
+          pid->i = pid->i_max;
+        else
+          pid->i = -pid->i_max;
+        #ifdef DEBUG_PID
+        Serial.println(F("pid ovfl"));
+        #endif
+      }
+    }
+    else
+    {
+      #ifdef DEBUG_PID
+      Serial.println(F("pid clip"));
+      #endif
+    }
   }
-  #ifdef DEBUG_PID
-  else 
+  else
   {
-    Serial.println(F("integral overflow"));
+    #ifdef DEBUG_PID
+    Serial.println(F("pid no i"));
+    #endif
   }
-  #endif
 
-  //calculate demand
+  //calculate demand (int * fp = fp)
   long p = (long)pid->p * pid->k.p;
   long i = (long)pid->i * pid->k.i;
   long d = (long)pid->d * pid->k.d;
@@ -77,56 +125,47 @@ unsigned int update_PID(struct pid *pid, int feedback)
   
   //convert fp to int
   int raw_out = (int) (calc>>PID_FP_FRAC_BITS);
-  if(pid->invert) raw_out = -raw_out;
   result = PID_OUTPUT_CENTRE + raw_out;
+
+  //store the total impact on output
+  pid->p = (int)(p>>PID_FP_FRAC_BITS);
+  pid->d = (int)(d>>PID_FP_FRAC_BITS);
+  pid->ik = (int)(i>>PID_FP_FRAC_BITS);
   
-  // clamp to range and prevent integral from running away
+  // clamp to range
   if (result < PID_OUTPUT_MIN)
   {
     result = 0;
-    if((pid->err < 0) != (pid->invert==PID_FLAG_INVERT) ) 
-    {
-      pid->i -= pid->err; //revert integral to previous value to prevent runaway, if ki*err is contributing to overflow
-    }
+    #ifdef DEBUG_PID
+    Serial.println(F("pid zero"));
+    #endif
   }
   else if (result > PID_OUTPUT_MAX)
   {
     result = PID_OUTPUT_MAX;
-    if((pid->err > 0) != (pid->invert==PID_FLAG_INVERT) ) 
-    {
-      pid->i -= pid->err;
-    }
+    #ifdef DEBUG_PID
+    Serial.println(F("pid max"));
+    #endif
   }
   pid->output = result;
 
   
   #ifdef DEBUG_PID
   
-  Serial.print(F("PID kp, ki, kd:   "));
-  Serial.print(pid->k.p);
+  Serial.print(F("PID kp, ki, kd:\n   "));
+  Serial.print(String((float)pid->k.p/(float)PID_FP_ONE));
   Serial.print(FS(S_COMMA));
-  Serial.print(pid->k.i);
+  Serial.print(String((float)pid->k.i/(float)PID_FP_ONE));
   Serial.print(FS(S_COMMA));
-  Serial.print(pid->k.d);
+  Serial.print(String((float)pid->k.d/(float)PID_FP_ONE));
   Serial.println();
 
-  Serial.print(F("PID t, e, p, i, d, raw, out: "));
-  Serial.print(pid->target);
-  Serial.print(FS(S_COMMA));
-  Serial.print(feedback);
-  Serial.print(FS(S_COMMA));
-  Serial.print(pid->err);
-  Serial.print(FS(S_COMMA));
-  Serial.print(p);
-  Serial.print(FS(S_COMMA));
-  Serial.print(i);
-  Serial.print(FS(S_COMMA));
-  Serial.print(d);
-  Serial.print(FS(S_COMMA));
-  Serial.print(raw_out);
-  Serial.print(FS(S_COMMA));
-  Serial.print(result);
-  Serial.println();
+  Serial.print(F("PID    t,     a,     e,     p,     i,     d,       int,   raw,   out:\n   "));
+
+  char string[80];
+  snprintf(string,80, "% 5d, % 5d, % 5d, % 5d, % 5d, % 5d, % 9ld, %5d, %5d\n", 
+                      pid->target, pid->actual, pid->err, pid->p, pid->ik, pid->d, pid->i, raw_out, pid->output);
+  Serial.print(string);
   #endif
   
   return result;
@@ -287,8 +326,8 @@ void process_pid_loop()
         if(!RPM_control.invert)
         {
           RPM_control.invert = true;
-          //clear the pid's integral
-          reset_PID(&RPM_control);
+          //clear the pid's integral and set it's maximum
+          reset_PID(&RPM_control, 10); //max reduced by 10 bits, the maximum time (ms) err
         }
         
         // get the target as a ms figure
@@ -330,7 +369,7 @@ void process_pid_loop()
         {
           RPM_control.invert = false;
           //clear the pid's integral
-          reset_PID(&RPM_control);
+          reset_PID(&RPM_control, 13); //max reduced by 13 bits, the maximum rate (rpm) err
         }
         
         //get the target as an rpm figure

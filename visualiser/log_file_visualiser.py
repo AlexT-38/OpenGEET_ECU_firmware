@@ -45,7 +45,10 @@ class log_file:
                 
     verbose = False
     echo = True
-    detailed_rpm = False
+    detailed_rpm = True
+    detailed_pid = True
+    rpm_pid_no_ms = True
+    rpm_pid_native = True
 
 
     record_version = None
@@ -53,6 +56,7 @@ class log_file:
     time = None
     
     RECORD_INTERVAL = 0.5
+    RECORD_INTERVAL_ms = 500
     EGT_FRACTION = 0.25
     
 #average values for each record
@@ -81,6 +85,8 @@ class log_file:
     RPM_tick_times_ms = np.array([])
 #rpm calculated from the above tick intervals
     RPM_ticks = np.array([])
+    
+    RPM_offset = np.array([])
 
 #analog samples
     USR = []#[np.array([])]
@@ -109,6 +115,7 @@ class log_file:
     PID_k = [{}]
 
     
+    
 
     def parse_v4(self, file):
         print("parse_v4")
@@ -124,7 +131,8 @@ class log_file:
         self.date = header['date']
         self.time = header['time']
         
-        self.RECORD_INTERVAL=header['rate_ms']/1000
+        self.RECORD_INTERVAL_ms = header['rate_ms']
+        self.RECORD_INTERVAL    = header['rate_ms']/1000
         
         
         def update_length(src, trg):
@@ -138,7 +146,7 @@ class log_file:
                 trg.extend([np.array([])]*diff)
             return length
                 
-            
+        #append indexed arrays            
         def append_multi(rec, src, trg):
             try:
                 src = rec[src]
@@ -147,7 +155,7 @@ class log_file:
             except KeyError as e:
                 if self.verbose : print(e)
                 pass
-        
+        #append single arrays
         def append_single(rec, src, trg):
             try:
                 src = rec[src]
@@ -156,6 +164,8 @@ class log_file:
                 if self.verbose : print(e)
                 pass
         
+        def append_dict(): #todo
+            pass
         
         
         t0 = 0
@@ -221,7 +231,8 @@ class log_file:
             #each category we are to collect
             avgs_src = ['usr','map' ,'tmp' ,'egt' ,'srv','rpm','trq','pow']
             avgs_dst = [x.upper() + '_avg' for x in avgs_src]
-                
+            
+            #go through each name in the list and append the values within
             for n in range(len(avgs_src)):
                 try:
                     #get the source and destination
@@ -252,8 +263,8 @@ class log_file:
                 avail = len(self.PID)
                 #ensure the lists have enough elements
                 if length > avail:
-                    ###print("len pid:", length)
-                    ###print("len PID:", avail)
+                    if self.verbose: print("len pid:", length)
+                    if self.verbose: print("len PID:", avail)
                     diff = length - avail
                     self.PID.extend([{}]*diff)
                     self.PID_k.extend([{}]*diff)
@@ -283,28 +294,132 @@ class log_file:
                         
                         #now create timestamps for this record and PID
                         values = np.linspace(self.AVG_t[-1],self.AVG_t[-1]+self.RECORD_INTERVAL, samples,endpoint=False)
-                        print("times:",len(values))
+                        if self.verbose: print("times:",len(values))
                         self.PID_t[n] = np.append(self.PID_t[n], values)  
                         
                         #now fetch the coefs (todo)
-                        #for key in r['avg']['pid'][n]:
-                        #    self.PID_k[n][key] = np.append(self.PID_t[n][key], r['']) 
+                        #for key in avg['pid'][n]:
+                        #    self.PID_k[n][key] = np.append(self.PID_t[n][key], avg['pid'][n]) 
                     pid_samples += samples_max
                     #loop through each logged pid
                 #make sure there are elements
-                print("pid records:", pid_records)        
-                print("pid samples:", pid_samples)
+                if self.verbose: print("pid records:", pid_records)        
+                if self.verbose: print("pid samples:", pid_samples)
             except KeyError as e:
                 ###print("no key", e)
                 pass
+            
+            ###process rpm (copied from v3)
+            
+            values = np.array(r['spd'])
+            tick_offset = r['spd_t0']
+            
+            self.RPM_offset = np.append(self.RPM_offset, tick_offset)
+            
+            #check if this is the first recorded tick
+            if len(self.RPM_intervals_ms) == 0:
+                #in which case, ignore this tick
+                values= values [1:]
+                first_tick = True
+                if self.verbose: print("first tick")
+            #also ignore any values less than 1
+            if len(values[values<=0]) > 0:
+                print("some ticks ignored:", np.argwhere(values<=0), ":", values[values<=0])
+                values = values[values>0]
+                
+            self.RPM_intervals_ms = np.append(self.RPM_intervals_ms, values)
+            if self.verbose: print("RPM intervals (ms):", self.RPM_intervals_ms[-len(values):])
+            
+            
+            self.RPM_no = np.append(self.RPM_no, len(values))
+            
+            #this mostly works...
+                
+            #instead of accumilating times from the start of logging,
+            #we will use the 1st tick offset from the current record's timestamp
+            # using AVG_t starting at 0ms, rather than TIME_t, which does not start at 0
+            # if a tick offset hasnt been read out, default to the old method
+            if tick_offset >=0 and tick_offset < self.RECORD_INTERVAL_ms:
+                #if this is the first tick in the log file,the first ick is ignored
+                #so we must add the tick offset to the next tick (which is the time since the first uncounted tick)
+                if first_tick:
+                    first_tick =  False;
+                    values[0] = values[0]+(self.AVG_t[-1]*1000) + tick_offset
+                else:
+                    values[0] = (self.AVG_t[-1]*1000) + tick_offset
+                #cumalative sum to get the timestamps relative to the last tick
+                
+            else:
+                if tick_offset > 0:
+                    print("tick offset is greater than record interval",self.AVG_t[-1])
+                else:
+                    print("tick offset is negative")
+                #this is an error, but we can recover
+                
+                #add the previous tick time, if there was one
+                if len(self.RPM_tick_times_ms) > 0:
+                    values[0] = values[0] + self.RPM_tick_times_ms[-1]
+                else:
+                    print("also no previous times recorded")
+                    #just use the record timestamp
+                    values[0] = (self.AVG_t[-1]*1000)
+                    
+            #add up all the intervals to get the timestamps for each tick
+            values = np.cumsum(values)
+                
+            
+
+            #append the ticks times
+            self.RPM_tick_times_ms = np.append(self.RPM_tick_times_ms, values)
+            if self.verbose: print("RPM tick times (s):", self.RPM_tick_times_ms[-len(values):])
+            #check for non monotonicity
+            if len(self.RPM_tick_times_ms) > len(values):
+                tick_idx_stop = len(self.RPM_tick_times_ms)
+                tick_idx_start = tick_idx_stop - (len(values)+1)
+                tick_idx = range(tick_idx_start, tick_idx_stop)
+                
+                for n in range(tick_idx_start,tick_idx_stop) :
+                    if self.RPM_tick_times_ms[n] < self.RPM_tick_times_ms[n-1]:
+                        last_tick = self.RPM_tick_times_ms[n-1]
+                        this_tick = self.RPM_tick_times_ms[n]
+                        plt.plot(tick_idx, self.RPM_tick_times_ms[tick_idx_start:tick_idx_stop])
+                        plt.plot(n, this_tick)
+                        plt.plot(n-1, last_tick)
+                        plt.show()
+                        plt.plot(self.RPM_tick_times_ms)
+                        plt.show()
+                        plt.plot(self.RPM_intervals_ms)
+                        plt.show()
+                        plt.plot(self.AVG_t)
+                        plt.show()
+                        plt.plot(self.RPM_offset)
+                        plt.show()
+                        print("ticks times non monotonic at", n, ":", this_tick, "vs", last_tick)
+            
+            
+            
             ##end record r
             
         rpm_pid = self.PID[0]
         #print(rpm_pid.keys())
-        rpm_pid['trg_rpm'] = 60000/rpm_pid['trg']
-        rpm_pid['act_rpm'] = 60000/rpm_pid['act']
-        rpm_pid['err_rpm'] = rpm_pid['trg_rpm']-rpm_pid['act_rpm']
-        rpm_pid['i'] = -rpm_pid['i']
+        if self.rpm_pid_no_ms and not self.rpm_pid_native:
+            rpm_pid['trg'] = 60000/rpm_pid['trg']
+            rpm_pid['act'] = 60000/rpm_pid['act']
+            rpm_pid['err'] = rpm_pid['trg']-rpm_pid['act']
+        elif not self.rpm_pid_native:
+            rpm_pid['trg_rpm'] = 60000/rpm_pid['trg']
+            rpm_pid['act_rpm'] = 60000/rpm_pid['act']
+            rpm_pid['err_rpm'] = rpm_pid['trg_rpm']-rpm_pid['act_rpm']
+        elif not self.rpm_pid_no_ms:
+            rpm_pid['trg_ms'] = 60000/rpm_pid['trg']
+            rpm_pid['act_ms'] = 60000/rpm_pid['act']
+            rpm_pid['err_ms'] = rpm_pid['trg_ms']-rpm_pid['act_ms']
+        #this is a hack - the firmware needs to invert the input not the output
+        rpm_pid['i'] = -rpm_pid['i']*0.001
+        
+        #rpm_pid_k =
+        
+        
         
         for n in range(len(self.EGT)):
             self.EGT[n] = self.EGT[n] * self.EGT_FRACTION
@@ -629,13 +744,16 @@ class log_file:
             labels.clear()
         
         
-        def draw_plot(data, time, name):
+        def draw_plot(data, time, name, colour=None):
             ln = min(len(time),len(data))
-            plt.plot(time[:ln], data[:ln])
+            if colour:  plt.plot(time[:ln], data[:ln], colour)
+            else:       plt.plot(time[:ln], data[:ln])
             labels.append(name)
+            
         def draw_plots(data, time, base_name):
             for (m,n) in enumerate(data):
                 draw_plot(n,time,f'{base_name} {m}')
+                
         def draw_plots_t(data, times, base_name):
             for (m,n) in enumerate(data):
                 draw_plot(n,times[m],f'{base_name} {m}')
@@ -669,9 +787,11 @@ class log_file:
         RPM_calc = 60*self.RPM_no/self.RECORD_INTERVAL
         RPM_ticks = 60000/self.RPM_intervals_ms
         
-        draw_plot(RPM_calc, self.AVG_t, 'avg. from count')
-        draw_plot(self.RPM_tick_times_ms/1000, RPM_ticks, 'avg. from tick times')
-        draw_plot(self.RPM_avg, self.AVG_t, 'reported avg.')
+        
+        draw_plot(RPM_ticks, self.RPM_tick_times_ms/1000, 'avg. from tick times','y')
+        draw_plot(RPM_calc, self.AVG_t, 'avg. from count','g')
+        draw_plot(self.RPM_avg, self.AVG_t, 'reported avg.','b')
+        
         show_plot('Engine Speed (RPM)', labels)
         
         
@@ -686,39 +806,80 @@ class log_file:
             show_plot('PID', labels)
         
         
-        if self.detailed_rpm:
-            try:
-                duration_ms = np.ceil(self.RPM_tick_times_ms[-1]).astype(np.int32) + 1
-                ticks = np.zeros(duration_ms)
-                ticks_t = np.arange(duration_ms)/1000
+        if self.detailed_pid or self.detailed_rpm:
+            time_max = 0
+            y_max = 5000
+            y_min = 0
+            title = ""
+            
+            if self.detailed_pid:
+                #select the data and time axis
+                pid = self.PID[0]
+                pid_t = self.PID_t[0]
+                pid_keys = ['trg','act','err','out']
+                #get the maximum time
+                time_max = max(time_max, np.ceil(pid_t[-1]).astype(np.int32))
+                y_min = -2000
+                title += "PID "
                 
+            if self.detailed_rpm:
+                #create a sparse data set from tick times using a 1 ms time axis
+                #total number of miliseconds from rpm tick time scale
+                duration_ms = np.ceil(self.RPM_tick_times_ms[-1]).astype(np.int32) + 1
+                #empty tick array
+                ticks = np.zeros(duration_ms)
+                #time axis for tick array
+                ticks_t = np.arange(duration_ms)/1000
+                #populate the tick array with ticks whose vales match the rpm given by the tick time
                 np.put(ticks, np.round(self.RPM_tick_times_ms).astype(np.int32), RPM_ticks)
-
-                step = 2
-                for start in range ( np.ceil(duration_ms/1000).astype(np.int32) - step):
+                #get the maximum time
+                time_max = max(time_max, np.ceil(duration_ms/1000).astype(np.int32))
+                title += "RPM "
+            
+            step = 2 #time slice each detailed plot will show
+            
+            try:
+                #go through each time slice
+                for start in range (0, time_max - step, step):
                     stop = start+step
                     
-                    if start is not None: start_rpm = int(start/self.RECORD_INTERVAL)
-                    else: start_rpm = None
-                    if stop is not None: stop_rpm = int(stop/self.RECORD_INTERVAL)+1
-                    else: stop_rpm = None
+                    #do pid plotting
+                    if self.detailed_pid:
+                        #find the indices coresponding to this slice
+                        pid_start_idx = np.argmax(pid_t>start)
+                        pid_stop_idx = np.argmax(pid_t>stop)
+                        #get the time line slice
+                        pid_t_slice = pid_t[pid_start_idx:pid_stop_idx]
+                        #iterate through keys and plot their corresponding slices
+                        for key in pid_keys:
+                            try:
+                                pid_slice = pid[key][pid_start_idx:pid_stop_idx]
+                                draw_plot(pid_slice, pid_t_slice, key)
+                            except KeyError as e:
+                                print(e)                #print missing keys
+                                pid_keys.remove(key)    #remove key from key list
+                                
+                    #do rpm plotting
+                    if self.detailed_rpm:
+                        if start is not None: start_rpm = int(start/self.RECORD_INTERVAL)
+                        else: start_rpm = None
+                        if stop is not None: stop_rpm = int(stop/self.RECORD_INTERVAL)+1
+                        else: stop_rpm = None
+                        
+                        draw_plot(RPM_calc[start_rpm:stop_rpm], self.AVG_t[start_rpm:stop_rpm],'avg. from count')
+                        
+                        if start is not None: start_tick = int(start*1000)
+                        else: start_tick = None
+                        if stop is not None: stop_tick = int(stop*1000)
+                        else: stop_tick = None
+                        
+                        draw_plot(ticks[start_tick:stop_tick], ticks_t[start_tick:stop_tick],'avg. from ticks','y')
                     
-                    plt.plot(self.AVG_t[start_rpm:stop_rpm], RPM_calc[start_rpm:stop_rpm])
-                    labels.append('avg. from count')
-                    
-                    if start is not None: start_tick = int(start*1000)
-                    else: start_tick = None
-                    if stop is not None: stop_tick = int(stop*1000)
-                    else: stop_tick = None
-                    
-                    plt.plot(ticks_t[start_tick:stop_tick], ticks[start_tick:stop_tick])
-                    labels.append('avg. from ticks')
-                    
-                    plt.ylim(0,5000)
-                    
-                    show_plot('Engine Speed (RPM)')
+                    plt.ylim(y_min, y_max)                            
+                    show_plot(title, labels)
             except IndexError as e:
                 print (e)
+
 
 
 if __name__ == "__main__":
@@ -733,7 +894,8 @@ if __name__ == "__main__":
     #log_file_name = "20-06-2023/23062004.TXT"
     #log_file_name = "26-06-2023/23062700.JSN"
     #log_file_name = "27-06-2023/23062702.JSN"
-    log_file_name = "27-06-2023/23062700.JSN"
+    #log_file_name = "27-06-2023/23062700.JSN"
+    log_file_name = "29-06-2023/23062905.JSN"
     
     log_file_path = log_file_folder + log_file_name
     
