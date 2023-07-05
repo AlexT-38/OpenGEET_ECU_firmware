@@ -3,30 +3,18 @@
 
 #define HX711_16BITS
 
-//#if TARGET == UNO
-#define HX711_CLK  9
-#define HX711_DATA 4
-// see "hardware/arduino/variants/standard/pins_arduino.h"
 
-#define HX711_CLK_port PORTB
-#define HX711_DATA_port PORTD
-#define HX711_DATA_pin PIND
-#define HX711_CLK_bit 1
-#define HX711_DATA_bit 4
-#define HX711_CLK_ddr DDRB
-#define HX711_DATA_ddr DDRD
-/*
-#elif TARGET == MEGA
 #define HX711_CLK  9
 #define HX711_DATA 4
 
-#define HX711_CLK_port PORTB
-#define HX711_DATA_pin PINB
 #define HX711_CLK_bit 6
 #define HX711_DATA_bit 5
+#define HX711_CLK_port PORTH
+#define HX711_DATA_port PORTG
+#define HX711_DATA_pin PING
+#define HX711_CLK_ddr DDRH
+#define HX711_DATA_ddr DDRG
 
-#endif
-*/
 
 //generic bit access macros
 #define setBIT(port, bit_) port|=_BV(bit_)

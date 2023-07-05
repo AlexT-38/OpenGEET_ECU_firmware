@@ -30,6 +30,7 @@ typedef struct {
     byte do_serial_write_hex:1;
     byte do_sdcard_write:1;
     byte do_sdcard_write_hex:1;
+    byte pid_rpm_use_ms:1;
 }FLAGS_CONFIG;
 
 typedef union flags_config_union{
@@ -42,7 +43,8 @@ typedef struct {
     byte update_eeprom:1;
     byte sdcard_available:1;
     byte file_openable:1;
-    byte logging_active:1;
+    byte logging_requested:1;
+    byte logging_state:2;
     byte redraw_pending:1;
     byte update_active:1;
     byte engine_running:1;    //true if rpm is above minimum
@@ -52,6 +54,7 @@ typedef struct {
     byte generator_running:1; //true when motor is being set for regenerative braking
     byte generator_fault:1;    //true if anypart of the generation system is not working, eg battery full, unbalanced, overloaded
     byte hold_direct_input:1;  //if true, user inputs will be collected, but not passed to the servos
+    
     
 }FLAGS_STATUS;
 

@@ -64,15 +64,15 @@ byte fetch_tag()
 
 /* opens comms to display chip and calls the current screen's draw function */
 
-byte draw_screen()
+void draw_screen()
 {
-  flags_status.redraw_pending = true;
+  //flags_status.redraw_pending = true;
   
   // check if enough time has passed since the last redraw
-  int time_now = millis();
-  if ((time_now - display_timestamp) > 0)
+  //int time_now = millis();
+  //if ((time_now - display_timestamp) > 0)
   {
-    display_timestamp = time_now + SCREEN_REDRAW_INTERVAL_MIN_ms;
+    //display_timestamp = time_now + SCREEN_REDRAW_INTERVAL_MIN_ms;
     flags_status.redraw_pending = false;
     
     if (draw_screen_funcs[current_screen] != NULL)
@@ -115,7 +115,7 @@ byte draw_screen()
     }
 
   }
-  return flags_status.redraw_pending;
+  return;// flags_status.redraw_pending;
 }
 
 /* touch handling - avoid heavy lifting in this funtion */
@@ -133,6 +133,7 @@ void read_touch()
   byte touch_tag_old = GD.inputs.tag;
 
   //fetch coords
+  GD.resume();
   long int val = GD.rd32(REG_TOUCH_SCREEN_XY);
   xy *coord = (xy*) &val;
   GD.inputs.xytouch.x = coord->y;
@@ -164,7 +165,9 @@ void read_touch()
 #ifdef TRACKERS_ENABLED
 #endif    
   }
-  
+
+  //finish with the SPI bus
+  GD.__end();
   
   //check for event (change in tag)
   if (touch_tag_old != GD.inputs.tag)
@@ -201,9 +204,7 @@ void read_touch()
       case TAG_LOG_TOGGLE:
         if(touch_event == TOUCH_OFF)
         {
-          //if not previously logging and an sd card is available, generate the filename for logging
-          flags_status.logging_active = ~flags_status.logging_active;
-          if(flags_status.sdcard_available && flags_config.do_sdcard_write && flags_status.logging_active) generate_file_name();
+          toggle_logging();
         }
         break;
       case TAG_CAL_SV0_MIN:
@@ -273,16 +274,16 @@ void read_touch()
 //        }
 //        break;
       case TAG_LOG_TOGGLE_SDCARD:
-        if(touch_event == TOUCH_ON && !flags_status.logging_active) { flags_config.do_sdcard_write ^=1; }
+        if(touch_event == TOUCH_ON && !flags_status.logging_state) { flags_config.do_sdcard_write ^=1; }
         break;
       case TAG_LOG_TOGGLE_SDCARD_HEX:
-        if(touch_event == TOUCH_ON && !(flags_status.logging_active&&flags_config.do_sdcard_write)) { flags_config.do_sdcard_write_hex ^=1; }
+        if(touch_event == TOUCH_ON && !(flags_status.logging_state&&flags_config.do_sdcard_write)) { flags_config.do_sdcard_write_hex ^=1; }
         break;
       case TAG_LOG_TOGGLE_SERIAL:
-        if(touch_event == TOUCH_ON && !flags_status.logging_active) { flags_config.do_serial_write ^=1; }
+        if(touch_event == TOUCH_ON && !flags_status.logging_state) { flags_config.do_serial_write ^=1; }
         break;
       case TAG_LOG_TOGGLE_SERIAL_HEX:
-        if(touch_event == TOUCH_ON && !(flags_status.logging_active&&flags_config.do_serial_write)) { flags_config.do_serial_write_hex ^=1; }
+        if(touch_event == TOUCH_ON && !(flags_status.logging_state&&flags_config.do_serial_write)) { flags_config.do_serial_write_hex ^=1; }
         break;
       case TAG_MODE_SET_PID_RPM:
         if(touch_event == TOUCH_ON) {
@@ -294,7 +295,7 @@ void read_touch()
           {
             if(sys_mode == MODE_DIRECT)
             {
-              configure_PID();
+              reset_PID(&RPM_control);
             }
             sys_mode = MODE_PID_RPM_CARB; //we need some sort of 'change mode' function to take care of intialisation
           }
@@ -351,6 +352,12 @@ void read_touch()
         {
           flags_status.hold_direct_input ^= 1;
           flags_status.redraw_pending = true;
+        }
+        break;
+      case TAG_PID_INVERT:
+        if(touch_event == TOUCH_OFF)
+        {
+          flags_config.pid_rpm_use_ms = !flags_config.pid_rpm_use_ms;
         }
         break;
       default:
@@ -781,7 +788,7 @@ void draw_log_toggle_button(int x, int y, byte sx, byte sy)
 
   int opt = (GD.inputs.tag == TAG_LOG_TOGGLE) ? OPT_FLAT : 0;
 
-  if(flags_status.logging_active)
+  if(flags_status.logging_state)
   {
     GD.cmd_fgcolor(C_BTN_LOGGING);
   }

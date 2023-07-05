@@ -6,10 +6,12 @@
  */
 
 #define DATA_RECORD_VERSION     3
+#define JSON_RECORD_VERSION     4
 typedef struct data_config
 {
   unsigned int data_version;
-  byte USR_no, MAP_no, TMP_no, EGT_no, SRV_no;
+  byte USR_no, MAP_no, TMP_no, EGT_no, SRV_no, PID_no;
+  
   
 }DATA_CONFIG;
 
@@ -34,7 +36,7 @@ typedef struct data_averages
   /* struct for storing sensor samples over the update period */
 typedef struct data_record
 {
-  long int timestamp;
+  unsigned long timestamp;
 
 //sensors using the internal ADC, or HX771 at 10Hz
   byte ANA_no_of_samples;
@@ -49,11 +51,14 @@ typedef struct data_record
   
 //rpm from flywheel magnet pickup  
   byte RPM_no_of_ticks;
+  unsigned int RPM_tick_offset_ms;
   unsigned int RPM_tick_times_ms[RPM_MAX_TICKS_PER_UPDATE];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
 
 //servo outputs
   byte SRV_no_of_samples;
   int SRV[NO_OF_SERVOS][PID_LOOPS_PER_UPDATE];
+
+  PID_RECORD PIDs[NO_OF_PIDS];
   
 } DATA_RECORD; //... bytes per record with current settings
 
@@ -66,7 +71,12 @@ typedef struct data_storage
 }DATA_STORAGE;
 
 
-
+typedef enum log_state {
+  LOG_STOPPED,
+  LOG_STARTING,
+  LOG_STARTED,
+  LOG_STOPPING
+}LOG_STATE;
 
 /* the records to write to */
 extern DATA_RECORD Data_Records[2];
@@ -75,6 +85,7 @@ extern byte Data_Record_write_idx;
 
 #define CURRENT_RECORD    Data_Records[Data_Record_write_idx]
 #define LAST_RECORD       Data_Records[1-Data_Record_write_idx]
+#define SWAP_RECORDS()    Data_Record_write_idx = 1-Data_Record_write_idx
 
 extern DATA_AVERAGES Data_Averages;
 extern DATA_CONFIG Data_Config;
@@ -82,7 +93,7 @@ extern DATA_CONFIG Data_Config;
 
 extern char output_filename[13]; //8+3 format
 
-extern File log_data_file; 
+extern File dataFile; 
 
 
 #endif //__RECORDS_H__

@@ -121,6 +121,8 @@ typedef enum tags
   TAG_CAL_TORQUE_MIN,
   TAG_CAL_TORQUE_MAX,
 
+  TAG_PID_INVERT,
+
   NO_OF_TAGS,
   
 }TAGS_EN;

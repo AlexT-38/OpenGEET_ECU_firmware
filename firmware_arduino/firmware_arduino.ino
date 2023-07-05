@@ -1,4 +1,4 @@
-/*
+ /*
  * OpenGEET Engine Control Unit firmware (Arduino)
  * Created by A Timiney, 13/08/2022
  * GNU GPL v3
@@ -6,15 +6,32 @@
  * 
  * Open GEET Engine Control Unit firmware
  *
- * Reads sensor values (rpm, egt, map, torque) and user inputs, control valve positions. 
- * Optionally drives fuel injection and ignition, reads magnetic fields. Logs all values to sd card.
- * Initially, control inputs will be mapped directly to valve positions. 
- * Once the behaviour of the reactor and engine are better understood, 
- *  control input can be reduced to rpm control via PID loops. 
- * A 3-phase BLDC motor can then be added to provide engine start and power generation 
- *  using an off the shelf motor controller. Control input can then be tied to output power draw.
- * Hardware will initially be an Arduino Uno with a datalogger sheild. 
- * Upgrade to an STM10x or 40x device can be made later if required.
+ * Reads sensor values (rpm, temp, map, torque), user inputs, servo outputs, and pid parameters. 
+ * Optionally drives fuel injection and ignition, reads magnetic fields.
+ * Logs all values to sd card and or serial, as raw binary data or as json. Optionally, BSON or equiv.
+ * Display and control via a touch screen, 4 knobs, and 2 buttons (todo).
+ * Configuration stored in EEPROM, export/import to sdcard or serial (todo).
+ * Support for prony brake or BLDC starter/generator, shaft power calculation.
+ *
+ * Multiple operation modes:
+ *  - direct control over all servo outputs via user inputs
+ *  - PID control of RPM using throttle servo output.
+ * Todo:
+ *  - PID Control of reactor vacuum
+ *  - PID control of brake/BLDC to control shaft torque
+ *  - Control of shaft power via rpm/torque set points
+ *  - Logic to detirmine system state, configure controls accordingly
+ *  
+ *  Current Hardware:
+ *    Arduino MEGA2560,
+ *    deek-robot DataLogger
+ *    GameduinoIII
+ *    HX711 Loadcell interface (torque)
+ *    MAX6675 Thermocouple interface (EGT)
+ *    Hall switch RPM counter
+ *    5.1V Buck converter for high current servos
+ *    Filtered AREF for analog sensors.
+ *    
  */
 
 
@@ -29,7 +46,14 @@
  *  
  *  cut tracks between breakout pad for pins 4 & 5 and the adjacent SDA and SCL breakout pads
  *  connect the SDA and SCL pads to the SDA and SCL pads adjecent to AREF pin
+ *  
+ *  run a 1 ohm resistor and a ferrite bead (eg BLM18HG102SN1, 100mA 1000ohm @100MHz) from 5V to AREF
+ *  add 47uF 6.3v MLCC to GND at each end and power all analog inputs from AREF
+ *  to eliminate noise from the supply when using a buck convertor to provide sufficient current for 
+ *  the servos from a 12-15v 1A supply
+ *  MAP sensor draws ~7.5mA, and each pot draws 0.5mA
  */
+ 
 /* MEGA PIN MAP / Circuit description:
  *  MEGA Pin    I/O     Function/name
  *  0           I       USB Serial Rx
@@ -58,32 +82,6 @@
  *  
  */
 
-  /* latest on ram usage:
-   *  adding a PID struct and it's output to the record struct
-   *  has brought free ram down to 443 bytes.
-   *  it may be necessary to increase the update rate to 2 per second
-   *  we might be able to scrape a few bytes using bitfields for the numbers of samples
-   *  
-   */
- /* ram usage has rapidly become an issue
-  *  for the SD, SPI, GD2, MAX6675 and Servo libraries, 830 bytes are used
-  *  instanciating MAX6675 and GD2 objects uses an additional 101 bytes,
-  *  total ram usage for libraries alone is 931 bytes,
-  *  leaving 1117 bytes for everything else, including string literals.
-  *  
-  *  to sample the analog pins at 20 samples per second over 4 channels, plus 75 rpm ticks
-  *  DATA_RECORD is aprox 375 bytes per record
-  *  two records is 750 bytes, which leaves only 367 bytes for the stack and string literals.
-  *  
-  *  to avoid the need for a double buffer, we must be able to write the data record to SD card 
-  *  and serial port in under 13.3 ms , or else drop data from the rpm counter.
-  *  
-  *  SD card access is taking approximately 30ms, so double buffering is required.
-  *  SD card access delay can be larger than this and is dependant on the card's buffer size.
-  *  
-  *  to avoid string literals, strings must be placed into progmem
-  *  and read out into a temporary buffer as per https://www.arduino.cc/reference/en/language/variables/utilities/progmem/
-  */
 #include <EEPROM.h>
 #include <SD.h>         //sd card library
 #include <SPI.h>        //needed for gameduino
@@ -102,20 +100,29 @@
 
 #ifdef DEBUG                      //enable debugging readouts
 //#define DEBUG_LOOP              //mprint out loop markers and update time                 min(us)       typ(us)       max(us)
-//#define DEBUG_UPDATE_TIME       //measure how long an update takes                    t:  40000
-//#define DEBUG_DISPLAY_TIME      //measure how long draw screen takes                  t:  10000
-//#define DEBUG_SDCARD_TIME       //measure how long SD card log write takes            t:  30000
-//#define DEBUG_SERIAL_TIME       //measure how long serial log write takes             t:
-//#define DEBUG_PID_TIME          //measure how long the pid loop takes                 t:     48(direct) 76(1ch)      
+//#define DEBUG_RECORD_TIME       //measure how long calculating averages takes         t:  356           360           380
+//#define DEBUG_BUFFER_TIME       //measure how long writing the data as a string takes t:  3876          3880          4520
+//#define DEBUG_DISPLAY_TIME      //measure how long draw screen takes                  t:         4600 5120 6444 7940
+//#define DEBUG_SDCARD_TIME       //measure how long SD card log write takes     write  t:                4000  
+//                                                                               flush  t:                3000          11000
+//#define DEBUG_SERIAL_TIME       //measure how long serial log write takes             t:             3936 4632
+//#define DEBUG_PID_TIME          //measure how long the pid loop takes                 t:     64(direct) 94-150(1ch)      
 //#define DEBUG_ANALOG_TIME       //measure how long analog read and processing takes   t:
 //#define DEBUG_DIGITAL_TIME      //measure how long reading from digital sensors takes t:  
 //#define DEBUG_TOUCH_TIME        //measure how long reading and processing touch input t:                125           300
-//#define DEBUG_RECORD  // n/a
+//#define DEBUG_RECORD  
+//#define DEBUG_LOG_STATE  
+
+//#define DEBUG_SDCARD
+//#define DEBUG_BUFFER
 //#define DEBUG_ADC
-#define DEBUG_SERVO
+//#define DEBUG_SERVO
+//#define DEBUG_PID
 //#define DEBUG_EEP_RESET
 //#define DEBUG_EEP_CONTENT
 //#define DEBUG_RPM_COUNTER
+//#define DEBUG_RPM_FAKE
+//#define DEBUG_MAX6675
 //#define DEBUG_MAP_CAL
 //#define DEBUG_MAP  // n/a
 //#define DEBUG_TMP_CAL
@@ -123,6 +130,7 @@
 //#define DEBUG_TOUCH_INPUT
 //#define DEBUG_TOUCH_CAL
 //#define DEBUG_TORQUE_SENSOR
+//#define DEBUG_HX711
 //#define DEBUG_TORQUE_RAW        //record raw values
 //#define DEBUG_TORQUE_CAL        //print calibration values on set
 //#define DEBUG_TORQUE_NO_TIMEOUT   //no timeout for reading torque sensor - this saves 40 or so bytes of flash, but will hang if comms lost
@@ -132,6 +140,12 @@
 //#define DEBUG_CAL_TOUCH
 //#define DEBUG_RTC
 //#define DEBUG_RTC_FORCE_UPDATE
+//#define DEBUG_SDCARD_TEST_FILE_OPEN
+//#define DEBUG_SDCARD_TEST_FILE_CREATE
+//#define DEBUG_SDCARD_TEST_FILE_OPEN_LOOP
+//#define DEBUG_SDCARD_TEST_FILE_NAME "23062003.txt"
+//#define DEBUG_POWER_CALC
+
 
 #endif
 
@@ -139,20 +153,21 @@
 
 
 // I/O counts by type
-#define NO_OF_USER_INPUTS         2     //physical knobs
+#define NO_OF_USER_INPUTS         4     //physical knobs
 #define NO_OF_MAP_SENSORS         1     //pressure sensors
 #define NO_OF_TMP_SENSORS         0     // analog low temperature NTC / PTC sensors, manifold inlet temperatures etc
 #define NO_OF_EGT_SENSORS         1     // digital thermocouple sensors, MAX6675
 #define NO_OF_SERVOS              3
+#define NO_OF_PIDS                2
 
-#include "torque_sensor.h"
-#include "PID.h"
-#include "strings.h"
-#include "screens.h"
-#include "RPM_counter.h"
-#include "servos.h"
-#include "flags.h"
-#include "eeprom.h"
+
+
+
+//front panel status LED
+#define PIN_LED 22
+#define LED_ON LOW
+#define LED_OFF HIGH
+
 
 //datalogger SD card CS pin
 #define PIN_LOG_SDCARD_CS         10
@@ -206,7 +221,11 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
 
 // screen/log file update
 #define UPDATE_INTERVAL_ms            500
-#define UPDATE_START_ms               (UPDATE_INTERVAL_ms + 0)      //setting update loops to start slightly offset so they aren't tying to execute at the same time
+#define RECORD_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 0)      //setting update loops to start slightly offset so they aren't tying to execute at the same time
+#define SCREEN_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 10)
+#define SERIAL_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 200)    //serial report runs first
+#define SDCARD_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 300)    //sdcard runs second and removes the stale data from the buffer
+#define SDCARD_SYNC_START_ms        (UPDATE_INTERVAL_ms + 400)    //sdcard sync in a seperate slot, in the hopes of reducing overhead
 
 // digital themocouple update rate
 #define EGT_SAMPLE_INTERVAL_ms        250 //max update rate
@@ -219,20 +238,9 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
 #define ANALOG_UPDATE_START_ms        70
 
 //rpm counter params
-#define RPM_TO_MS(rpm)                (60000/(rpm))
-#define MS_TO_RPM(ms)                 RPM_TO_MS(ms)   //same formula, included for clarity
-
-#define RPM_MAX                       4500
-#define RPM_MIN_TICK_INTERVAL_ms      RPM_TO_MS(RPM_MAX)
-#define RPM_MAX_TICKS_PER_UPDATE      (UPDATE_INTERVAL_ms/RPM_MIN_TICK_INTERVAL_ms)
-#define RPM_MIN                       1
-#define RPM_MAX_TICK_INTERVAL_ms      RPM_TO_MS(RPM_MIN)
 
 
-#define RPM_MIN_SET                   1500
-#define RPM_MAX_SET                   4500
-#define RPM_MIN_SET_ms                RPM_TO_MS(RPM_MIN_SET)
-#define RPM_MAX_SET_ms                RPM_TO_MS(RPM_MAX_SET)
+
 
 #define PID_UPDATE_INTERVAL_ms        50
 #define PID_UPDATE_START_ms           40  
@@ -245,7 +253,11 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
 
 /*          event         duration  
  *                      typ.      max.    log sdcard    log serial                                                      min gap to next, max if different
- *      U - update                                                      000                                     500     40    80ms till next spi use
+ *      F - finalise record                                             000                                     500     40    80ms till next spi use
+ *      S - draw screen                                                 010                                     510
+ *      D - write to SD card                                                            200                        
+ *      F - flush SD card                                                                               400
+ *      R - write to serial                                                                     300
  *      T - touch                                                           080     180     280     380     480         10
  *      P - pid                                                         040 090 140 190 240 290 340 390 440 490 540     10, 30
  *      E - egt                                                             110                 360                     10, 30
@@ -255,14 +267,21 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
  *      3.33ms per char
  *         010   030   050   070   090   110   130   150   170   190   210   230   250   270   290   310   330   350   370   390   410   430   450   470   490
  *      000   020   040   060   080   100   120   140   160   180   200   220   240   260   280   300   320   340   360   380   400   420   440   460   480   500
- *      U           P        A  T  P     E        P        A  T  P              P        A  T  P              P     E  A  T  P              P        A  T  P  U
+ *      F  S        P        A  T  P     E        P        A  T  P  R           P        A  T  P  D           P     E  A  T  P  F           P        A  T  P  U
  *                                    
  *      500   520   540   560   580   600   620   640   660   680   700   720   740   760   780   800   820   840   860   880   900   920   940   960   980  1000
- *      U           P        A  T  P     E        P        A  T  P              P        A  T  P              P     E  A  T  P              P        A  T  P  U
+ *      F  S        P        A  T  P     E        P        A  T  P  R           P        A  T  P  D           P     E  A  T  P  F           P        A  T  P  U
  * 
  */
 
-
+#include "torque_sensor.h"
+#include "PID.h"
+#include "strings.h"
+#include "screens.h"
+#include "RPM_counter.h"
+#include "servos.h"
+#include "flags.h"
+#include "eeprom.h"
 #include "records.h"
 
 
@@ -280,8 +299,11 @@ unsigned int KNOB_values[NO_OF_KNOBS];
 
 
 
-
-static int update_timestamp = 0; //not much I can do easily about these timestamps
+static int record_timestamp = 0; //not much I can do easily about these timestamps
+static int screen_timestamp = 0; //not much I can do easily about these timestamps
+static int sdcard_timestamp = 0; //not much I can do easily about these timestamps
+static int sdcard_sync_timestamp = 0; //not much I can do easily about these timestamps
+static int serial_timestamp = 0; //not much I can do easily about these timestamps
 static int analog_timestamp = 0; //could be optimised by using a timer and a progmem table of func calls
 static int egt_timestamp = 0;    //more optimal if all intervals have large common root
 static int pid_timestamp = 0;    //they probably dont need to be long ints though.
@@ -290,106 +312,14 @@ static int touch_timestamp = 0;
 
                                  
 
-/* some alternate, possibly faster mapping functions 
- *  map : 39673   - built in function
- *  imap :14914   - copy of map, using 16bit integers only. bit range of input and output limited to 16 total
- *  lmap : 38538 - copy of map, inputs and output are 16bit, cast to long where needed
- *  ib2map: 643   - copy of map, but input range is a power of 2. eliminates division, thus much faster
- *  ob2map: 39675 - copy of ib2map, but output range is power of 2. no benefit
- */
-  
-/* map(), but with all inputs and outputs as 16bit integers: (out_range * in_range) must be less than 32k */
-int imap(int x, int in_min, int in_max, int out_min, int out_max)
-{
-  return ((x - in_min) * (out_max - out_min) / (in_max - in_min)) + out_min;
-}
-/* map(), but with all inputs and outputs as 16bit integers: (out_range * in_range) can exceed 32k */
-int lmap( int x,  int in_min,  int in_max,  int out_min,  int out_max)
-{
-  return (int)((( long)(x - in_min) * (out_max - out_min)) / (in_max - in_min)) + out_min;
-}
-/* map(), but with long inputs SLOW, but needed for 24bit sensors */
-long longmap(long x, long in_min, long in_max, long out_min, long out_max) 
-{
-  return (long)((long long)(x - in_min) * (out_max - out_min) / (in_max - in_min)) + out_min;
-}
 
-
-/* if input range is a power of two, this function is much faster */
-int ib2map(int x, int in_min, byte in_range_log2, int out_min, int out_max)
-{
-  return ((int)(((long)(x - in_min) * (long)(out_max - out_min)) >> in_range_log2 )) + out_min;
-}
-
-/* for mapping ADC values, we can remove some extraneous parameters and add rounding */
-int amap(int x, int out_min, int out_max)
-{
-  long result = ((long)x * (out_max - out_min)) + (1 << 9);
-  return (int)(result >> 10) + out_min;
-}
-
-void test_map_implementations()
-{
-  Serial.println(F("Testing mmap:"));
-
-  unsigned long tt = 0;
-  unsigned int total = 0;
-  for (byte in_max =4; in_max < 15; in_max += 2)
-  {
-    for (byte out_max =4; out_max < 15; out_max += 2)
-    {
-      for (byte in_val =0; in_val < in_max; in_val++)
-      {
-        unsigned int iv = (1<<in_val);//in_val;//
-        unsigned int im = (1<<in_max);//in_max;//
-        unsigned int om = (1<<out_max);//out_max;//
-        unsigned int t;
-        
-        volatile unsigned int out;
-        int n = 1000;
-
-        t = micros();
-        while( n--)  
-        //{ out = ib2map(iv, 0, im, 0, om );}
-        { out = lmap(iv, 0, im, 0, om );}
-        //{out = SENSOR_MAP_CAL_MAX_mbar;} //760 val = 170 - both these values are wrong
-        //{out = SENSOR_MAP_CAL_MIN_mbar;} //760   val = 220
-        //{out = (const int)(1.0);}  //760
-        //{out = (const int)(1);} //760
-         //{out = 0;} //628
-        t = micros()-t;
-        
-        tt += t;
-        total++;
-
-        iv = (1<<in_val);
-        im = (1<<in_max);
-        om = (1<<out_max);        
-        Serial.print(F("dt, o, om, im, i: "));
-        Serial.print(t);
-        Serial.print(FS(S_COMMA));
-        Serial.print(out);
-        Serial.print(FS(S_COMMA));
-        Serial.print(om);
-        Serial.print(FS(S_COMMA));
-        Serial.print(im);
-        Serial.print(FS(S_COMMA));
-        Serial.print(iv);
-        Serial.println();
-      }
-    }
-  }
-  Serial.print(F("mean time: "));
-  Serial.println(tt/total);
-
-  // mmap :14914
-  // map : 39673
-  // ulmap : 38538
-  // ib2map: 643
-  // ob2map: 39675
-}
 
 void setup() {
+
+  //configure front panel LED
+  pinMode(PIN_LED, OUTPUT);
+  digitalWrite(PIN_LED, LED_ON);
+  
 
   //set datalogger SDCard CS pin high, 
   pinMode(PIN_LOG_SDCARD_CS, OUTPUT);
@@ -457,7 +387,8 @@ void setup() {
   flags_config.do_serial_write = true;
   flags_config.do_sdcard_write = true;
 
-  
+  //set default parameters fo rthe PID
+  configure_PID();
 
   //load eeprom, write defualts if a different version
   initialise_eeprom();
@@ -471,11 +402,35 @@ void setup() {
   if (!SD.begin(PIN_LOG_SDCARD_CS)) {
     GET_STRING(S_CARD_FAILED_OR_NOT_PRESENT);
     flags_status.sdcard_available = false;
+    Serial.println(F("SD Card failed to init."));
   }
   else
   {
+    // set date time callback function
+    SdFile::dateTimeCallback(dateTime);
     GET_STRING(S_CARD_INITIALISED); //S_NO_SD_CARD);//
     flags_status.sdcard_available = true;
+    Serial.println(F("SD Card init'ed succesfully."));
+#ifdef DEBUG_SDCARD_TEST_FILE_OPEN
+
+    File dataFile = SD.open(DEBUG_SDCARD_TEST_FILE_NAME, FILE_WRITE);
+    if(dataFile)
+    {
+      //print the header
+      dataFile.println(F("Test data"));
+      dataFile.close();
+      
+      Serial.println(F("Test file opened OK"));
+    }
+    else
+    {
+      //open failed on first attempt, do not attempt to save to this file
+      Serial.println(F("Test file open FAILED"));
+    }
+#endif
+#ifdef DEBUG_SDCARD_TEST_FILE_CREATE
+    create_file();
+#endif
   }
 //  Serial.println(string);
   screen_draw_splash(S_FIRMWARE_NAME_str, string);
@@ -490,10 +445,17 @@ void setup() {
   reset_servos();
 
 
+  //set up the buffer for logging output
+  configure_records();
+
+
   // test the map functions
 //  test_map_implementations();
 
-
+  #ifdef DEBUG_RPM_FAKE
+  pinMode(PIN_RPM_COUNTER_INPUT, OUTPUT);
+    
+  #endif
 
 #ifdef DEBUG_MAP_CAL
 // SENSOR_CAL_LIMIT_out(in_limit, in_low, in_high, out_low, out_high)   ( ( ((in_limit-in_low) * (out_high-out_low)) / (in_high-in_low)  ) + out_low + 0.5)
@@ -526,6 +488,7 @@ void setup() {
   Serial.println(F("Init Complete"));
   // wait for MAX chip to stabilize, and to see the splash screen
   delay(4000);
+
 
 #ifdef DEBUG_TOUCH_REG_DUMP
 //302104h REG_TOUCH_MODE : 2
@@ -579,7 +542,12 @@ void setup() {
   int timenow = millis();
 
   //set the initial times for the loop events
-  update_timestamp = timenow + UPDATE_START_ms;
+  record_timestamp = timenow + RECORD_UPDATE_START_ms;
+  screen_timestamp = timenow + SCREEN_UPDATE_START_ms;
+  serial_timestamp = timenow + SERIAL_UPDATE_START_ms;
+  sdcard_timestamp = timenow + SDCARD_UPDATE_START_ms;
+  sdcard_sync_timestamp = timenow + SDCARD_UPDATE_START_ms;
+  
   analog_timestamp = timenow + ANALOG_UPDATE_START_ms;
   egt_timestamp = timenow + EGT_UPDATE_START_ms;
   pid_timestamp = timenow + PID_UPDATE_START_ms;
@@ -590,9 +558,7 @@ void setup() {
 
 
 
-
-
-void process_digital_inputs()
+void process_egt_sensors()
 {
   #ifdef DEBUG_DISABLE_DIGITAL
   return;
@@ -620,78 +586,158 @@ void process_digital_inputs()
   Serial.print(F("t_dig us: "));
   Serial.println(timestamp_us);
   #endif
+
+    
 }
 
 
-
-
-
-
-static byte update_step = 0;
-
-bool process_update_loop()
-{ 
-  #ifdef DEBUG_UPDATE_TIME
-  unsigned int timestamp_us = micros();
-  Serial.print(F("upd_stp: "));
-  Serial.println(update_step);
-  #endif
-  switch(update_step)
-  {
-    //todo: make writing to sd card a seperate process
-    case 0:   
-      reset_record();
-      finalise_record();
-      update_step -= draw_screen();       //  10032us (basic) 9548us (config) 9528 (pid rpm, in current state)
-      update_step++;
-      break;
-    
-    case 1:   // 160us (disabled) approx 30ms when active. see function for breakdown
-      while(!write_sdcard_data_record()); //sd card write must be completed before giving up the spi bus
-      update_step++;
-      break;
-    
-    case 2:   // 160us (disabled) see function for breakdown when active
-      if (write_serial_data_record()) //serial writes can be split up safely
-      { update_step = 0;  }
-      break; 
-    
-    default:  update_step = 0; break;
-  }
-  
-  #ifdef DEBUG_UPDATE_TIME
-  timestamp_us = micros() - timestamp_us;
-  Serial.print(F("t_upd us: "));
-  Serial.println(timestamp_us);
-  #endif
-
-  return (update_step != 0);
-}
 
 void loop() {
 
   int elapsed_time;
   int timenow = millis();
 
-  
+  #ifdef DEBUG_RPM_FAKE
+  static int next_fake_RPM = millis() + RPM_TO_MS(1000);
+  int fake_RPM_interval = timenow - next_fake_RPM;
+
+  if(fake_RPM_interval >= 0)
+  {
+    next_fake_RPM += RPM_TO_MS((Data_Averages.USR[0]*4)+1450);
+    digitalWrite(PIN_RPM_COUNTER_INPUT, HIGH);
+    digitalWrite(PIN_RPM_COUNTER_INPUT, LOW);
+  }
+  #endif //DEBUG_RPM_FAKE
+
+ 
 
   /* get time left till next update */
-  elapsed_time = update_timestamp - timenow;
+  elapsed_time = record_timestamp - timenow;
   /* execute update if update interval has elapsed */
   if(elapsed_time < 0)
   {
     /* set the timestamp for the next update */
-    update_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
-    flags_status.update_active = true;
-    /* emit the timestamp interval of the current update, if debugging */
+    record_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
+
+    // debug marker
     #ifdef DEBUG_LOOP
-    Serial.print(F("\nUPD: ")); Serial.println(timenow);
+    Serial.print(F("\nREC: ")); Serial.println(timenow);
     #endif
-  }
-  if(flags_status.update_active)
-  {
-    flags_status.update_active = process_update_loop();
     
+    update_record();
+    if(flags_status.logging_state) digitalWrite(PIN_LED, !digitalRead(PIN_LED));
+    else digitalWrite(PIN_LED, LED_ON);
+    
+    
+    //update the time
+    timenow = millis();
+  }
+
+  /* get time left till next update */
+  elapsed_time = screen_timestamp - timenow;
+  /* execute update if update interval has elapsed */
+  if(elapsed_time < 0)
+  {
+    /* set the timestamp for the next update */
+    screen_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
+
+    // debug marker
+    #ifdef DEBUG_LOOP
+    Serial.print(F("\nSCR: ")); Serial.println(timenow);
+    #endif
+
+    #ifdef DEBUG_SCREEN_TIME
+    unsigned int timestamp_us = micros();
+    #endif //DEBUG_SCREEN_TIME
+    
+    draw_screen();
+
+    #ifdef DEBUG_SCREEN_TIME
+    timestamp_us = micros() - timestamp_us;
+    Serial.print(F("t_scr us: "));
+    Serial.println(timestamp_us);
+    #endif //DEBUG_SCREEN_TIME
+    
+    //update the time
+    timenow = millis();
+  }
+
+  /* get time left till next update */
+  elapsed_time = serial_timestamp - timenow;
+  /* execute update if update interval has elapsed */
+  if(elapsed_time < 0)
+  {
+    /* set the timestamp for the next update */
+    serial_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
+
+    // debug marker
+    #ifdef DEBUG_LOOP
+    Serial.print(F("\nSER: ")); Serial.println(timenow);
+    #endif
+
+    write_serial_data_record();
+    
+    //update the time
+    timenow = millis();
+  }
+
+  /* get time left till next update */
+  elapsed_time = sdcard_timestamp - timenow;
+  /* execute update if update interval has elapsed */
+  if(elapsed_time < 0)
+  {
+    /* set the timestamp for the next update */
+    sdcard_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
+
+    // debug marker
+    #ifdef DEBUG_LOOP
+    Serial.print(F("\nSDC: ")); Serial.println(timenow);
+    #endif
+
+    #ifndef DEBUG_SDCARD_TEST_FILE_OPEN_LOOP
+    
+    write_sdcard_data_record();
+
+    #else
+      static unsigned int sd_count = 0;
+      File dataFile = SD.open(DEBUG_SDCARD_TEST_FILE_NAME, FILE_WRITE);
+      if(dataFile)
+      {
+        dataFile.close();
+        
+        Serial.print(F("SD OK   ")); 
+      }
+      else
+      {
+        Serial.print(F("SD FAIL ")); Serial.println(sd_count);
+      }
+      Serial.print(sd_count); Serial.print(" "); Serial.println(timenow);
+      sd_count++;
+    #endif 
+
+    //update the time
+    timenow = millis();
+  }
+
+    /* get time left till next update */
+  elapsed_time = sdcard_sync_timestamp - timenow;
+  /* execute update if update interval has elapsed */
+  if(elapsed_time < 0)
+  {
+    /* set the timestamp for the next update */
+    sdcard_sync_timestamp = timenow + UPDATE_INTERVAL_ms + (elapsed_time%UPDATE_INTERVAL_ms);
+
+    // debug marker
+    #ifdef DEBUG_LOOP
+    Serial.print(F("\nSDC: ")); Serial.println(timenow);
+    #endif
+
+    #ifndef DEBUG_SDCARD_TEST_FILE_OPEN_LOOP
+      
+    sync_sdcard_data_record();
+
+    #endif
+
     //update the time
     timenow = millis();
   }
@@ -709,7 +755,7 @@ void loop() {
     Serial.print(F("\nDIG: ")); Serial.println(timenow);
     #endif
     
-    process_digital_inputs();
+    process_egt_sensors();
     
     //update the time
     timenow = millis();
@@ -783,15 +829,21 @@ void loop() {
 
     read_touch();
 
+    /* redraw the screen if a touch occured and an update is not in progress */
+    if(flags_status.redraw_pending)
+    {
+      #ifdef DEBUG_LOOP
+      Serial.print(F("\nREDRAW: ")); Serial.println(timenow);
+      #endif
+      draw_screen();
+    }
+
+
     //update the time
     timenow = millis();
   }
 
-  /* redraw the screen if a touch occured and an update is not in progress */
-  if(!flags_status.update_active && flags_status.redraw_pending)
-  {
-    draw_screen();
-  }
+
 
 
   check_eeprom_update();

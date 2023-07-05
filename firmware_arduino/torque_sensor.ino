@@ -27,7 +27,7 @@
 
 
 TORQUE_CAL          torque_cal;
-static long         torque_LSB;
+long         torque_LSB;
 static int          torque_mNm;
 
 void print_torque_cal(Stream &file)
@@ -79,7 +79,7 @@ int torqueRead()
   {
 #endif
     //round down to int before applying the calibration
-    torque_LSB = (HX711_read_value() + TORQUE_ROUNDING) >> TORQUE_PRESCALE;;
+    torque_LSB = (HX711_read_value() + TORQUE_ROUNDING) >> TORQUE_PRESCALE;
     torque_mNm = tq_counts_to_mNm(torque_LSB);
 
 #ifdef DEBUG_TORQUE_SENSOR

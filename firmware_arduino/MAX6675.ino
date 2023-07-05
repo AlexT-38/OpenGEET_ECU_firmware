@@ -18,7 +18,11 @@ bool MAX6675_ReadTemp(byte CS_Pin)
   SPI.endTransaction();
   digitalWrite(CS_Pin, HIGH);
 
-  if ((MAX6675_data == 0xFFFF) || (MAX6675_data & 0x8)) return false;
+  #ifdef DEBUG_MAX6675
+  Serial.print(F("MAX6675: 0x")); Serial.print(MAX6675_data,HEX);
+  #endif
+
+  if ((MAX6675_data == 0xFFFF) || (MAX6675_data & _BV(2))) return false;
   MAX6675_data >>= 3;
   return true;
 }

@@ -25,7 +25,7 @@
 // define them as consts here and delete the original 
 const char S_DATE[] PROGMEM = __DATE__;
 const char S_TIME[] PROGMEM = __TIME__;
-const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller (MEGA) v0.6.0";
+const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller (MEGA) v0.6.1";
 const char S_COMMA[] PROGMEM = ", ";
 const char S_COLON[] PROGMEM = ": ";
 const char S_CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or absent"; //if this string is not defined/referenced, or is made shorter than this, an extra 40-60 bytes is consumed for no obvious reason
@@ -43,6 +43,8 @@ const char S_RPM_AVG[] PROGMEM = "RPM avg: ";
 
 const char S_RPM_NO_OF_TICKS[] PROGMEM = "RPM no.: ";
 const char S_RPM_TICK_TIMES[] PROGMEM = "RPM times (ms): ";
+const char S_RPM_TICK_OFFSET[] PROGMEM = "RPM tick offset (ms): ";
+
 const char S_OUTPUT_FILE_NAME_C[] PROGMEM = "Output File Name: ";
 
 
@@ -58,6 +60,8 @@ const char S_EGT_SAMPLES_C[] PROGMEM = "EGT no.: ";
 
 const char S_DOT_TXT[] PROGMEM = ".txt";
 const char S_DOT_RAW[] PROGMEM = ".raw";
+const char S_DOT_JSN[] PROGMEM = ".jsn";
+
 
 const char S_EGT_DEGC[] PROGMEM = "EGT degC";
 const char S_RPM[] PROGMEM = "RPM";
@@ -67,6 +71,7 @@ const char S_INPUT_2[] PROGMEM = "Input 2";
 const char S_INPUT_3[] PROGMEM = "Input 3";
 const char S_TIMESTAMP_MS[] PROGMEM = "Timestamp (ms)";
 const char S_TORQUE_MNM[] PROGMEM = "Tq. mN.m";
+const char S_TORQUE_LSB[] PROGMEM = "Tq. LSB";
 const char S_TORQUE[] PROGMEM = "Torque";
 const char S_POWER_W[] PROGMEM = "Power W";
 const char S_TEMP_DEGC[] PROGMEM = "Temp degC";
@@ -108,6 +113,7 @@ const char S_LOAD[] PROGMEM = "LOAD";
 
 const char S_EXPORT[] PROGMEM = "EXPORT";
 const char S_IMPORT[] PROGMEM = "IMPORT";
+const char S_PID_USE_MS[] PROGMEM = "PID use ms";
 
 
 const char S_BASIC[] PROGMEM = "Basic";

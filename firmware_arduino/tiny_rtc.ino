@@ -5,6 +5,9 @@
  * DS1307 runs at 100kHz, which means each byte takes 0.1ms
  * a single write is 0.3ms
  * a single read is 0.4ms
+ * 
+ * DS1307 is sensitive to temperature and noise, and does not run accurately.
+ * Consider replacing with DS3231 when the time comes to make a custom sheild.
  */
  
 #define DS1307_ADDRESS        0x68                  //7bit address
@@ -24,7 +27,19 @@ void stream_print_date_time(const DateTime t_now, Stream &file)
   file.print(string);
   time_to_string(t_now, string);
   file.println(string);
-} 
+}
+void write_date(String &dst, DateTime t_now)
+{
+  char str[11];
+  date_to_string(t_now, str);
+  dst += str;
+}
+void write_time(String &dst, DateTime t_now)
+{
+  char str[9];
+  time_to_string(t_now, str);
+  dst += str;
+}
 void date_to_string(DateTime t_now, char *string)
 {
   string += 10;
@@ -40,18 +55,18 @@ void date_to_string(DateTime t_now, char *string)
   *string-- = '0';
   *string   = '2';
 }
-void time_to_string(const DateTime now, char *string)
+void time_to_string(const DateTime t_now, char *string)
 {
   string += 8;
   *string-- = '\0';
-  *string-- = '0' + now.second%10;
-  *string-- = '0' + (now.second/10)%10;
+  *string-- = '0' + t_now.second%10;
+  *string-- = '0' + (t_now.second/10)%10;
   *string-- = ':';
-  *string-- = '0' + now.minute%10;
-  *string-- = '0' + (now.minute/10)%10;
+  *string-- = '0' + t_now.minute%10;
+  *string-- = '0' + (t_now.minute/10)%10;
   *string-- = ':';
-  *string-- = '0' + now.hour%10;
-  *string   = '0' + (now.hour/10)%10;
+  *string-- = '0' + t_now.hour%10;
+  *string   = '0' + (t_now.hour/10)%10;
 }
 
 

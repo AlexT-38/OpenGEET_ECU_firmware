@@ -11,5 +11,6 @@ typedef struct torque_cal
 }TORQUE_CAL;
 
 extern TORQUE_CAL          torque_cal;
+extern long         torque_LSB;
 
 #endif //__TORQUE_H__
