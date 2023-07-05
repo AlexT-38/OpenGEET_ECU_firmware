@@ -1,7 +1,7 @@
 # OpenGEET_ECU_firmware
 Open GEET Engine Control Unit firmware
 
-Reads sensor values (rpm, egt, map) and user inputs, control valve positions.
+Reads sensor values (rpm, egt, map, torque) and user inputs, control valve positions.
 Optionally drives fuel injection and ignition, reads magnetic fields.
 Logs all values to sd card.
 
@@ -9,51 +9,50 @@ Initially, control inputs will be mapped directly to valve positions.
 Once the behaviour of the reactor and engine are better understood, control input can be reduced to rpm control via PID loops.
 A 3-phase BLDC motor can then be added to provide engine start and power generation using an off the shelf motor controller.
 Control input can then be tied to output power draw.
+To keep costs down, a prony brake will be used to load the engine as an intermediate step before fitting a motor/generator.
 
-Hardware will initially be an Arduino Uno with a datalogger sheild. Upgrade to an STM10x or 40x device can be made later if required.
+Hardware is currently an Arduino MEGA with a Deek-Robot datalogger and Gameduino III. Arduino UNO had insufficient SRAM and Flash.
+Upgrade to an STM10x or 40x device can be made later if required.
 
 #### Development roadmap:
 
-### v0.8
+### 0.7+
 
 **Objectives:**
-
-- Adjust RPM to match generator load
-- Limit power to keep EGT in range
-
-### v0.7
-
-**Objectives:**
-
-- Regenerative braking
-- Regulate based on battery voltage or output current
+- Starter/Generator BLDC integration
+- PID control of reactor vacuum
+- Reactor state monitoring (starting, in spec, out of spec)
+- Replace blocking FATFS library
+- Additional user input: 4 knobs and 2 push buttons
+- Updated UI: configurable screen, multiple settings pages
+- Updated UI: dynamic labels for physical input
+- Prony brake servo
+- Time/date config (trim not available)
+- Calibration for thermistor inputs (for air inlet, reactor output, oil temperatures etc).
+- Full EEPROM export/import
+- Separate record/screen/sdcard log/serial log processes
 
 
 ### v0.6
 
 **Objectives:**
 
-- Motorised engine start
-- Start engine UI button
-- Engine states: starting
+- Arduino MEGA update
+- Data records store calibrated data by sensor type, including thermistors (raw values)
+- Configurable maximum no of sensors by type
+- Replace 3rd party thermocouple library
+- Shaft power readout
+- Updated UI: better basic screen, torque cal page
 
 ### v0.5
 
-**Objectives:**
-
-- Control mode: PID control of reactor vacuum via bubbler valve servo
-- Reactor PID parameter control via ui
-- View reactor PID state
-- Reactor state monitoring (starting, in spec, out of spec)
-
-### v0.4
-
-**Objectives:**
+**Features:**
 
 - Control mode: PID control of RPM via throttle servo
 - RPM PID parameter control via ui
 - View RPM PID state
-- Engine state monitoring (stopped, running)
+- Torque Sensor
+- EEPROM dump (partial)
 
 ### v0.3
 
