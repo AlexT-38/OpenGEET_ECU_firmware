@@ -1,5 +1,3 @@
-//#include <Servo.h> //The standard servo library uses ALL THE TIMERS
-
 /*
  * MEGA 2560
  * Input capture pins are:
@@ -43,7 +41,7 @@
  *       
  *  TMR4  OC4A PH3  D6        D6 is already a servo output
  *        OC4B PH4  D7        D7 is currently EGT CS, but can be remapped
- *        OC4C PH5  D8        D8 is used for Gameduino CS pins. Cannot be remapped
+ *        OC4C PH5  D8        D8 is used for Gameduino GPU CS pin. Cannot be remapped
  *        
  *  TMR5  OC5A PL3  D46       Unused
  *        OC5B PL4  D45
@@ -57,8 +55,21 @@
  *  
  *  Using Timer4 for input capture leaves Timer 5 free for expansion if needed.
  */
+ 
+ /* digital connectors remapping for breakoutboard
+  *  brd con, old pin,old func, new func,wire con,(remapped)
+  *  1        2       RPM       SVb      3        2
+  *  2        3       SV0       SVc      4        3
+  *  3        5       SV1       SVa      2        4
+  *  4        6       SV2       RPM      1        1
+  *  
+  *  Servos could be remapped to maintain order (ie a->2 b->0 c->1)
+  *  0 - b
+  *  1 - c
+  *  2 - a
+  */
 
-#define PIN_SERVO               3
+#define PIN_SERVO                  3
 #define SERVO_MIN_us               750     //default minimum servo value
 #define SERVO_MAX_us               2300    //default maximum servo value
 #define SERVO_MIN_tk               (SERVO_MIN_us<<1)
@@ -84,11 +95,11 @@ volatile byte total_count;
  * To get around this, we need to increment the overflow count at the half way mark.
  * We can do this using OCA match interrupt
  */
-
+unsigned int icp;
 //input capture interrupt
-ISR(TIMER5_CAPT_vect)
+ISR(TIMER4_CAPT_vect)
 {
-  unsigned int this_time = ICR5;
+  unsigned int this_time = ICR4;
   //check for overflows
   if(rpm_tmr_ovf < OVF_LIMIT)// && ~idx) //(stop when out of samples, wait for buffer to clear)
   {
@@ -133,14 +144,19 @@ void setup() {
 
   //configure servo
 
+  //set the pin to outputs
+  pinMode(2, OUTPUT); //D2 is OC3B
+  pinMode(3, OUTPUT); //D3 is OC3C
+  pinMode(5, OUTPUT); //D5 is OC3A
+
   //configure timer 3 for PWM on A B and C using ICR3 to store a top value of 50k-1, giving a 25ms rate (up to 32.768ms)
   //we need WGN mode 14, must be set before ICR can be written
-  //clock source 3 (clk/8), COM mode 2 (non inverting)
+  //clock source 2 (clk/8), COM mode 2 (non inverting)
 
   //TCCR3A    COM-A1 COM-A0 COM-B1 COM-B0 COM-C1 COM-C0 WGM-1  WGM-0
   //          1      0      1      0      1      0      1      0
   //TCCR3B    ICNC   ICES   -      WGM3   WGM2   CS2    CS1    CS0
-  //          0      0      0      1      1      0      1      1
+  //          0      0      0      1      1      0      1      0
   //TCCR3C    FOC-A  FOC-B  FOC-C  -      -      -      -      -
   //TIMSK3    -      -      ICIE   -      OCIE-C OCIE-B OCIE-A TOIE
   //          0      0      0      0      0      0      0      0 
@@ -157,7 +173,9 @@ void setup() {
   OCR3B = SERVO_MIN_tk;
   OCR3C = SERVO_MIN_tk;
   //start the timer
-  TCCR3B |= _BV(CS31) | _BV(CS30);
+  TCCR3B |= _BV(CS31);// | _BV(CS30);
+
+  
 
   
   //configure ICP pin as input with pullup
@@ -179,6 +197,7 @@ void setup() {
   TCCR4B = _BV(CS42);
   //enable the intterupts
   TIMSK4 = _BV(ICIE4) | _BV(TOIE4) | _BV(OCIE4A);
+  
   /* The timer and interrupts should not be enabled until
    *  the main loop is ready to start clamping rpm_tmr_ovf.
    * That being said, we have 264 seconds (at 62.5kHz)
@@ -193,10 +212,15 @@ void loop() {
   
   static int timestamp_ms = millis() + UPDATE_INTERVAL_ms;
   int timenow_ms = millis();
-  int elapsed_ms = timenow_ms - timestamp_ms;
+  int elapsed_ms = timestamp_ms - timenow_ms;
 
   if(elapsed_ms <= 0)
   {
+//    Serial.println();
+
+    //update the timestamp
+    timestamp_ms = timenow_ms + UPDATE_INTERVAL_ms;
+    
     //clamp the overflow counter
     if(rpm_tmr_ovf > OVF_COUNT_LIMIT) rpm_tmr_ovf = OVF_COUNT_LIMIT;
     
@@ -254,10 +278,20 @@ void loop() {
         {
           //if not, estimate the rpm from the number of missed ticks
           rpm_avg_since_last_pid = MS_TO_RPM( UPDATE_INTERVAL_ms * no_tick_count );
+          Serial.print(no_tick_count);Serial.println("th no tick");
+        }
+        else
+        {
+          Serial.println("1st no tick");
         }
       }
       else
       {
+        if(rpm_avg_since_last_pid)
+        {
+          Serial.println("RPM: 0");
+          //Serial.print("OVF: ");Serial.println(rpm_tmr_ovf);
+        }
         //set rpm to zero
         rpm_avg_since_last_pid = 0;
         //reset no tick count so that the first tick does not use a stale no_tick_count to estimate rpm
@@ -266,11 +300,15 @@ void loop() {
     }
 
     //report the rpm
-    Serial.print("RPM: "); Serial.println(rpm_avg_since_last_pid); 
+    if(rpm_avg_since_last_pid)
+    {
+      Serial.print("RPM: "); Serial.println(rpm_avg_since_last_pid); 
+    }
+    
 
     //update the servo
     int input = analogRead(A1);
-    set_sv(input);
+    set_sv(0, input);
   }
   
 }
@@ -282,10 +320,28 @@ int amap(int x, int out_min, int out_max)
   return (int)(result >> 10) + out_min;
 }
 
-void set_sv(unsigned int ratio)
+/* Set servo using a 10bit 
+ *  0 - b
+ *  1 - c
+ *  2 - a
+ */
+void set_sv(byte sv, unsigned int ratio)
 {
     //map to ticks
     unsigned int servo_pos = amap(ratio, SERVO_MIN_tk, SERVO_MAX_tk);
-    //write the register for servo[0] / D6
-    OCR3C = servo_pos;
+    //write to the register
+    switch(sv)
+    {
+      case 0:
+        OCR3B = servo_pos;
+        break;
+      case 1:
+        OCR3C = servo_pos;
+        break;
+      case 2:
+        OCR3A = servo_pos;
+        break;
+    }
+    //report servo position
+    Serial.print("SRV: "); Serial.println(servo_pos>>1);
 }
