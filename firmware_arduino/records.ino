@@ -120,9 +120,12 @@ void update_record()
   
     
   /* prepare the new record */
+  RPM_INT_DIS();
   SWAP_RECORDS();
   CURRENT_RECORD = (DATA_RECORD){0};
   CURRENT_RECORD.timestamp = millis();
+  CURRENT_RECORD.RPM_tick_offset_tk = RPM_counter;
+  RPM_INT_EN();
   
   /* get the previous record for processing */
   DATA_RECORD *data_record = &LAST_RECORD;
@@ -544,8 +547,8 @@ void write_record(String &dst, DATA_RECORD *data_record)
 ////////////////////////////////////////////////////////////////////////// report toque and speed
     json_append_arr(dst, F("trq"), data_record->TRQ, data_record->ANA_no_of_samples);
     
-    json_append(dst, F("spd_t0"), data_record->RPM_tick_offset_ms);
-    json_append_arr(dst, F("spd"), data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks);
+    json_append(dst, F("spd_t0"), data_record->RPM_tick_offset_tk);
+    json_append_arr(dst, F("spd"), data_record->RPM_tick_times_tk, data_record->RPM_no_of_ticks);
 
 ////////////////////////////////////////////////////////////////////////// report servo outputs
     if(Data_Config.SRV_no > 0)

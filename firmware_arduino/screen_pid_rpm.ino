@@ -77,16 +77,16 @@ void screen_draw_pid_rpm()
     if(sys_mode==MODE_DIRECT)
     {
       //take the target from the average input value when 'previewing' the target from direct mode, with outputs held
-      if(flags_config.pid_rpm_use_ms)
+      if(flags_config.pid_rpm_use_time)
         rpm_control_target = MS_TO_RPM(amap(Data_Averages.USR[0], RPM_MIN_SET_ms, RPM_MAX_SET_ms));
       else
-        rpm_control_target = amap(Data_Averages.USR[0], RPM_MIN_SET, RPM_MAX_SET);
+        rpm_control_target = amap(Data_Averages.USR[0], RPM_MIN_SET_rpm, RPM_MAX_SET_rpm);
     }
     else
     {
       //otherwise use the actual PID target
       rpm_control_target = RPM_control.target;
-      if(flags_config.pid_rpm_use_ms) rpm_control_target = MS_TO_RPM(rpm_control_target);
+      if(flags_config.pid_rpm_use_time) rpm_control_target = MS_TO_RPM(rpm_control_target);
     }
     
     

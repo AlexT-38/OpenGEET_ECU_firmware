@@ -26,7 +26,7 @@ void screen_draw_config()
 
 
   MAKE_STRING(S_PID_USE_MS);
-  draw_toggle_button(GRID_XL(3,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_PID_INVERT,flags_config.pid_rpm_use_ms,S_PID_USE_MS_str);
+  draw_toggle_button(GRID_XL(3,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_PID_INVERT,flags_config.pid_rpm_use_time,S_PID_USE_MS_str);
 
 //  MAKE_STRING(S_EXPORT);
 //  draw_button(GRID_XL(5,XN),GRID_YT(3,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_EEPROM_EXPORT,S_EXPORT_str);

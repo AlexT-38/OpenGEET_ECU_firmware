@@ -11,7 +11,7 @@
 //#define DEBUG_PID_EXP_FUNC
 //#define DEBUG_PID_FEEDBACK
 
-#define DEBUG_PID_FEEDBACK_VALUE  RPM_TO_MS((RPM_MIN_SET + RPM_MAX_SET)>>1)
+#define DEBUG_PID_FEEDBACK_VALUE  RPM_TO_MS((RPM_MIN_SET_rpm + RPM_MAX_SET_rpm)>>1)
 
 #define PID_RPM_DECAY_SCALE 2 //scale of 1 or 2 or gives a similar-ish curve to adding interval_ms
 #define PID_DEFAULT_THROTTLE 200  //pid throttle position when engine is not running (time to last pulse > max pulse time)
@@ -300,11 +300,13 @@ void process_pid_loop()
   }
   n=0; //reset the index
 
-  static unsigned int rpm_avg_since_last_pid;
+  //get the average tick time since last pid update. zero always means engine stopped regardless of time vs rate selection
+  unsigned int rpm_avg_since_last_pid = get_rpm_for_pid();
 
-  // I'm not sure this MODE idea is the rgth way to do this
+  // I'm not sure this MODE idea is the right way to do this
   // it might be better to use a matrix to set connectivity between inputs(sensors), outputs(servos) and controllers(PID / other logic)
   // this would make experimentation with control methods easier, since the configuration can be set with a function call
+  // see issue #16
   switch(sys_mode)
   {
     default:
@@ -320,32 +322,22 @@ void process_pid_loop()
       rpm_avg_since_last_pid = RPM_MIN_SET_ms;
       break;
     case MODE_PID_RPM_CARB:
-      if(flags_config.pid_rpm_use_ms) /////////////////////////// rotation time control
+      if(flags_config.pid_rpm_use_time) /////////////////////////// rotation time control
       {
         // we need to reduce throtte to increase time, so enable inversion
         if(!RPM_control.invert)
         {
           RPM_control.invert = true;
           //clear the pid's integral and set it's maximum
-          reset_PID(&RPM_control, 10); //max reduced by 10 bits, the maximum time (ms) err
+          //todo: validate this bit reduction value, derive it from RPM counter configuration
+          reset_PID(&RPM_control, 15); //max reduced by 15 bits, the maximum time (tk) err
         }
         
         // get the target as a ms figure
-        RPM_control.target = amap(sv_targets[0], RPM_MIN_SET_ms, RPM_MAX_SET_ms);
-        
-        //get the average tick time since last pid update
-        if(rpm_total_tk)
-        {
-          rpm_avg_since_last_pid = rpm_total_ms / rpm_total_tk;
-        }
-        //if there haven't been any ticks, add the PID update interval to the previous value, up to a maximum.
-        else if(rpm_avg_since_last_pid < PID_RPM_MAX_FB_TIME_MS)
-        {
-          rpm_avg_since_last_pid += PID_UPDATE_INTERVAL_ms;
-        }
-        
+        RPM_control.target = amap(sv_targets[0], RPM_MIN_SET_tk, RPM_MAX_SET_tk);
+               
         // run the PID calculation, only if rpm avg hasn't reached max
-        if(rpm_avg_since_last_pid < PID_RPM_MAX_FB_TIME_MS)
+        if(rpm_avg_since_last_pid != 0 && rpm_avg_since_last_pid < RPM_TO_TK(PID_RPM_MIN_FB_RPM))
         {
           sv_targets[0] = update_PID(&RPM_control, rpm_avg_since_last_pid);
         }
@@ -373,19 +365,8 @@ void process_pid_loop()
         }
         
         //get the target as an rpm figure
-        RPM_control.target = amap(sv_targets[0], RPM_MIN_SET, RPM_MAX_SET);
+        RPM_control.target = amap(sv_targets[0], RPM_MIN_SET_rpm, RPM_MAX_SET_rpm);
 
-        //get the average rpm from ticks since last pid update
-        if(rpm_total_tk)
-        {
-          rpm_avg_since_last_pid = MS_TO_RPM(rpm_total_ms) * rpm_total_tk;
-        }
-        //if there haven't been any ticks, add the PID update interval to the previous value, up to a maximum.
-        
-        else if(rpm_avg_since_last_pid > PID_RPM_MIN_FB_RPM)
-        {
-          rpm_avg_since_last_pid = (rpm_avg_since_last_pid*(_BV(PID_RPM_DECAY_SCALE)-1))>>PID_RPM_DECAY_SCALE;
-        }
 
         // run the PID calculation, only if rpm avg hasn't reached max
         if(rpm_avg_since_last_pid > PID_RPM_MIN_FB_RPM)
@@ -411,12 +392,6 @@ void process_pid_loop()
       break;
   }
 
-  //reset the rpm pid counters
-  rpm_total_ms = 0;
-  rpm_total_tk = 0;
-  
-
-  
   // go through each servo, and map inputs to outputs
   for (; n<NO_OF_SERVOS; n++)
   {

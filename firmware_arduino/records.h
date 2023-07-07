@@ -51,8 +51,8 @@ typedef struct data_record
   
 //rpm from flywheel magnet pickup  
   byte RPM_no_of_ticks;
-  unsigned int RPM_tick_offset_ms;
-  unsigned int RPM_tick_times_ms[RPM_MAX_TICKS_PER_UPDATE];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
+  unsigned int RPM_tick_offset_tk;
+  unsigned int RPM_tick_times_tk[RPM_MAX_TICKS_PER_UPDATE];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
 
 //servo outputs
   byte SRV_no_of_samples;

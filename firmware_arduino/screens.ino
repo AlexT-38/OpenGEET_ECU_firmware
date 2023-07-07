@@ -357,7 +357,7 @@ void read_touch()
       case TAG_PID_INVERT:
         if(touch_event == TOUCH_OFF)
         {
-          flags_config.pid_rpm_use_ms = !flags_config.pid_rpm_use_ms;
+          flags_config.pid_rpm_use_time = !flags_config.pid_rpm_use_time;
         }
         break;
       default:

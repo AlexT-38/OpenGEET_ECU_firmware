@@ -1,56 +1,65 @@
+/*
+ * MEGA 2560 Input Capture mode RPM counter.
+ * This method is not compatible with the Servo library
+ * 
+ * Input capture pins are:
+ * ICPn,    Port Pin,   Dig. Pin
+ * ICP1     PD4         -
+ * ICP3     PE7         -
+ * ICP4     PL0         D49
+ * ICP5     PL1         D48
+ * 
+ * Only timers 4 & 5 can be used for ICP as the others have no pin.
+ * 
+ * 
+ * Base clock is 16Mhz, 
+ * DIV    Clk       Tick    Max Time    Lowest RPM    T@6k rpm  drpm@6k rpm               T@1k rpm    drpm@1k rpm        
+ * 1      16M       62.5n   4.09600m    14648         -         -                         -           -
+ * 8      2M        500 n   32.7680m    1831.0        20000     -0.300  +0.300            -           -
+ * 64     250k      4.0 u   262.144m    228.88        2500      -2.399  +2.401            15000       -0.0667 +0.0667
+ * 256    62.5k     16.0u   1.048576    57.220        625       -9.585  +9.615            3750        -0.267  +0.267
+ * 1024   15.625k   64.0u   4.194304    14.305        156(.25)  -38.28 (+9.615) +38.77    937(.5)     -1.064 (-0.533) +1.067
+ * 
+ * The ICP interrupt needs to collect the new timer value and subtract the old timer values to get an accurate interval,
+ * reseting the timer during the interrupt would introduce latency when other interrupts are occuring.
+ * The overflow interrupt is also needed to detect when multiple overflows have occured. 
+ * There's no need to add the number of overflows to the time, just discard any intervals 
+ * that span multiple overflows and consider the engine stopped.
+ * 
+ * We'll set the clock to 62.5k initially, and consider increasing it later if needed.
+ */
 
+#define OVF_LIMIT 2           //timer overflow threshold
+#define OVF_COUNT_LIMIT 254   //timer overflow limit
+
+
+
+
+
+volatile byte rpm_tmr_ovf = 2;        //increment on overflow, reset on input capture, discard time if >1
+volatile unsigned int rpm_last_time_tk;      //last ICP value
+
+ 
 /* time of last tick */
-volatile unsigned long rpm_last_tick_time_ms = 0;
 
 /* total ticks and ms since last pid update */
-volatile unsigned int rpm_total_ms;
 volatile unsigned int rpm_total_tk;
+volatile byte rpm_total_count;
+
+
+
 
 //#define RPM_CALC_SIMPLE
 #define RPM_SCALE_BITS 2
 #define RPM_SCALE_ROUNDING (1<<(RPM_SCALE_BITS-1))
 
+
+
+
 /* returns the average rpm for a given record */
 unsigned int get_rpm(DATA_RECORD * data_record)
 {
-      /* for rpm, we can approximate by the number of ticks divided by the update interval
-       * but for a more acurate reading, we must divide the number of ticks
-       * by the sum all tick intervals
-       * 
-       * lets see if we can remove the long division...
-       *  
-       *  on average, the total tick time cannot be greater than the update interval
-       * eg if rpm is 3000, that is 50 ticks 20ms of per update 
-       * rpm avg total will be 1000ms +/- change in rpm of 1st tick vs last
-       * if rpm is 750, that is 12 to 13 ticks of 83 to 77ms per update
-       * rpm avg total could be from 924 to 1080ms
-       * 
-       * we need about 11 bits for the denominator and up to 23bits for the numerator
-       * we'd need to loose 7 bits of precision to fit this into 16 bit division
-       * giving a final precision of approx 3bits (0-8)
-       * 
-       * on the other hand,
-       * since rpm avg tot. will always be approx 1000 +/- 100ms
-       * could we divide 60000 and retain precision?
-       * 60k/1000 = 60, 6 bits, twice as good as the above.
-       * 
-       * can we shift some more bits about?
-       * if we divide time by two
-       * val = 60000/(rpm_avg_tot/2)
-       * avg = (ticks * val)/2
-       * 
-       * eg
-       * rpm_tot = 1026 (11 bit)
-       * rpm_tot_reduced = 1026>>1 = 513 (10 bit)
-       * val = 60000/513 = 116 (7bit)
-       * 
-       * rpm_tot = 1026 (11 bit)
-       * rpm_tot_reduced = 1026>>2 = 256 (9 bit)
-       * val = 60000/256 = 234 (8bit)
-       * dividing by 4 reduces the input precision to 8/9 bits, but increases the output precision to 8bits
-       * 
-       * 
-       */
+ 
   unsigned int val = 0;
   unsigned int RPM_elapsed = 0;
   #ifdef RPM_CALC_SIMPLE
@@ -61,7 +70,7 @@ unsigned int get_rpm(DATA_RECORD * data_record)
     //sum the tick times
     for(byte n=0; n<data_record->RPM_no_of_ticks; n++)
     {
-      RPM_elapsed += data_record->RPM_tick_times_ms[n];
+      RPM_elapsed += data_record->RPM_tick_times_tk[n];
     }
     if(RPM_elapsed > 0)
     {
@@ -93,64 +102,178 @@ unsigned int get_rpm(DATA_RECORD * data_record)
   return val;
 }
 
-/* check for excessivley long intervals and clip time to reasonable values 
-  we could expand on this to sustain the last non zero rpm until this event */
-void rpm_clip_time()
+/* calculate average rpm since the last call of this function
+ *  this should be called in the PID uppdate, even if not being used
+ *  
+ *  will return ticks if flags_config.pid_rpm_use_time is set
+ */
+unsigned int get_rpm_for_pid()
 {
-    unsigned int timenow_ms = millis();
-    unsigned int elapsed_time = timenow_ms - rpm_last_tick_time_ms;
-    if(elapsed_time > RPM_MAX_TICK_INTERVAL_ms) elapsed_time = timenow_ms - (elapsed_time>>1);
-}
+  //clamp the overflow counter
+  if(rpm_tmr_ovf > OVF_COUNT_LIMIT) rpm_tmr_ovf = OVF_COUNT_LIMIT;
 
-/* gives a time in ms for the given rpm */
-unsigned int get_rpm_time_ms(unsigned int rpm)
-{
-  return 60000/rpm;
-}
-/* gives a time in us for the given rpm */
-unsigned long get_rpm_time_us(unsigned int rpm)
-{
-  return 60000000/rpm;
-}
+  //lock out the ICP interrupt while we grab data
+  RPM_INT_DIS();
+  unsigned int total_t = rpm_total_tk;
+  byte total_count_t = rpm_total_count;
+  //reset the counts
+  rpm_total_tk = 0; 
+  rpm_total_count = 0;
+  //reenable the interrupt
+  RPM_INT_EN();
 
-/* ISR for rpm counter input */
-void rpm_count(void)
-{
-  if (CURRENT_RECORD.RPM_no_of_ticks < RPM_MAX_TICKS_PER_UPDATE)
+  static unsigned int rpm_avg_since_last_pid;
+  static byte no_tick_count = 0;
+
+  //check for ticks since last update
+  if(total_t)
   {
-  
-    /* get time now and time elapsed since last tick */
-    unsigned long timenow_ms = millis();
-    unsigned int elapsed_time = timenow_ms - rpm_last_tick_time_ms;
+    /* expected operation: 
+     *  tick range (rpm max)625   3750(rpm min) 
+     *  tick count          5     1
+     *  tick total          3125  3750
+     */
 
-    /* data for pid control */
-    rpm_total_ms += elapsed_time;
-    rpm_total_tk++;
-    
-    /* update last tick time to current tick */
-    rpm_last_tick_time_ms = timenow_ms;
-
-    /* record timestamp of first tick each record */
-    if (CURRENT_RECORD.RPM_no_of_ticks == 0)
+    if(!flags_config.pid_rpm_use_time)
     {
-      CURRENT_RECORD.RPM_tick_offset_ms = timenow_ms - CURRENT_RECORD.timestamp;
+      //calculate average rpm over last 50ms
+      rpm_avg_since_last_pid = (unsigned int)(((60000000L/TICK_us) * total_count_t)/(long)total_t);
     }
-
-    /* only count ticks if last tick time was not zero or elapsed time is reasonable */
-    if (/*rpm_last_tick_time_ms != 0 || */(elapsed_time > RPM_MIN_TICK_INTERVAL_ms))
+    else
     {
-      if(elapsed_time > RPM_MAX_TICK_INTERVAL_ms) elapsed_time = RPM_MAX_TICK_INTERVAL_ms;
+      rpm_avg_since_last_pid = TICK_TO_US(total_t)/(total_count_t);
+    }
+    //reset no tick count
+    no_tick_count = 0;
       
-      /* record the tick time */
-      CURRENT_RECORD.RPM_tick_times_ms[CURRENT_RECORD.RPM_no_of_ticks++] = elapsed_time;
-    }
-    
   }
+  else
+  {
+    /* if rpm is lower than 1200, a tick may not occur within this update interval
+     * if this is the first time without tick, we can use the last rpm figure
+     * otherwise, we count the number of cycles with no tick up until rpm_tmr_ovf 
+     * reaches it's limit, OVF_LIMIT
+     * At that point we call rpm zero
+     */
+
+    //check that the timer hasn't overflowed
+    if(rpm_tmr_ovf < OVF_LIMIT)
+    {
+      //check if this is the first time no ticks were counted
+      if(no_tick_count++)
+      {
+        //if not, estimate the rpm from the number of missed ticks
+        if(!flags_config.pid_rpm_use_time)
+          rpm_avg_since_last_pid = MS_TO_RPM( UPDATE_INTERVAL_ms * no_tick_count );
+        else
+          rpm_avg_since_last_pid = MS_TO_TICK( UPDATE_INTERVAL_ms * no_tick_count );
+        #ifdef DEBUG_RPM_COUNTER
+        Serial.print(no_tick_count);Serial.println("th no tick");
+      }
+      else
+      {
+        Serial.println("1st no tick");
+        #endif
+      }
+    }
+    else
+    {
+      #ifdef DEBUG_RPM_COUNTER
+      if(rpm_avg_since_last_pid)
+      {
+        Serial.println("RPM: 0");
+      }
+      #endif
+      //set rpm to zero
+      rpm_avg_since_last_pid = 0; //even if using ticks, zero means engine stopped, do not perform PID
+      //reset no tick count so that the first tick does not use a stale no_tick_count to estimate rpm
+      no_tick_count = 0;
+    }
+  }
+
+  #ifdef DEBUG_RPM_COUNTER
+  //report the rpm
+  if(rpm_avg_since_last_pid)
+  {
+    Serial.print("RPM: "); Serial.println(rpm_avg_since_last_pid); 
+  }
+  #endif
+
+  return rpm_avg_since_last_pid;
+  
 }
+
+
+
 
 /* set up the rpm counter input pin and ISR */
 void configiure_rpm_counter(void)
 {
-  pinMode(PIN_RPM_COUNTER_INPUT, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PIN_RPM_COUNTER_INPUT), rpm_count, RISING );
+  //configure ICP pin as input with pullup
+
+  pinMode(PIN_RPM_COUNTER_INPUT, INPUT_PULLUP); 
+
+  //configure timer 4, enable ovfl and icp isr's for timer 4
+  //TCCR4A    COM-A1 COM-A0 COM-B1 COM-B0 COM-C1 COM-C0 WGM-1  WGM-0
+  //          0      0      0      0      0      0      0      0
+  //TCCR4B    ICNC   ICES   -      WGM3   WGM2   CS2    CS1    CS0
+  //          0      0      0      0      0      1      0      0
+  //TCCR4C    FOC-A  FOC-B  FOC-C  -      -      -      -      -
+  //TIMSK4    -      -      ICIE   -      OCIE-C OCIE-B OCIE-A TOIE
+  //          0      0      1      0      0      0      1      1 
+
+  //set OCRA to 50% for overflow detection
+  OCR4A  = INT16_MAX;
+  TCCR4A = 0;
+  //set the clock to 62.5kHz
+  TCCR4B = _BV(CS42);
+  //enable the intterupts
+  TIMSK4 = _BV(ICIE4) | _BV(TOIE4) | _BV(OCIE4A);
 }
+
+
+/* //////// OVERFLOW COUNT considerations
+ *  
+ * A tick occuring at MAX/2 followed by a tick MAX+n, where n is < MAX/2,
+ * would overflow before the timer overflows a second time.
+ * To get around this, we need to increment the overflow count at the half way mark.
+ * We can do this using OCA match interrupt
+ */
+//input capture interrupt
+ISR(TIMER4_CAPT_vect)
+{
+  unsigned int this_time = RPM_counter;
+
+  /* record timestamp of first tick each record */
+  if (CURRENT_RECORD.RPM_no_of_ticks == 0)
+  {
+    //since we are now using ticks instead of ms, when the record updates
+    //we need to record the ICP value in ticks and subtract it from this ICP
+    CURRENT_RECORD.RPM_tick_offset_tk = this_time - CURRENT_RECORD.RPM_tick_offset_tk; 
+  }
+  
+  //check for overflows
+  if(rpm_tmr_ovf < OVF_LIMIT)// && ~idx) //(stop when out of samples, wait for buffer to clear)
+  {
+    unsigned int interval = this_time - rpm_last_time_tk;
+    //check for space in current record
+    if (CURRENT_RECORD.RPM_no_of_ticks < RPM_MAX_TICKS_PER_UPDATE)
+    {
+      CURRENT_RECORD.RPM_tick_times_tk[CURRENT_RECORD.RPM_no_of_ticks++] = interval;
+    }
+    //tally for PID
+    rpm_total_tk += interval;
+    rpm_total_count++;
+  }
+  //reset overlow counter and store current tick time
+  rpm_tmr_ovf = 0;
+  rpm_last_time_tk = this_time;
+}
+//timer overflow interrupt
+ISR(TIMER4_OVF_vect)
+{
+  //increment overflow count
+   rpm_tmr_ovf++;
+}
+//OCA match interrupt is the same as the overflow interrupt
+ISR(TIMER4_COMPA_vect, ISR_ALIASOF(TIMER4_OVF_vect));

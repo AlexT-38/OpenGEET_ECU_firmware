@@ -173,7 +173,7 @@
 #define PIN_LOG_SDCARD_CS         10
 
 //rpm counter interrupt pin
-#define PIN_RPM_COUNTER_INPUT     2 //INT0 -this clashes with the gameduino interupt pin
+#define PIN_RPM_COUNTER_INPUT     49   //D49 is PL0, ICP4
 
 
 //calibration values for Lemark LMS184 1 bar MAP sensor
