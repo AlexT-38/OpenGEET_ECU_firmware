@@ -87,7 +87,6 @@
 #include <SPI.h>        //needed for gameduino
 #include <GD2.h>        //Gameduino (FT810 plus micro sdcard
 
-#include <Servo.h>      //servo control disables analog write on pins 9 and 10
 
 
 #include "tiny_rtc.h"

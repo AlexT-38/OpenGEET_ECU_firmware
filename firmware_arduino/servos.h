@@ -3,12 +3,10 @@
 
 
 
-Servo servo[NO_OF_SERVOS];
-
 // servo pins 
-#define PIN_SERVO_0               3     //uses INT1, making INT0 the only one available
-#define PIN_SERVO_1               5
-#define PIN_SERVO_2               6
+#define PIN_SERVO_0               2
+#define PIN_SERVO_1               3
+#define PIN_SERVO_2               5
 
 #define SERVO_MIN               750     //default minimum servo value
 #define SERVO_MAX               2300    //default maximum servo value
