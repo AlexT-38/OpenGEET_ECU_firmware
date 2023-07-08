@@ -54,39 +54,42 @@ volatile byte rpm_total_count;
 #define RPM_SCALE_ROUNDING (1<<(RPM_SCALE_BITS-1))
 
 
-
+/* get the rpm from the given number of rotations and total time */
+unsigned int get_rpm_from(unsigned int total_count, unsigned int total_time_tk)
+{
+  return (unsigned int)(((60000000L/TICK_us) * total_count)/(long)total_time_tk);
+}
 
 /* returns the average rpm for a given record */
 unsigned int get_rpm(DATA_RECORD * data_record)
 {
- 
-  unsigned int val = 0;
-  unsigned int RPM_elapsed = 0;
+  unsigned int new_rpm = 0;
+  unsigned long RPM_elapsed = 0;
   #ifdef RPM_CALC_SIMPLE
-  val = (60000 / UPDATE_INTERVAL_ms) * data_record->RPM_no_of_ticks;
+  new_rpm = (unsigned int) ((60000UL  * (unsigned long)data_record->RPM_no_of_ticks) / UPDATE_INTERVAL_ms);
   #else
   if (data_record->RPM_no_of_ticks > 0)
   {
     //sum the tick times
-    for(byte n=0; n<data_record->RPM_no_of_ticks; n++)
+    for(byte n = 0; n < data_record->RPM_no_of_ticks; n++)
     {
       RPM_elapsed += data_record->RPM_tick_times_tk[n];
     }
     if(RPM_elapsed > 0)
     {
-      val = 60000 / ((RPM_elapsed + RPM_SCALE_ROUNDING) >> RPM_SCALE_BITS);
-      val = ((data_record->RPM_no_of_ticks * val) + RPM_SCALE_ROUNDING) >> RPM_SCALE_BITS;
+      new_rpm = get_rpm_from(data_record->RPM_no_of_ticks, RPM_elapsed);
     }
     else
     {
       //shouldn't occur, but just in case, use the previous RPM avg - this will hopefully smooth over any glitches
-      val = Data_Averages.RPM;
+      new_rpm = Data_Averages.RPM;
     }
   }
   else
   {
-    //decay average rpm, 25% decay rate
-    val = (Data_Averages.RPM*3)>>2;
+    //decay average rpm
+    #define DECAY_BITS 2
+    new_rpm = (Data_Averages.RPM * _BV(DECAY_BITS))>>DECAY_BITS;
   }
   
   #ifdef DEBUG_RPM_COUNTER
@@ -95,14 +98,14 @@ unsigned int get_rpm(DATA_RECORD * data_record)
   Serial.print(F(", "));
   Serial.print(data_record->RPM_no_of_ticks);
   Serial.print(F(" -> "));
-  Serial.print(val);
+  Serial.print(new_rpm);
   Serial.println();
   #endif //DEBUG_RPM_COUNTER
   #endif //RPM_CALC_SIMPLE
-  return val;
+  return new_rpm;
 }
 
-/* calculate average rpm since the last call of this function
+/*  calculate average rpm since the last call of this function
  *  this should be called in the PID uppdate, even if not being used
  *  
  *  will return ticks if flags_config.pid_rpm_use_time is set
@@ -137,11 +140,11 @@ unsigned int get_rpm_for_pid()
     if(!flags_config.pid_rpm_use_time)
     {
       //calculate average rpm over last 50ms
-      rpm_avg_since_last_pid = (unsigned int)(((60000000L/TICK_us) * total_count_t)/(long)total_t);
+      rpm_avg_since_last_pid = get_rpm_from(total_count_t, total_t);
     }
     else
     {
-      rpm_avg_since_last_pid = TICK_TO_US(total_t)/(total_count_t);
+      rpm_avg_since_last_pid = TK_TO_US(total_t)/(total_count_t);
     }
     //reset no tick count
     no_tick_count = 0;
@@ -166,7 +169,7 @@ unsigned int get_rpm_for_pid()
         if(!flags_config.pid_rpm_use_time)
           rpm_avg_since_last_pid = MS_TO_RPM( UPDATE_INTERVAL_ms * no_tick_count );
         else
-          rpm_avg_since_last_pid = MS_TO_TICK( UPDATE_INTERVAL_ms * no_tick_count );
+          rpm_avg_since_last_pid = MS_TO_TK( UPDATE_INTERVAL_ms * no_tick_count );
         #ifdef DEBUG_RPM_COUNTER
         Serial.print(no_tick_count);Serial.println("th no tick");
       }

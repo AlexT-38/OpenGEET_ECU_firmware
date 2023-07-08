@@ -12,19 +12,21 @@
 #define TICK_us                       _BV(TICK_us_BITS)
 
 #define US_TO_RPM(us)                 (60000000L/(us))
-#define TICK_TO_US(tk)                (((long)tk)<<TICK_us_BITS)
-#define TICK_TO_RPM(tk)               ((60000000L/TICK_us)/((long)tk))
-#define MS_TO_TICK(ms)                ((((long)ms)*1000)>>TICK_us_BITS)
-#define RPM_TO_TK(rpm)                TICK_TO_RPM(rpm)
+#define TK_TO_US(tk)                  (((long)tk)<<TICK_us_BITS)
+#define TK_TO_RPM(tk)                 ((60000000L/TICK_us)/((long)tk))
+#define MS_TO_TK(ms)                  ((((long)ms)*1000)>>TICK_us_BITS)
+#define RPM_TO_TK(rpm)                TK_TO_RPM(rpm)
 
 #define RPM_MAX_rpm                   6000
-#define RPM_MIN_TICK_INTERVAL_ms      RPM_TO_MS(RPM_MAX_rpm)
-#define RPM_MAX_TICKS_PER_UPDATE      (1+(UPDATE_INTERVAL_ms/RPM_MIN_TICK_INTERVAL_ms))
-#define RPM_MIN                       1
-#define RPM_MAX_TICK_INTERVAL_ms      RPM_TO_MS(RPM_MIN)
+#define RPM_MAX_tk                    RPM_TO_TK(RPM_MAX_rpm)
+#define RPM_MAX_ms                    RPM_TO_MS(RPM_MAX_rpm)
+#define RPM_MAX_TICKS_PER_UPDATE      (1+(UPDATE_INTERVAL_ms/RPM_MAX_ms))
+#define RPM_MIN_ms                    UPDATE_INTERVAL_ms
+#define RPM_MIN_rpm                   MS_TO_RPM(RPM_MIN_ms)
+#define RPM_MIN_tk                    RPM_TO_TK(RPM_MIN_rpm)
 
-#define RPM_MIN_SET_rpm                   1000
-#define RPM_MAX_SET_rpm                   4500
+#define RPM_MIN_SET_rpm               1000
+#define RPM_MAX_SET_rpm               4500
 #define RPM_MIN_SET_ms                RPM_TO_MS(RPM_MIN_SET_rpm)
 #define RPM_MAX_SET_ms                RPM_TO_MS(RPM_MAX_SET_rpm)
 #define RPM_MIN_SET_tk                RPM_TO_TK(RPM_MIN_SET_rpm)

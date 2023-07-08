@@ -121,6 +121,7 @@ void simulate_engine()
   {
     //pulse the output
     digitalWrite(PIN_PULSE_OUT, HIGH);
+    delayMicroseconds(100);
     digitalWrite(PIN_PULSE_OUT, LOW);
 
     if(do_sim)
@@ -200,7 +201,6 @@ void process_input()
 }
 
 /* set up the rpm counter input pin and ISR */
-//would this be a good place to experiment with ICP?
 void servo_input(void)
 {
   static int last_us = 0;

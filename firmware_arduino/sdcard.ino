@@ -9,7 +9,7 @@ File dataFile;
 void dateTime(uint16_t* date, uint16_t* time) {
  DateTime t_now = DS1307_now();
  // return date using FAT_DATE macro to format fields
- *date = FAT_DATE(t_now.year, t_now.month, t_now.day);
+ *date = FAT_DATE(2000 + t_now.year, t_now.month, t_now.day);
 
  // return time using FAT_TIME macro to format fields
  *time = FAT_TIME(t_now.hour, t_now.minute, t_now.second);

@@ -895,7 +895,8 @@ if __name__ == "__main__":
     #log_file_name = "26-06-2023/23062700.JSN"
     #log_file_name = "27-06-2023/23062702.JSN"
     #log_file_name = "27-06-2023/23062700.JSN"
-    log_file_name = "29-06-2023/23062905.JSN"
+    #log_file_name = "29-06-2023/23062905.JSN"
+    log_file_name = "08-07-2023/23070800.JSN"
     
     log_file_path = log_file_folder + log_file_name
     

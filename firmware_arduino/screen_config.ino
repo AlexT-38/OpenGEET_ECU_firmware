@@ -61,7 +61,7 @@ void screen_draw_config()
   for (byte n = 0; n< NO_OF_SV_CAL; n++)
   {
     byte sv = n>>1;
-    val = ((n&1)?(servo_cal[sv].upper):(servo_cal[sv].lower))- SERVO_MIN;// 
+    val = ((n&1)?(servo_cal[sv].upper):(servo_cal[sv].lower))- SERVO_MIN_us;// 
 #ifdef DEBUG_SCREEN_CONFIG_DRAW_SLIDERS
     Serial.print(strings[n]);
     Serial.print(GRID_XL(1,XN));

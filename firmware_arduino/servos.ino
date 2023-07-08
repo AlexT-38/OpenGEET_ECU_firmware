@@ -43,12 +43,23 @@
   *  2 - a
   */
   
-#define US_TO_SERVO(us)     (us<<1)
-#define SERVO_TO_US(us)     (us>>1)
-volatile unsigned int *servo_reg[NO_OF_SERVOS] = {OCR3B, OCR3C, OCR3A};
+
+//we can't use pointers to registers, so assign regs to servo with defines
+#define SV0_REG OCR3B
+#define SV1_REG OCR3C
+#define SV2_REG OCR3A
+
+// servo pins 
+#define PIN_SERVO_0               2
+#define PIN_SERVO_1               3
+#define PIN_SERVO_2               5
+
+
+
 SV_CAL servo_cal[NO_OF_SERVOS];
 
 //this could be handled better
+//now that tags are working, sliders should use FT81x's touch trackers
 #ifdef XN
 #undef XN
 #endif
@@ -57,18 +68,27 @@ SV_CAL servo_cal[NO_OF_SERVOS];
 
 void set_servo_min(byte sv)
 {
-  servo_cal[sv].lower = get_slider_value_horz(GRID_XL(PX,XN), SCREEN_W, SERVO_MIN, SERVO_MAX);
+  servo_cal[sv].lower = get_slider_value_horz(GRID_XL(PX,XN), SCREEN_W, SERVO_MIN_us, SERVO_MAX_us);
 }
 void set_servo_max(byte sv)
 {
-  servo_cal[sv].upper = get_slider_value_horz(GRID_XL(PX,XN), SCREEN_W, SERVO_MIN, SERVO_MAX);
+  servo_cal[sv].upper = get_slider_value_horz(GRID_XL(PX,XN), SCREEN_W, SERVO_MIN_us, SERVO_MAX_us);
 }
 void initialise_servos()
 {
+  //pin order is irrelevent
+  const byte servo_pins[] = {PIN_SERVO_0,PIN_SERVO_1,PIN_SERVO_2};
   
+  for(byte n=0; n<NO_OF_SERVOS; n++) 
+  {
+    servo_cal[n] = (SV_CAL){SERVO_MIN_us,SERVO_MAX_us};
+    pinMode(servo_pins[n], OUTPUT);
+  }
+    
   //configure timer 3 for PWM on A B and C using ICR3 to store a top value of 50k-1, giving a 25ms rate (up to 32.768ms)
   //we need WGN mode 14, must be set before ICR can be written
   //clock source 2 (clk/8), COM mode 2 (non inverting)
+
 
   //TCCR3A    COM-A1 COM-A0 COM-B1 COM-B0 COM-C1 COM-C0 WGM-1  WGM-0
   //          1      0      1      0      1      0      1      0
@@ -85,15 +105,13 @@ void initialise_servos()
   ICR3 = 49999; //-1 to compensate for Fast frequency error
   //set the output configuration
   TCCR3A |= _BV(COM3A1) | _BV(COM3B1) | _BV(COM3C1);
-
-  //pin order is irrelevent
-  const byte servo_pins[] = {PIN_SERVO_0,PIN_SERVO_1,PIN_SERVO_2};
+  //set the minimum pulse
+  OCR3A = SERVO_MIN_tk;
+  OCR3B = SERVO_MIN_tk;
+  OCR3C = SERVO_MIN_tk;
+  //start the timer
+  TCCR3B |= SERVO_TIMER_CLK;
   
-  for(byte n=0; n<NO_OF_SERVOS; n++) 
-  {
-    servo_cal[n] = (SV_CAL){SERVO_MIN,SERVO_MAX};
-    pinMode(servo_pins[n], OUTPUT);
-  }
 }
 
 /* move all servos to their configured minimum position */
@@ -110,12 +128,24 @@ void reset_servos()
 /* set the position of servo n as a ratio of min to max on a 10bit scale */
 void set_servo_position(byte n, unsigned int ratio)
 {
-    if(n<NO_OF_SERVOS && *servo_reg[n])
+    if(n<NO_OF_SERVOS)
     {
       //map to ticks
       unsigned int servo_pos = amap(ratio, US_TO_SERVO(servo_cal[n].lower), US_TO_SERVO(servo_cal[n].upper));
       //write output
-      *servo_reg[n] = servo_pos;
+      switch(n)
+      {
+        case 0:
+          SV0_REG = servo_pos;
+          break;
+        case 1:
+          SV1_REG = servo_pos;
+          break;
+        case 2:
+          SV2_REG = servo_pos;
+          break;
+      }
+      
 
       #ifdef DEBUG_SERVO
       Serial.print(F("sv["));Serial.write('0'+n);Serial.print(F("]: ")); 

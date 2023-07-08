@@ -421,7 +421,7 @@ void start_log(String &dst)
       
       //rotation time sensor
       json_append_obj(dst);
-        log_io_info(dst, F("spd"), 1, 1, F("ms"), F("pr"));
+        log_io_info(dst, F("spd"), 1, 1, F("us"), F("pr"), RPM_MAX_tk, RPM_MIN_tk, 4);
       json_append_close_object(dst); //spd
 
       //derived rpm
