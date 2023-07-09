@@ -184,8 +184,8 @@ void process_input()
     int amount = servo_time_us;
     servo_time_us = 0; //reset the pulse time so we dont keep re calculating it
 
-    amount = constrain(amount, SERVO_MIN_us, SERVO_MAX_us);
     amount = map(amount, SERVO_MIN_us, SERVO_MAX_us, 0, 1024);
+    amount = constrain(amount, 0, 1023);
     
     servo_pos = float(amount)/1024.0;
     
