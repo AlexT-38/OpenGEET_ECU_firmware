@@ -2,8 +2,8 @@
 #define __RPM_COUNTER_H__
 
 
-#define RPM_INT_EN()                  TIMSK4 &= ~_BV(ICIE4)
-#define RPM_INT_DIS()                 TIMSK4 |= _BV(ICIE4)
+#define RPM_INT_DIS()                  TIMSK4 &= ~_BV(ICIE4)
+#define RPM_INT_EN()                 TIMSK4 |= _BV(ICIE4)
   
 #define RPM_TO_MS(rpm)                (60000/(rpm))
 #define MS_TO_RPM(ms)                 RPM_TO_MS(ms)   //same formula, included for clarity

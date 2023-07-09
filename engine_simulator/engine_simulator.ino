@@ -11,8 +11,8 @@
 #define PIN_PULSE_OUT A0
 
 
-#define SERVO_MIN_us               944     //default minimum servo value
-#define SERVO_MAX_us               1860    //default maximum servo value
+#define SERVO_MIN_us               1860     //default minimum servo value
+#define SERVO_MAX_us               944    //default maximum servo value
 #define SERVO_RANGE_us             (SERVO_MAX_us-SERVO_MIN_us)
 
 
