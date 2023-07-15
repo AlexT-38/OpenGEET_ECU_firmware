@@ -16,26 +16,30 @@ Upgrade to an STM10x or 40x device can be made later if required.
 
 #### Development roadmap:
 
-### 0.7+
+### 0.8+
 
 **Objectives:**
 - Starter/Generator BLDC integration
 - PID control of reactor vacuum
 - Reactor state monitoring (starting, in spec, out of spec)
-- Replace blocking FATFS library
-- Additional user input: 4 knobs and 2 push buttons
 - Updated UI: configurable screen, multiple settings pages
 - Updated UI: dynamic labels for physical input
 - Prony brake servo
 - Time/date config (trim not available)
 - Calibration for thermistor inputs (for air inlet, reactor output, oil temperatures etc).
 - Full EEPROM export/import
-- Separate record/screen/sdcard log/serial log processes
 
+### v0.7
+
+**Objectives:**
+- High sample rate ADC channels
+- RAM use optimisation
+- Engine stop relay output
+- Physical push buttons for start/stop engine and log
 
 ### v0.6
 
-**Objectives:**
+**Features:**
 
 - Arduino MEGA update
 - Data records store calibrated data by sensor type, including thermistors (raw values)
@@ -43,6 +47,7 @@ Upgrade to an STM10x or 40x device can be made later if required.
 - Replace 3rd party thermocouple library
 - Shaft power readout
 - Updated UI: better basic screen, torque cal page
+- Separate record/screen/sdcard log/serial log processes
 
 ### v0.5
 
