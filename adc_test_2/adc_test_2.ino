@@ -52,14 +52,16 @@
 #define LAST_RECORD                   Data_Records[LAST_RECORD_IDX]
 
 //config for timer 0 to trigger adc
-#define ADC_TMR_PRESCALE              (3<<CS10)       // div by 64, clk 250kHz
+#define ADC_TMR_PRESCALE_CFG          (3<<CS10)       // div by 64, clk 250kHz
+#define ADC_TMR_PRESCALE              64
 
 #define ADC_TMR_STOP()                TCCR1B &= ~(_BV(CS10)|_BV(CS11)|_BV(CS12))
-#define ADC_TMR_START()               TCCR1B |= ADC_TMR_PRESCALE
+#define ADC_TMR_START()               TCCR1B |= ADC_TMR_PRESCALE_CFG
 #define ADC_TMR_CLR()                 TCNT1 = 0
 
 #define ADC_TMR_CFG()                 TCCR1A = 0; TCCR1B = _BV(WGM12);    //CTC, TOP = OCR1A
-#define ADC_TMR_TOP                   (1250-1)
+                                      //OCR1A = (T(OC1A) * f(clk_IO) / 2N) -1
+#define ADC_TMR_TOP                   (unsigned int)(((ADC_SAMPLE_INTERVAL_ms * F_CPU / ADC_TMR_PRESCALE) / 1000) -1)
 #define ADC_TMR_TRIG                  1
 #define ADC_TMR_SET()                 OCR1A = ADC_TMR_TOP; OCR1B = ADC_TMR_TRIG;
 
@@ -152,8 +154,9 @@ void configure_ADC()
   DDRK=0;
 
   //enable the ADC and set prescaler to slowest rate
-  ADCSRA = _BV(ADEN) | 0x7;
-
+  //ADCSRA = _BV(ADEN) | 0x7;
+  analogReference(EXTERNAL);
+  Serial.print("ADCSRA: 0x");Serial.println(ADCSRA,HEX);
   /* only timers 0 and 1 can trigger ADC directly without needing an ISR
    *  timer0 is used for millis() and micros()
    *  timer1 is 16bit
@@ -211,6 +214,7 @@ void setup() {
   
   Serial.begin(1000000);
   Serial.println(F("ADC test Mk2 (issue #10)"));
+  Serial.println(ADC_TMR_TOP);
 
   configure_ADC();
   ADC_start_fast();

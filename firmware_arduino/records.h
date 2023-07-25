@@ -39,9 +39,9 @@ typedef struct data_record
   unsigned long timestamp;
 
 //sensors using the internal ADC, or HX771 at 10Hz
-  byte ANA_no_of_samples;
+  byte ANA_no_of_slow_samples, ANA_no_of_fast_samples;
   int USR[NO_OF_USER_INPUTS][ANALOG_SAMPLES_PER_UPDATE];
-  int MAP[NO_OF_MAP_SENSORS][ANALOG_SAMPLES_PER_UPDATE];
+  int MAP[NO_OF_MAP_SENSORS][NO_OF_ADC_FAST_PER_RECORD];
   int TMP[NO_OF_TMP_SENSORS][ANALOG_SAMPLES_PER_UPDATE];
   int TRQ[ANALOG_SAMPLES_PER_UPDATE];
 

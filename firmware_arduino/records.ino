@@ -133,37 +133,47 @@ void update_record()
   /* calculate averages */
 
   /* analog samples */
-  if(data_record->ANA_no_of_samples > 0)
+  if(data_record->ANA_no_of_slow_samples > 0)
   {
-    int rounding = data_record->ANA_no_of_samples>>1;
+    int rounding = data_record->ANA_no_of_slow_samples>>1;
     /* User input */
     for(byte idx = 0; idx<Data_Config.USR_no; idx++)
     {
       Data_Averages.USR[idx] = rounding;
-      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.USR[idx] += data_record->USR[idx][sample];}
+      for(byte sample = 0; sample < data_record->ANA_no_of_slow_samples; sample++) {Data_Averages.USR[idx] += data_record->USR[idx][sample];}
       
-      Data_Averages.USR[idx] /= data_record->ANA_no_of_samples;
+      Data_Averages.USR[idx] /= data_record->ANA_no_of_slow_samples;
 
-    }
-    /* MAP sensors */
-    for(byte idx = 0; idx<Data_Config.MAP_no; idx++)
-    {
-      Data_Averages.MAP[idx] = rounding;
-      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.MAP[idx] += data_record->MAP[idx][sample];}
-      Data_Averages.MAP[idx] /= data_record->ANA_no_of_samples;
     }
     /* Thermistors */
     for(byte idx = 0; idx<Data_Config.TMP_no; idx++)
     {
       Data_Averages.TMP[idx] = rounding;
-      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.TMP[idx] += data_record->TMP[idx][sample];}
-      Data_Averages.TMP[idx] /= data_record->ANA_no_of_samples;
+      for(byte sample = 0; sample < data_record->ANA_no_of_slow_samples; sample++) {Data_Averages.TMP[idx] += data_record->TMP[idx][sample];}
+      Data_Averages.TMP[idx] /= data_record->ANA_no_of_slow_samples;
     }
     /* Torque loadcell */
     Data_Averages.TRQ = rounding;
-    for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.TRQ += data_record->TRQ[sample];}
-    Data_Averages.TRQ /= data_record->ANA_no_of_samples;
+    for(byte sample = 0; sample < data_record->ANA_no_of_slow_samples; sample++) {Data_Averages.TRQ += data_record->TRQ[sample];}
+    Data_Averages.TRQ /= data_record->ANA_no_of_slow_samples;
   
+  }
+  
+  /* MAP sensors, also perform calibration here */
+  if(data_record->ANA_no_of_fast_samples > 0)
+  {
+    int rounding = data_record->ANA_no_of_fast_samples>>1;
+    
+    for(byte idx = 0; idx<Data_Config.MAP_no; idx++)
+    {
+      Data_Averages.MAP[idx] = rounding;
+      for(byte sample = 0; sample < data_record->ANA_no_of_fast_samples; sample++) 
+      {
+        data_record->MAP[idx][sample] = ADC_apply_map_calibration(idx, data_record->MAP[idx][sample]);
+        Data_Averages.MAP[idx] += data_record->MAP[idx][sample];
+      }
+      Data_Averages.MAP[idx] /= data_record->ANA_no_of_fast_samples;
+    }
   }
   /* Thermocouples */
   if(data_record->EGT_no_of_samples > 0)
@@ -394,7 +404,7 @@ void start_log(String &dst)
       if(Data_Config.MAP_no > 0)
       {
         json_append_obj(dst);
-          log_io_info(dst, F("map"), Data_Config.MAP_no, ANALOG_SAMPLE_INTERVAL_ms, F("mbar"), F("ms"));
+          log_io_info(dst, F("map"), Data_Config.MAP_no, ADC_SAMPLE_INTERVAL_ms, F("mbar"), F("ms"));
         json_append_close_object(dst); //map
       }
 
@@ -510,7 +520,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       json_append_arr(dst, F("usr"));
       for(byte idx = 0; idx < Data_Config.USR_no; idx++ )
       {
-        json_append_arr(dst, data_record->USR[idx], data_record->ANA_no_of_samples);
+        json_append_arr(dst, data_record->USR[idx], data_record->ANA_no_of_slow_samples);
       }
       json_append_close_array(dst);  
     }
@@ -520,7 +530,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       json_append_arr(dst, F("map"));
       for(byte idx = 0; idx < Data_Config.MAP_no; idx++ )
       {
-        json_append_arr(dst, data_record->MAP[idx], data_record->ANA_no_of_samples);
+        json_append_arr(dst, data_record->MAP[idx], data_record->ANA_no_of_fast_samples);
       }
       json_append_close_array(dst);
     }
@@ -530,7 +540,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       json_append_arr(dst, F("tmp"));
       for(byte idx = 0; idx < Data_Config.TMP_no; idx++ )
       {
-        json_append_arr(dst, data_record->TMP[idx], data_record->ANA_no_of_samples);
+        json_append_arr(dst, data_record->TMP[idx], data_record->ANA_no_of_slow_samples);
       }
       json_append_close_array(dst);
     }
@@ -545,7 +555,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       json_append_close_array(dst);
     }
 ////////////////////////////////////////////////////////////////////////// report toque and speed
-    json_append_arr(dst, F("trq"), data_record->TRQ, data_record->ANA_no_of_samples);
+    json_append_arr(dst, F("trq"), data_record->TRQ, data_record->ANA_no_of_slow_samples);
     
     json_append(dst, F("spd_t0"), data_record->RPM_tick_offset_tk);
     json_append_arr(dst, F("spd"), data_record->RPM_tick_times_tk, data_record->RPM_no_of_ticks);
