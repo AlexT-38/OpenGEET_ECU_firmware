@@ -166,13 +166,17 @@ void update_record()
     
     for(byte idx = 0; idx<Data_Config.MAP_no; idx++)
     {
-      Data_Averages.MAP[idx] = rounding;
+      //maximum sum is greater than INT16_MAX, so we must sum to a long int first.
+      long map_average = rounding;
       for(byte sample = 0; sample < data_record->ANA_no_of_fast_samples; sample++) 
       {
+        //apply calibration
         data_record->MAP[idx][sample] = ADC_apply_map_calibration(idx, data_record->MAP[idx][sample]);
-        Data_Averages.MAP[idx] += data_record->MAP[idx][sample];
+        //sum
+        map_average += data_record->MAP[idx][sample];
       }
-      Data_Averages.MAP[idx] /= data_record->ANA_no_of_fast_samples;
+      //find average and store
+      Data_Averages.MAP[idx] = (int)(map_average / data_record->ANA_no_of_fast_samples);
     }
   }
   /* Thermocouples */
