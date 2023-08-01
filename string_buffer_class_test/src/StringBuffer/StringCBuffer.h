@@ -17,8 +17,8 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef __STRINGBUFFER_H__
-#define __STRINGBUFFER_H__
+#ifndef __STRINGCBUFFER_H__
+#define __STRINGCBUFFER_H__
 #ifdef __cplusplus
 
 #include <stdlib.h>
@@ -32,25 +32,17 @@ class __FlashStringHelper;
 #define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(PSTR(string_literal)))
 
 
-// non circular buffer
-class StringBuffer
+class StringCBuffer
 {
 public:
 	// constructors
-	StringBuffer(const unsigned int size);
-	StringBuffer(const unsigned int size, char * static_buffer);
+	StringCBuffer(const unsigned int size);
+	StringCBuffer(const unsigned int size, char * static_buffer);
 	
-	~StringBuffer(void);
+	~StringCBuffer(void);
 
 	inline unsigned int length(void) const {return len;}
-	inline char *str(void) const {return &buffer[rd];}
-	inline char *str(unsigned int at) const {if(at>=capacity){return NULL;} return &buffer[at];}
-	inline unsigned int get_rd(void) const {return rd;}
-	inline unsigned int get_wr(void) const {return wr;}
-	inline unsigned int get_old(void) const {return old;}
-	inline unsigned int get_committed(void) const {return committed;}
-	inline bool get_overrun(void) const {return has_overrun;}
-	
+
 	// if the buffer has overrun, remove everything added since last commit,
 	//returns false if an overrun occurs
 	bool commit(void);
@@ -59,10 +51,12 @@ public:
 	unsigned int pop(Stream &dst, unsigned int length);
 	//reset the array markers
 	void clear(void);
-	//move the string strart back to the beginning of the buffer
-	unsigned int rewind(void);
-	unsigned int rewind(unsigned int);
-	inline unsigned int available(void) const {return (capacity-1-wr);}
+	inline unsigned int get_rd(void) const {return rd;}
+	inline unsigned int get_wr(void) const {return wr;}
+	inline unsigned int get_old(void) const {return old;}
+	inline unsigned int get_committed(void) const {return committed;}
+	inline bool get_overrun(void) const {return has_overrun;}
+
 
 	// returns true on success, false on failure (in which case, the string
 	// is left unchanged).  if the argument is null or invalid, the
@@ -80,18 +74,18 @@ public:
 	unsigned char concat(const __FlashStringHelper * str);
 
 	// if there's not enough memory for the concatenated value, the string
-	// will be left unchanged 
-	StringBuffer & operator += (const String &rhs)				{concat(rhs); return (*this);}
-	StringBuffer & operator += (const char *cstr)				{concat(cstr); return (*this);}
-	StringBuffer & operator += (char c)							{concat(c); return (*this);}
-	StringBuffer & operator += (unsigned char num)				{concat(num); return (*this);}
-	StringBuffer & operator += (int num)						{concat(num); return (*this);}
-	StringBuffer & operator += (unsigned int num)				{concat(num); return (*this);}
-	StringBuffer & operator += (long num)						{concat(num); return (*this);}
-	StringBuffer & operator += (unsigned long num)				{concat(num); return (*this);}
-	StringBuffer & operator += (float num)						{concat(num); return (*this);}
-	StringBuffer & operator += (double num)						{concat(num); return (*this);}
-	StringBuffer & operator += (const __FlashStringHelper *str)	{concat(str); return (*this);}
+	// will be left unchanged (but this isn't signalled in any way)
+	StringCBuffer & operator += (const String &rhs)					{concat(rhs);  return (*this);}
+	StringCBuffer & operator += (const char *cstr)					{concat(cstr); return (*this);}
+	StringCBuffer & operator += (char c)							{concat(c);    return (*this);}
+	StringCBuffer & operator += (unsigned char num)					{concat(num);  return (*this);}
+	StringCBuffer & operator += (int num)							{concat(num);  return (*this);}
+	StringCBuffer & operator += (unsigned int num)					{concat(num);  return (*this);}
+	StringCBuffer & operator += (long num)							{concat(num);  return (*this);}
+	StringCBuffer & operator += (unsigned long num)					{concat(num);  return (*this);}
+	StringCBuffer & operator += (float num)							{concat(num);  return (*this);}
+	StringCBuffer & operator += (double num)						{concat(num);  return (*this);}
+	StringCBuffer & operator += (const __FlashStringHelper *str)	{concat(str);  return (*this);}
 
 protected:
 	char *buffer;           // the actual char array
@@ -105,9 +99,7 @@ protected:
 protected:
 	void init(void);
 	unsigned char concat(const char *cstr, unsigned int length);
-};
-
-
+}; //StringCBuffer
 
 #endif  // __cplusplus
-#endif  // __STRINGBUFFER_H__
+#endif  // __STRINGCBUFFER_H__

@@ -21,10 +21,9 @@ void write_serial_data_record()
     {
       //write_data_record_to_stream(data_record, Serial);
       //check there's new data in the buffer
-      if(dataBuffer.length() > recordStart)
-      {
-        Serial.write(&dataBuffer.c_str()[recordStart]);
-      }
+      //if(dataBuffer.length() > recordStart)
+      char * new_string = dataBuffer.str(recordStart);
+      Serial.print(new_string);
       // buffer will be cleared in the next sdcard update call
     }
   }
