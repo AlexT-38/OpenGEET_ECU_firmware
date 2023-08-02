@@ -158,6 +158,11 @@ void write_sdcard_data_record()
     }
     
   }
+  else
+  {
+    // if not logging to sdcard, clear all committed data from the buffer
+    dataBuffer.pop(NULL, dataBuffer.get_committed());
+  }
   
 //  if(clear_buffer)
 //  {

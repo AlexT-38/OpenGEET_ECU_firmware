@@ -296,8 +296,9 @@ void write_data_record_to_buffer(DATA_RECORD *data_record, StringBuffer &dst)//,
           break;
     }
     #ifdef DEBUG_RECORD
-    Serial.print(F("BUF:\ndst.cmt: ")); Serial.println(dst.get_committed());
-    Serial.print(F("dst.len: ")); Serial.println(dst.length());
+    Serial.print(F("BUF:\ndst.cmt     : ")); Serial.println(dst.get_committed());
+    Serial.print(F("dst.len     : ")); Serial.println(dst.length());
+    Serial.print(F("recordStart : ")); Serial.println(recordStart);
     #endif
       
 
