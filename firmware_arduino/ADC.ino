@@ -1,11 +1,18 @@
 
  /* New ADC system
   * 
+  * finalise_record() waits for any fast conversion to complete for all fast channels,
+  * then starts the ADC trigger timer and resets sample/channel counts
+  * process_adc() waits for any ongoing conversion to finish as above
+  * process_adc() disables the ADC interrupt and timer trigger
+  * process_adc() reads slow channels
+  * process_adc() reenables ADC interrupt and timer trigger
+  * ADC ISR stops the ADC trigger timer once sufficient samples have been recieved
   */
 
 
 //config for timer 0 to trigger adc
-#define ADC_TMR_PRESCALE_CFG          (3<<CS10)       // div by 64, clk 250kHz
+#define ADC_TMR_PRESCALE_CFG          (3<<CS10)       // div by 64, clk 250kHz, 4us ticks
 #define ADC_TMR_PRESCALE              64
 
 //stop start and clear the ADC timer
@@ -25,8 +32,9 @@
 #define ADC_SET_TRIG_ADC()            ADCSRB &= ~0x7   //free running
 #define ADC_SET_TRIG_TMR()            ADCSRB |= 0x5   //trig on OC1B.
 
-//clear the ADC timer trigger flag
+//clear/get the ADC timer trigger flag
 #define ADC_TMR_CLRF()                TIFR1 |= _BV(OCF1B)
+#define ADC_TMR_GETF()                ((TIFR1 & _BV(OCF1B)) != 0)
 
 //enable and disable ADC auto triggering
 #define ADC_TRIG_DIS()                ADCSRA &= ~_BV(ADATE)
@@ -74,6 +82,11 @@ byte pid_count;
 char pid_chn = -1;  //fast channel to read, -1 for none
 #define ADC_PID_COUNT_MAX   64  //maximum number of samples to acumulate
 
+#ifdef DEBUG_ADC_FAST
+unsigned int isr_duration_tk;
+bool isr_print = false;
+#endif
+
 /* old ADC */
 void configureADC()
 {
@@ -100,9 +113,13 @@ void configureADC()
 /* call to stop the interrupt driven ADC process */
 void ADC_stop_fast()
 {
+  //wait for ongoing fast sampling to complete all channels
+  while(ADC_TMR_GETF()) {}
+  
+  ADC_TMR_STOP();
   ADC_TRIG_DIS();
   ADC_INT_DIS();
-  ADC_TMR_STOP();
+  
 }
 
 /* call to start the interrupt driven ADC process */
@@ -111,12 +128,13 @@ void ADC_start_fast()
   adc_chn = 0;
   //select the first fast channel
   ADC_set_channel(channels_fast[adc_chn]);
-  //enable the ADC interrupt
-  ADC_INT_EN();
   //set the timer as the trigger source
   ADC_SET_TRIG_TMR();
-  //clear the timer
+  //clear the timer and interrupt flag
   ADC_TMR_CLR();
+  ADC_TMR_CLRF();
+  //enable the ADC interrupt
+  ADC_INT_EN();
   //enable the trigger
   ADC_TRIG_EN();
   //start the timer
@@ -162,14 +180,26 @@ void process_analog_inputs()
   unsigned int timestamp_us = micros();
   #endif
 
+  #ifdef DEBUG_ADC_ISR
+  Serial.print(F("\nADC ISR time tk: ")); Serial.println(isr_duration_tk);
+  #endif
+
   //read the torque sensor while we wait for the ADC to catch complete.
   int torque = torqueRead(); //while technically a 'digital' sensor (in terms of interface), the update rate is 10Hz, which matches with the analog update rate, and not the MAX6675 update rate
                              //the torque data is always one sample behind, since the conversion takes 100ms
   // Note also that th HX711 can sample at 80SPS. If the fast sample rate were set to 6.25ms (160SPS), a torque reading could be taken every other sample.
   // alternatively, keeping fast at 5ms (200SPS) the HX711 could be sampled every third fast sample for a rate of 66SPS.
 
-  //make sure the fast process isn't running
-  ADC_stop_fast();
+  //wait for ongoing fast sampling to complete all channels
+  while(ADC_TMR_GETF()){
+    #ifdef DEBUG_ADC
+    Serial.print(F("ADC wait, "));Serial.println(ADC_TMR_GETF());
+    #endif
+  }
+
+  //disable the trigger source and interrupts
+  ADC_TRIG_DIS();
+  ADC_INT_DIS();
 
   //read slow channels
   for(byte n = 0; n < ADC_NO_SLOW; n++)
@@ -178,27 +208,23 @@ void process_analog_inputs()
     ADC_set_channel(channels_slow[n]);
     //start ADC
     ADC_START();
-    //wait for conversion
-    while(! ADC_COMPLETE() )
-    {
-      //Serial.println(ADCSRA,HEX);
-    }
+    //wait for conversion by checking interrupt flag
+    while(! ADC_COMPLETE()); //{ Serial.println(ADCSRA,HEX); }
     //read value
     adc_readings_slow[n] = ADC;
-    //Serial.println(ADC);
     //clear the interrupt flag
     ADC_CLR_FLAG();
   }
 
 
-  //fast channels
-  adc_smp = 0;          //reset the fast sample counter
-  ADC_start_fast(); //start the fast adc process
+  //re-enable the trigger source and interrupts
+  ADC_TRIG_EN();
+  ADC_INT_EN();
 
 
 
   #ifdef DEBUG_ADC
-  Serial.println(F("ADC slow results:"));
+  Serial.println(F("\nADC slow results:"));
   for (int chn = 0; chn < ADC_NO_SLOW; chn++)
   {
     Serial.print(chn);
@@ -319,19 +345,20 @@ int ADC_apply_map_calibration(byte map_idx, int value)
 /* ADC ISR for fast sampling */
 ISR(ADC_vect)
 {
-  //clear the timer interrupt flag
-  ADC_TMR_CLRF();
   
-//  isr_duration_tk = TCNT1;
-//  static long tl = micros();
-//  long t_now = micros();
-//  long dt = t_now - tl;
-//  tl = t_now;
-//  if(isr_print){Serial.print("ISR: ");Serial.print(dt);Serial.print("; ");}
 
+#ifdef DEBUG_ADC_ISR
+  isr_duration_tk = TCNT1;
+  static long tl = micros();
+  long t_now = micros();
+  long dt = t_now - tl;
+  tl = t_now;
+  if(isr_print){Serial.print("ISR: ");Serial.print(dt);Serial.print("; ");}
+#endif
 
   int ADC_val = ADC;
-  //accumulate for pid, if this is the selected channel for pid feedback
+  
+  //  Accumulate for PID, if this is the selected channel for pid feedback
   if (pid_chn == adc_chn )
   {
     //check for count overflow
@@ -345,50 +372,58 @@ ISR(ADC_vect)
       pid_total = ADC_val;
       pid_count = 1;
     }
-    
   }
-  //store value
+  
+  //store value in record
   if(CURRENT_RECORD.ANA_no_of_fast_samples < NO_OF_ADC_FAST_PER_RECORD)
   {
     CURRENT_RECORD.MAP[adc_chn][CURRENT_RECORD.ANA_no_of_fast_samples] = ADC_val;
   }
-  //increment channel         (alt do nothing)
+  
+  //increment channel
   adc_chn++;
-  //if next channel is valid, (alt if not valid)
+  
+  //if next channel is valid, start a conversion on that channel
   if(adc_chn < ADC_NO_FAST)
   {
-//    if(isr_print){Serial.print("chn: "); Serial.println(adc_chn);}
-    //start adc               (alt disable autotirgger)
+    #ifdef DEBUG_ADC_ISR
+    if(isr_print){Serial.print("chn: "); Serial.println(adc_chn);}
+    #endif
+    
+    //start adc
     ADC_set_channel(channels_fast[adc_chn]);
     ADC_START();
   }
-  else
+  else //otherwise, clear the timer flag, increment the sample and, if last sample, stop the timer
   {
+    //clear the timer interrupt flag
+    ADC_TMR_CLRF();
+    
     //increment ADC process count
     adc_smp++;
-//    if(isr_print){Serial.print("smp: "); Serial.println(adc_smp);}
-    //increment record sample count
+
+    #ifdef DEBUG_ADC_ISR
+    if(isr_print){Serial.print("smp: "); Serial.println(adc_smp);}
+    #endif
+    
     if(CURRENT_RECORD.ANA_no_of_fast_samples < NO_OF_ADC_FAST_PER_RECORD)
     {
+      //increment record sample count
       CURRENT_RECORD.ANA_no_of_fast_samples++;
-    }
-    
-    //check if this is the last sample in this ADC process cycle
-    if(adc_smp < NO_OF_ADC_FAST_PER_SLOW)
-    {
-      //back to first channel
+      //reset the channel
       adc_chn = 0;
-      ADC_set_channel(channels_fast[adc_chn]);
     }
     else
     {
-//      if(isr_print){Serial.println("stop");}
-      //stop ADC fast handling
-      ADC_stop_fast();
+      //stop the timer
+      ADC_TMR_STOP();
     }
+    
   }
-//  isr_duration_tk = TCNT1 - isr_duration_tk;
-  //Serial.println();
+  #ifdef DEBUG_ADC_ISR
+  isr_duration_tk = TCNT1 - isr_duration_tk;
+  if(isr_print)Serial.println();
+  #endif
 }
 
 // end of file

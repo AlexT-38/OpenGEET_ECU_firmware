@@ -115,6 +115,8 @@
 //#define DEBUG_SDCARD
 //#define DEBUG_BUFFER
 //#define DEBUG_ADC
+#define DEBUG_ADC_FAST
+//#define DEBUG_ADC_ISR
 //#define DEBUG_SERVO
 //#define DEBUG_PID
 //#define DEBUG_EEP_RESET
@@ -204,7 +206,7 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
 #define SCREEN_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 10)
 #define SERIAL_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 200)    //serial report runs first
 #define SDCARD_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 300)    //sdcard runs second and removes the stale data from the buffer
-#define SDCARD_SYNC_START_ms        (UPDATE_INTERVAL_ms + 400)    //sdcard sync in a seperate slot, in the hopes of reducing overhead
+#define SDCARD_SYNC_START_ms        (UPDATE_INTERVAL_ms + 400)    //sdcard sync in a seperate slot, so that FS updates do not exceed time slot length
 
 // digital themocouple update rate
 #define EGT_SAMPLE_INTERVAL_ms        250 //max update rate
@@ -528,7 +530,8 @@ void setup() {
   pid_timestamp = timenow + PID_UPDATE_START_ms;
   touch_timestamp = timenow + TOUCH_READ_START_ms;
 
-  
+  //start the fast ADC timer (also clears process_analog()'s wait flag)
+  ADC_start_fast();
 }
 
 
@@ -824,6 +827,12 @@ void loop() {
   check_eeprom_update();
 
   #ifdef DEBUG_LOOP
-  //Serial.print('.');
+  static int timethen = timenow;
+  elapsed_time = timenow - timethen;
+  if (elapsed_time >= 5)
+  {
+    Serial.println(timenow);
+    timethen = timenow;
+  }
   #endif
 }

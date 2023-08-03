@@ -119,13 +119,20 @@ void update_record()
   #endif //DEBUG_RECORD_TIME
   
     
-  /* prepare the new record */
+  
+  //disable RPM and ADC interrupts, ADC first because it will wait for any ongoing conversions to finish
+  ADC_stop_fast();
   RPM_INT_DIS();
+
+  /* prepare the new record */
   SWAP_RECORDS();
   CURRENT_RECORD = (DATA_RECORD){0};
   CURRENT_RECORD.timestamp = millis();
   CURRENT_RECORD.RPM_tick_offset_tk = RPM_counter;
+
+  // reenable the RPM and ADC interrupts
   RPM_INT_EN();
+  ADC_start_fast();
   
   /* get the previous record for processing */
   DATA_RECORD *data_record = &LAST_RECORD;
