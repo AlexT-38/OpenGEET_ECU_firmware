@@ -162,6 +162,9 @@ void update_record()
   /* MAP sensors, also perform calibration here */
   if(data_record->ANA_no_of_fast_samples > 0)
   {
+    #ifdef DEBUG_ADC_FAST
+    Serial.print("\nfast samples: "); Serial.println(data_record->ANA_no_of_fast_samples);
+    #endif
     int rounding = data_record->ANA_no_of_fast_samples>>1;
     
     for(byte idx = 0; idx<Data_Config.MAP_no; idx++)
@@ -170,7 +173,7 @@ void update_record()
       long map_average = rounding;
       for(byte sample = 0; sample < data_record->ANA_no_of_fast_samples; sample++) 
       {
-        //apply calibration
+        
         data_record->MAP[idx][sample] = ADC_apply_map_calibration(idx, data_record->MAP[idx][sample]);
         //sum
         map_average += data_record->MAP[idx][sample];

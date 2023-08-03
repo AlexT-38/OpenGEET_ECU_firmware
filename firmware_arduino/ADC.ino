@@ -8,21 +8,27 @@
 #define ADC_TMR_PRESCALE_CFG          (3<<CS10)       // div by 64, clk 250kHz
 #define ADC_TMR_PRESCALE              64
 
+//stop start and clear the ADC timer
 #define ADC_TMR_STOP()                TCCR1B &= ~(_BV(CS10)|_BV(CS11)|_BV(CS12))
 #define ADC_TMR_START()               TCCR1B |= ADC_TMR_PRESCALE_CFG
 #define ADC_TMR_CLR()                 TCNT1 = 0
 
+//configure the ADC timer
 #define ADC_TMR_CFG()                 TCCR1A = 0; TCCR1B = _BV(WGM12);    //CTC, TOP = OCR1A
-                                      //OCR1A = (T(OC1A) * f(clk_IO) / 2N) -1
-#define ADC_TMR_TOP                   (unsigned int)(((ADC_SAMPLE_INTERVAL_ms * F_CPU / ADC_TMR_PRESCALE) / 1000) -1)
+
+//TIMER TOP and ADC trigger values    //OCR1A = (T(OC1A) * f(clk_IO) / 2N) -1
+#define ADC_TMR_TOP                   (unsigned int)(((ADC_SAMPLE_INTERVAL_us * (F_CPU/1000) / ADC_TMR_PRESCALE) / 1000) -1) //4.5ms = 1124, 5ms = 1249, 4.99ms = 1246
 #define ADC_TMR_TRIG                  1
 #define ADC_TMR_SET()                 OCR1A = ADC_TMR_TOP; OCR1B = ADC_TMR_TRIG;
 
+//select the trigger source for ADC
 #define ADC_SET_TRIG_ADC()            ADCSRB &= ~0x7   //free running
 #define ADC_SET_TRIG_TMR()            ADCSRB |= 0x5   //trig on OC1B.
 
+//clear the ADC timer trigger flag
 #define ADC_TMR_CLRF()                TIFR1 |= _BV(OCF1B)
 
+//enable and disable ADC auto triggering
 #define ADC_TRIG_DIS()                ADCSRA &= ~_BV(ADATE)
 #define ADC_TRIG_EN()                 ADCSRA |= _BV(ADATE)
 
@@ -162,7 +168,6 @@ void process_analog_inputs()
   // Note also that th HX711 can sample at 80SPS. If the fast sample rate were set to 6.25ms (160SPS), a torque reading could be taken every other sample.
   // alternatively, keeping fast at 5ms (200SPS) the HX711 could be sampled every third fast sample for a rate of 66SPS.
 
-
   //make sure the fast process isn't running
   ADC_stop_fast();
 
@@ -184,8 +189,6 @@ void process_analog_inputs()
     //clear the interrupt flag
     ADC_CLR_FLAG();
   }
-
-  
 
 
   //fast channels
@@ -365,7 +368,7 @@ ISR(ADC_vect)
     adc_smp++;
 //    if(isr_print){Serial.print("smp: "); Serial.println(adc_smp);}
     //increment record sample count
-    if(CURRENT_RECORD.ANA_no_of_fast_samples < NO_OF_ADC_FAST_PER_RECORD);
+    if(CURRENT_RECORD.ANA_no_of_fast_samples < NO_OF_ADC_FAST_PER_RECORD)
     {
       CURRENT_RECORD.ANA_no_of_fast_samples++;
     }
