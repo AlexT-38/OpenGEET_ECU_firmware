@@ -28,14 +28,15 @@ Upgrade to an STM10x or 40x device can be made later if required.
 - Time/date config (trim not available)
 - Calibration for thermistor inputs (for air inlet, reactor output, oil temperatures etc).
 - Full EEPROM export/import
+- Engine stop relay output
+- Physical push buttons for start/stop engine and log
 
 ### v0.7
 
 **Objectives:**
 - High sample rate ADC channels
 - RAM use optimisation
-- Engine stop relay output
-- Physical push buttons for start/stop engine and log
+- Improved Servo calibration screen
 
 ### v0.6
 
