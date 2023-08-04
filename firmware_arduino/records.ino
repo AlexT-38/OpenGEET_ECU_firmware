@@ -1,7 +1,6 @@
 
  #define NO_IDX 0xff
- #define RECORD_RECORD_SIZE 1500
- #define RECORD_BUFFER_SIZE (2*RECORD_RECORD_SIZE)
+ #define RECORD_BUFFER_SIZE (4096)
 
 /* the records to write to */
 DATA_RECORD Data_Records[2];
@@ -26,7 +25,6 @@ unsigned int recordStart; //length of dataBuffer at time of adding record to buf
 unsigned int lastRecordSize = 0;
 void configure_records()
 {
-  //dataBuffer.reserve(RECORD_BUFFER_SIZE);
 }
 
 
@@ -277,9 +275,6 @@ void update_record()
 //unsigned int 
 void write_data_record_to_buffer(DATA_RECORD *data_record, StringBuffer &dst)//, int prev_record_idx)
 {
-    //write the record to a temporary buffer, so that we can handle dst buffer overflows
-    //String buf;
-    //buf.reserve(RECORD_RECORD_SIZE);
 
     switch (flags_status.logging_state)
     {
@@ -318,43 +313,11 @@ void write_data_record_to_buffer(DATA_RECORD *data_record, StringBuffer &dst)//,
       Serial.println(F("BUF: Record dropped"));
       #endif
     }
-    /*
-    if( (this_record_idx + buf.length()) < RECORD_BUFFER_SIZE )
-    {
-      // add the new record to the output buffer
-      dst += buf;
-      
-      #ifdef DEBUG_BUFFER
-      Serial.println(F("BUF: Record appended"));
-      #endif
-    }
-    else if( (prev_record_idx + buf.length()) < RECORD_BUFFER_SIZE )
-    {
-      //over write the previous record, if not enough space
-      dst.remove(prev_record_idx, this_record_idx - prev_record_idx);
-      dst += buf;
-      this_record_idx = prev_record_idx;
-      
-      #ifdef DEBUG_BUFFER
-      Serial.println(F("BUF: Record overwrite"));
-      #endif
-    }
-    else 
-    {
-      #ifdef DEBUG_BUFFER
-      Serial.println(F("BUF: Record dropped"));
-      #endif
-    } //otherwise drop this record
-  */  
+    
   #ifdef DEBUG_BUFFER
   Serial.print(F("dst.cmt: ")); Serial.println(dst.get_committed());
   Serial.print(F("dst.len: ")); Serial.println(dst.length());
-  //Serial.print(F("BUF (this idx, this size, buf size): "));
-  //Serial.print(this_record_idx); Serial.print(", "); Serial.print(buf.length()); Serial.print(", "); Serial.println(dst.length());
   #endif
-  //return this_record_idx;
-  
-  //return 0;
 }
 
 
