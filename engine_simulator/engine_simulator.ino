@@ -11,8 +11,8 @@
 #define PIN_PULSE_OUT A0
 
 
-#define SERVO_MIN_us               944     //default minimum servo value
-#define SERVO_MAX_us               1860    //default maximum servo value
+#define SERVO_MIN_us               1860     //default minimum servo value
+#define SERVO_MAX_us               944    //default maximum servo value
 #define SERVO_RANGE_us             (SERVO_MAX_us-SERVO_MIN_us)
 
 
@@ -121,6 +121,7 @@ void simulate_engine()
   {
     //pulse the output
     digitalWrite(PIN_PULSE_OUT, HIGH);
+    delayMicroseconds(100);
     digitalWrite(PIN_PULSE_OUT, LOW);
 
     if(do_sim)
@@ -183,8 +184,8 @@ void process_input()
     int amount = servo_time_us;
     servo_time_us = 0; //reset the pulse time so we dont keep re calculating it
 
-    amount = constrain(amount, SERVO_MIN_us, SERVO_MAX_us);
     amount = map(amount, SERVO_MIN_us, SERVO_MAX_us, 0, 1024);
+    amount = constrain(amount, 0, 1023);
     
     servo_pos = float(amount)/1024.0;
     
@@ -200,7 +201,6 @@ void process_input()
 }
 
 /* set up the rpm counter input pin and ISR */
-//would this be a good place to experiment with ICP?
 void servo_input(void)
 {
   static int last_us = 0;

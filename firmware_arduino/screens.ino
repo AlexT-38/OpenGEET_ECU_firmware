@@ -207,45 +207,38 @@ void read_touch()
           toggle_logging();
         }
         break;
-      case TAG_CAL_SV0_MIN:
+      case TAG_CAL_SV_MIN:
         if(touch_event == TOUCH_ON || touch_event == TOUCH_NONE)
         {
-          set_servo_min(0);
+          set_servo_min(get_servo_cal_idx());
           flags_status.redraw_pending = true;
         }
         break;
-      case TAG_CAL_SV1_MIN:
-        if(touch_event == TOUCH_ON || touch_event == TOUCH_NONE)
-        {
-          set_servo_min(1);
-          flags_status.redraw_pending = true;
-        }
-        break;
-      case TAG_CAL_SV2_MIN:
+      case TAG_CAL_SV_MAX:
         if(touch_event != TOUCH_OFF)
         {
-          set_servo_min(2);
+          set_servo_max(get_servo_cal_idx());
           flags_status.redraw_pending = true;
         }
         break;
-      case TAG_CAL_SV0_MAX:
+      case TAG_CAL_SV_0:
         if(touch_event != TOUCH_OFF)
         {
-          set_servo_max(0);
+          set_servo_cal_idx(0);
           flags_status.redraw_pending = true;
         }
         break;
-      case TAG_CAL_SV1_MAX:
+      case TAG_CAL_SV_1:
         if(touch_event != TOUCH_OFF)
         {
-          set_servo_max(1);
+          set_servo_cal_idx(1);
           flags_status.redraw_pending = true;
         }
         break;
-      case TAG_CAL_SV2_MAX:
+      case TAG_CAL_SV_2:
         if(touch_event != TOUCH_OFF)
         {
-          set_servo_max(2);
+          set_servo_cal_idx(2);
           flags_status.redraw_pending = true;
         }
         break;
@@ -357,7 +350,7 @@ void read_touch()
       case TAG_PID_INVERT:
         if(touch_event == TOUCH_OFF)
         {
-          flags_config.pid_rpm_use_ms = !flags_config.pid_rpm_use_ms;
+          flags_config.pid_rpm_use_time = !flags_config.pid_rpm_use_time;
         }
         break;
       default:
@@ -589,7 +582,6 @@ void draw_readout_fixed(const int pos_x, const int pos_y, int opts, const int va
   GD.cmd_text(pos_x+dx, pos_y+dy, font_size, opts, str_ptr);
 }
 
-
 void draw_slider_horz(int x, int y, int sx, int sy, int label_size, const char *label_str, byte tag, int value, int val_max)
 {
   int x2 = x + (CELL_BORDER<<1);
@@ -777,9 +769,21 @@ void draw_button(int x, int y, byte sx, byte sy, byte tag, const char * string)
 
 void draw_toggle_button(int x, int y, byte sx, byte sy, byte tag, byte state, const char * string)
 {
+  //set colour
+  if(state)
+  {
+    GD.cmd_fgcolor(C_BUTTON_TOG_FG);
+  }
+  
   GD.Tag(tag);
   int opt = state ? OPT_FLAT : 0;
   GD.cmd_button(x+CELL_BORDER,y+CELL_BORDER,sx-(CELL_BORDER<<1),sy-(CELL_BORDER<<1), 26, opt, string);
+
+  //reset colour
+  if(state)
+  {
+    GD.cmd_fgcolor(C_BUTTON_FG);
+  }
 }
 
 void draw_log_toggle_button(int x, int y, byte sx, byte sy)
@@ -788,16 +792,20 @@ void draw_log_toggle_button(int x, int y, byte sx, byte sy)
 
   int opt = (GD.inputs.tag == TAG_LOG_TOGGLE) ? OPT_FLAT : 0;
 
+  //set colour
   if(flags_status.logging_state)
   {
     GD.cmd_fgcolor(C_BTN_LOGGING);
   }
-  else
+
+  MAKE_STRING(S_REC);
+  GD.cmd_button(x+CELL_BORDER,y+CELL_BORDER,sx-(CELL_BORDER<<1),sy-(CELL_BORDER<<1), 26, opt, S_REC_str);
+
+  //reset colour
+  if(flags_status.logging_state)
   {
     GD.cmd_fgcolor(C_BUTTON_FG);
   }
-  MAKE_STRING(S_REC);
-  GD.cmd_button(x+CELL_BORDER,y+CELL_BORDER,sx-(CELL_BORDER<<1),sy-(CELL_BORDER<<1), 26, opt, S_REC_str);
 
   x+=sx>>1;
   y+=sy>>1;
@@ -848,13 +856,31 @@ void draw_screen_selector()
 
   char label[10];
   int opt;
+  bool is_selected, was_selected;
   GD.cmd_fgcolor(C_BUTTON_FG);
   for(char n = 0; n<NO_OF_SCREENS; n++)
   {
+    is_selected = (current_screen == (SCREEN_1 + n)) || (GD.inputs.tag == (TAG_SCREEN_1 + n));
+    if(is_selected)
+    {
+      GD.cmd_fgcolor(C_BUTTON_TOG_FG);
+      was_selected = true;
+    }
+    else if (was_selected)
+    {
+      GD.cmd_fgcolor(C_BUTTON_FG);
+      was_selected = false;
+    }
+    
     GD.Tag(TAG_SCREEN_1 + n);                                                                         //set the touch tag
-    opt = ( (current_screen == (SCREEN_1 + n)) || (GD.inputs.tag == (TAG_SCREEN_1 + n)) ) * OPT_FLAT;     //draw flat if currently selected, or button is touched
+    opt = is_selected  * OPT_FLAT;     //draw flat if currently selected, or button is touched
     READ_STRING_FROM(screen_labels, n, label);
     GD.cmd_button(GRID_XL(0,SCREEN_BUTTON_XN)+CELL_BORDER, GRID_YT(n,NO_OF_SCREENS)+CELL_BORDER, GRID_SX(SCREEN_BUTTON_XN)-(CELL_BORDER<<1), GRID_SY(NO_OF_SCREENS)-(CELL_BORDER<<1), SCREEN_BUTTON_FONT, opt, label);
+  }
+  //reset colour
+  if (was_selected)
+  {
+    GD.cmd_fgcolor(C_BUTTON_FG);
   }
 }
 

@@ -25,7 +25,7 @@
 // define them as consts here and delete the original 
 const char S_DATE[] PROGMEM = __DATE__;
 const char S_TIME[] PROGMEM = __TIME__;
-const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller (MEGA) v0.6.1";
+const char S_FIRMWARE_NAME[]  PROGMEM = "OpenGEET Reactor Controller (MEGA) v0.7.0";
 const char S_COMMA[] PROGMEM = ", ";
 const char S_COLON[] PROGMEM = ": ";
 const char S_CARD_FAILED_OR_NOT_PRESENT[] PROGMEM = "SD Card failed, or absent"; //if this string is not defined/referenced, or is made shorter than this, an extra 40-60 bytes is consumed for no obvious reason
@@ -122,13 +122,14 @@ const char S_PID_2[] PROGMEM = "PID 2";
 const char S_CONFIG[] PROGMEM = "Config";
 const char S_NONE[] PROGMEM = "None";
 
-const char S_SV0_MIN[] PROGMEM = "SV0 Min";
-const char S_SV1_MIN[] PROGMEM = "SV1 Min";
-const char S_SV2_MIN[] PROGMEM = "SV2 Min";
 
-const char S_SV0_MAX[] PROGMEM = "SV0 Max";
-const char S_SV1_MAX[] PROGMEM = "SV1 Max";
-const char S_SV2_MAX[] PROGMEM = "SV2 Max";
+const char S_SERVO_MIN[] PROGMEM = "Servo Min";
+const char S_SERVO_MAX[] PROGMEM = "Servo Max";
+
+const char S_SERVO_0[] PROGMEM = "Servo 0";
+const char S_SERVO_1[] PROGMEM = "Servo 1";
+const char S_SERVO_2[] PROGMEM = "Servo 2";
+
 
 
 // int to char conversion for hex and decimal

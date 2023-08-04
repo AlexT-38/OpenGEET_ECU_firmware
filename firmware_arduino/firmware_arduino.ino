@@ -87,8 +87,7 @@
 #include <SPI.h>        //needed for gameduino
 #include <GD2.h>        //Gameduino (FT810 plus micro sdcard
 
-#include <Servo.h>      //servo control disables analog write on pins 9 and 10
-
+#include "src/StringBuffer/StringBuffer.h" //custom string buffer class
 
 #include "tiny_rtc.h"
 #include "hx711.h"
@@ -116,6 +115,8 @@
 //#define DEBUG_SDCARD
 //#define DEBUG_BUFFER
 //#define DEBUG_ADC
+//#define DEBUG_ADC_FAST
+//#define DEBUG_ADC_ISR
 //#define DEBUG_SERVO
 //#define DEBUG_PID
 //#define DEBUG_EEP_RESET
@@ -173,31 +174,11 @@
 #define PIN_LOG_SDCARD_CS         10
 
 //rpm counter interrupt pin
-#define PIN_RPM_COUNTER_INPUT     2 //INT0 -this clashes with the gameduino interupt pin
+#define PIN_RPM_COUNTER_INPUT     49   //D49 is PL0, ICP4
 
 
-//calibration values for Lemark LMS184 1 bar MAP sensor
-//specifying them as Long type to ensure correct evaluation
-#define SENSOR_MAP_CAL_HIGH_LSb     39L    //analog sample value for the high cal point
-#define SENSOR_MAP_CAL_LOW_LSb     969L    //analog sample value for the low cal point
 
-#define SENSOR_MAP_CAL_HIGH_mbar  1050L    //absolute pressure at the high cal point
-#define SENSOR_MAP_CAL_LOW_mbar    200L    //absolute pressure at the low cal point
 
-#define SENSOR_MAP_CAL_MAX_LSb    1024L    //adc value for maximum possible pressure value
-#define SENSOR_MAP_CAL_MIN_LSb       0L    //adc value for minimum possible pressure value
-
-/* while using these points to map the analog input is technically correct
- *  we can get better performance if the input range is a power of two,
- *  (which it is, being 10bit adc)
- *  so we can rescale HIGH_mbar and LOW_mbar to fit the range
- */
-// hopefully this will be evaluated at compile time! //yeah, this seems to be as fast as casting and writing an interger literal, and fractionally slower than a non cast literal
-#define SENSOR_CAL_LIMIT_out(in_limit, in_low, in_high, out_low, out_high)   ( ( ((in_limit-in_low) * (out_high-out_low)) / (in_high-in_low)  ) + out_low + 0.5)
-//lim=maxlsb=0, in=lim-inlo=-969, outrng=outhi-outlo=850, numr=in*outrng=-823650, inrng=inhi-inlo=-930, outfrac=numr/inrng=885, out=outfrac+outlo=1085
-//lim=minlsb=1024, in=lim-inlo=55, outrng=outhi-outlo=850, numr=in*outrng=46750, inrng=inhi-inlo=-930, outfrac=numr/inrng=-50, out=outfrac+outlo=150
-#define SENSOR_MAP_CAL_MAX_mbar   (int)SENSOR_CAL_LIMIT_out( (float)SENSOR_MAP_CAL_MAX_LSb, SENSOR_MAP_CAL_LOW_LSb, SENSOR_MAP_CAL_HIGH_LSb, SENSOR_MAP_CAL_LOW_mbar ,SENSOR_MAP_CAL_HIGH_mbar)
-#define SENSOR_MAP_CAL_MIN_mbar   (int)SENSOR_CAL_LIMIT_out( (float)SENSOR_MAP_CAL_MIN_LSb, SENSOR_MAP_CAL_LOW_LSb, SENSOR_MAP_CAL_HIGH_LSb, SENSOR_MAP_CAL_LOW_mbar ,SENSOR_MAP_CAL_HIGH_mbar)
 /* these should evaluate to 150 and 1086 respectively
  *  and now do after specifying the types of the parameter constants or at least close enoug
  *  they are 150 and 1085, so  some very minor rounding errors that can be disregarded
@@ -225,22 +206,17 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
 #define SCREEN_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 10)
 #define SERIAL_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 200)    //serial report runs first
 #define SDCARD_UPDATE_START_ms        (UPDATE_INTERVAL_ms + 300)    //sdcard runs second and removes the stale data from the buffer
-#define SDCARD_SYNC_START_ms        (UPDATE_INTERVAL_ms + 400)    //sdcard sync in a seperate slot, in the hopes of reducing overhead
+#define SDCARD_SYNC_START_ms        (UPDATE_INTERVAL_ms + 400)    //sdcard sync in a seperate slot, so that FS updates do not exceed time slot length
 
 // digital themocouple update rate
 #define EGT_SAMPLE_INTERVAL_ms        250 //max update rate
 #define EGT_SAMPLES_PER_UPDATE        (UPDATE_INTERVAL_ms/EGT_SAMPLE_INTERVAL_ms)
 #define EGT_UPDATE_START_ms           110
 
-//analog input read rate
+//analog update rate
 #define ANALOG_SAMPLE_INTERVAL_ms     100   //record analog values this often
 #define ANALOG_SAMPLES_PER_UPDATE     (UPDATE_INTERVAL_ms/ANALOG_SAMPLE_INTERVAL_ms)
 #define ANALOG_UPDATE_START_ms        70
-
-//rpm counter params
-
-
-
 
 #define PID_UPDATE_INTERVAL_ms        50
 #define PID_UPDATE_START_ms           40  
@@ -274,6 +250,7 @@ byte EGTSensors[NO_OF_EGT_SENSORS] = {PIN_SPI_EGT_1_CS};
  * 
  */
 
+#include "ADC.h"
 #include "torque_sensor.h"
 #include "PID.h"
 #include "strings.h"
@@ -553,7 +530,8 @@ void setup() {
   pid_timestamp = timenow + PID_UPDATE_START_ms;
   touch_timestamp = timenow + TOUCH_READ_START_ms;
 
-  
+  //start the fast ADC timer (also clears process_analog()'s wait flag)
+  ADC_start_fast();
 }
 
 
@@ -849,6 +827,12 @@ void loop() {
   check_eeprom_update();
 
   #ifdef DEBUG_LOOP
-  //Serial.print('.');
+  static int timethen = timenow;
+  elapsed_time = timenow - timethen;
+  if (elapsed_time >= 5)
+  {
+    Serial.println(timenow);
+    timethen = timenow;
+  }
   #endif
 }

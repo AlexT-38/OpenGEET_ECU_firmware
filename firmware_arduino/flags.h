@@ -30,7 +30,7 @@ typedef struct {
     byte do_serial_write_hex:1;
     byte do_sdcard_write:1;
     byte do_sdcard_write_hex:1;
-    byte pid_rpm_use_ms:1;
+    byte pid_rpm_use_time:1;
 }FLAGS_CONFIG;
 
 typedef union flags_config_union{

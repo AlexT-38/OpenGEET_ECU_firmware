@@ -87,6 +87,8 @@ class log_file:
     RPM_ticks = np.array([])
     
     RPM_offset = np.array([])
+    
+    RPM_tick_scale = 0
 
 #analog samples
     USR = []#[np.array([])]
@@ -133,6 +135,14 @@ class log_file:
         
         self.RECORD_INTERVAL_ms = header['rate_ms']
         self.RECORD_INTERVAL    = header['rate_ms']/1000
+        
+        for sensor in header['sensors']:
+            if sensor['name'] == 'spd':
+                #get the scale for rpm counter ticks
+                self.RPM_tick_scale = pow(2,sensor['scale'])
+                #convert us to ms
+                if sensor['units'] == 'us':
+                    self.RPM_tick_scale = self.RPM_tick_scale/1000
         
         
         def update_length(src, trg):
@@ -311,8 +321,8 @@ class log_file:
             
             ###process rpm (copied from v3)
             
-            values = np.array(r['spd'])
-            tick_offset = r['spd_t0']
+            values = np.array(r['spd']) * self.RPM_tick_scale
+            tick_offset = r['spd_t0'] * self.RPM_tick_scale
             
             self.RPM_offset = np.append(self.RPM_offset, tick_offset)
             
@@ -326,7 +336,7 @@ class log_file:
             if len(values[values<=0]) > 0:
                 print("some ticks ignored:", np.argwhere(values<=0), ":", values[values<=0])
                 values = values[values>0]
-                
+            
             self.RPM_intervals_ms = np.append(self.RPM_intervals_ms, values)
             if self.verbose: print("RPM intervals (ms):", self.RPM_intervals_ms[-len(values):])
             
@@ -415,7 +425,7 @@ class log_file:
             rpm_pid['act_ms'] = 60000/rpm_pid['act']
             rpm_pid['err_ms'] = rpm_pid['trg_ms']-rpm_pid['act_ms']
         #this is a hack - the firmware needs to invert the input not the output
-        rpm_pid['i'] = -rpm_pid['i']*0.001
+        #rpm_pid['i'] = -rpm_pid['i']*0.001
         
         #rpm_pid_k =
         
@@ -808,19 +818,23 @@ class log_file:
         
         if self.detailed_pid or self.detailed_rpm:
             time_max = 0
-            y_max = 5000
+            y_max = 6000
             y_min = 0
             title = ""
             
             if self.detailed_pid:
-                #select the data and time axis
-                pid = self.PID[0]
-                pid_t = self.PID_t[0]
-                pid_keys = ['trg','act','err','out']
-                #get the maximum time
-                time_max = max(time_max, np.ceil(pid_t[-1]).astype(np.int32))
-                y_min = -2000
-                title += "PID "
+                try:
+                    #select the data and time axis
+                    pid = self.PID[0]
+                    pid_t = self.PID_t[0]
+                    pid_keys = ['trg','act','err','out']
+                    #get the maximum time
+                    time_max = max(time_max, np.ceil(pid_t[-1]).astype(np.int32))
+                    y_min = -2000
+                    title += "PID "
+                except IndexError as e:
+                    print(e)
+                    self.detailed_pid = False
                 
             if self.detailed_rpm:
                 #create a sparse data set from tick times using a 1 ms time axis
@@ -895,7 +909,10 @@ if __name__ == "__main__":
     #log_file_name = "26-06-2023/23062700.JSN"
     #log_file_name = "27-06-2023/23062702.JSN"
     #log_file_name = "27-06-2023/23062700.JSN"
-    log_file_name = "29-06-2023/23062905.JSN"
+    #log_file_name = "29-06-2023/23062905.JSN"
+    #log_file_name = "08-07-2023/23070800.JSN"
+    #log_file_name = "09-07-2023/23070900.JSN"
+    log_file_name = "02-08-2023/23080200.JSN"
     
     log_file_path = log_file_folder + log_file_name
     

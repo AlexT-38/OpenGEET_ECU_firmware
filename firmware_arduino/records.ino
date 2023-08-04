@@ -1,7 +1,6 @@
 
  #define NO_IDX 0xff
- #define RECORD_RECORD_SIZE 1500
- #define RECORD_BUFFER_SIZE (2*RECORD_RECORD_SIZE)
+ #define RECORD_BUFFER_SIZE (4096)
 
 /* the records to write to */
 DATA_RECORD Data_Records[2];
@@ -18,15 +17,14 @@ DATA_CONFIG Data_Config = {DATA_RECORD_VERSION, NO_OF_USER_INPUTS, NO_OF_MAP_SEN
 
 static DATA_STORAGE data_store;
 
-
-String dataBuffer;
+char dataBuffer_array[RECORD_BUFFER_SIZE];
+StringBuffer dataBuffer(RECORD_BUFFER_SIZE, dataBuffer_array);
 unsigned int recordStart; //length of dataBuffer at time of adding record to buffer;
 
 
 unsigned int lastRecordSize = 0;
 void configure_records()
 {
-  dataBuffer.reserve(RECORD_BUFFER_SIZE);
 }
 
 
@@ -119,10 +117,20 @@ void update_record()
   #endif //DEBUG_RECORD_TIME
   
     
+  
+  //disable RPM and ADC interrupts, ADC first because it will wait for any ongoing conversions to finish
+  ADC_stop_fast();
+  RPM_INT_DIS();
+
   /* prepare the new record */
   SWAP_RECORDS();
   CURRENT_RECORD = (DATA_RECORD){0};
   CURRENT_RECORD.timestamp = millis();
+  CURRENT_RECORD.RPM_tick_offset_tk = RPM_counter;
+
+  // reenable the RPM and ADC interrupts
+  RPM_INT_EN();
+  ADC_start_fast();
   
   /* get the previous record for processing */
   DATA_RECORD *data_record = &LAST_RECORD;
@@ -130,37 +138,54 @@ void update_record()
   /* calculate averages */
 
   /* analog samples */
-  if(data_record->ANA_no_of_samples > 0)
+  if(data_record->ANA_no_of_slow_samples > 0)
   {
-    int rounding = data_record->ANA_no_of_samples>>1;
+    int rounding = data_record->ANA_no_of_slow_samples>>1;
     /* User input */
     for(byte idx = 0; idx<Data_Config.USR_no; idx++)
     {
       Data_Averages.USR[idx] = rounding;
-      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.USR[idx] += data_record->USR[idx][sample];}
+      for(byte sample = 0; sample < data_record->ANA_no_of_slow_samples; sample++) {Data_Averages.USR[idx] += data_record->USR[idx][sample];}
       
-      Data_Averages.USR[idx] /= data_record->ANA_no_of_samples;
+      Data_Averages.USR[idx] /= data_record->ANA_no_of_slow_samples;
 
-    }
-    /* MAP sensors */
-    for(byte idx = 0; idx<Data_Config.MAP_no; idx++)
-    {
-      Data_Averages.MAP[idx] = rounding;
-      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.MAP[idx] += data_record->MAP[idx][sample];}
-      Data_Averages.MAP[idx] /= data_record->ANA_no_of_samples;
     }
     /* Thermistors */
     for(byte idx = 0; idx<Data_Config.TMP_no; idx++)
     {
       Data_Averages.TMP[idx] = rounding;
-      for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.TMP[idx] += data_record->TMP[idx][sample];}
-      Data_Averages.TMP[idx] /= data_record->ANA_no_of_samples;
+      for(byte sample = 0; sample < data_record->ANA_no_of_slow_samples; sample++) {Data_Averages.TMP[idx] += data_record->TMP[idx][sample];}
+      Data_Averages.TMP[idx] /= data_record->ANA_no_of_slow_samples;
     }
     /* Torque loadcell */
     Data_Averages.TRQ = rounding;
-    for(byte sample = 0; sample < data_record->ANA_no_of_samples; sample++) {Data_Averages.TRQ += data_record->TRQ[sample];}
-    Data_Averages.TRQ /= data_record->ANA_no_of_samples;
+    for(byte sample = 0; sample < data_record->ANA_no_of_slow_samples; sample++) {Data_Averages.TRQ += data_record->TRQ[sample];}
+    Data_Averages.TRQ /= data_record->ANA_no_of_slow_samples;
   
+  }
+  
+  /* MAP sensors, also perform calibration here */
+  if(data_record->ANA_no_of_fast_samples > 0)
+  {
+    #ifdef DEBUG_ADC_FAST
+    Serial.print("\nfast samples: "); Serial.println(data_record->ANA_no_of_fast_samples);
+    #endif
+    int rounding = data_record->ANA_no_of_fast_samples>>1;
+    
+    for(byte idx = 0; idx<Data_Config.MAP_no; idx++)
+    {
+      //maximum sum is greater than INT16_MAX, so we must sum to a long int first.
+      long map_average = rounding;
+      for(byte sample = 0; sample < data_record->ANA_no_of_fast_samples; sample++) 
+      {
+        
+        data_record->MAP[idx][sample] = ADC_apply_map_calibration(idx, data_record->MAP[idx][sample]);
+        //sum
+        map_average += data_record->MAP[idx][sample];
+      }
+      //find average and store
+      Data_Averages.MAP[idx] = (int)(map_average / data_record->ANA_no_of_fast_samples);
+    }
   }
   /* Thermocouples */
   if(data_record->EGT_no_of_samples > 0)
@@ -238,7 +263,8 @@ void update_record()
   // convert data to string report if logging and either sdcard or serial is configured for output and in text format
   if(flags_status.logging_state && ( (!flags_config.do_serial_write_hex && flags_config.do_serial_write) || (!flags_config.do_sdcard_write_hex && flags_config.do_sdcard_write) ))
   {
-    recordStart = write_data_record_to_buffer(data_record, dataBuffer, recordStart);
+    recordStart = dataBuffer.get_old(); //get the index of the last committed data
+    write_data_record_to_buffer(data_record, dataBuffer);//, recordStart);
   }
 
   #ifdef DEBUG_BUFFER_TIME
@@ -256,64 +282,52 @@ void update_record()
 }
 
 
-unsigned int write_data_record_to_buffer(DATA_RECORD *data_record, String &dst, int prev_record_idx)
+//unsigned int 
+void write_data_record_to_buffer(DATA_RECORD *data_record, StringBuffer &dst)//, int prev_record_idx)
 {
-    //write the record to a temporary buffer, so that we can handle dst buffer overflows
-    String buf;
-    buf.reserve(RECORD_RECORD_SIZE);
 
     switch (flags_status.logging_state)
     {
         case LOG_STARTING:
-          start_log(buf);
+          dst.clear();
+          start_log(dst);
           break;
         case LOG_STARTED:
-          write_record(buf, data_record);
+          recordStart -= dst.rewind(); //move left over data back to the start of the buffer and adjust recordStart
+          write_record(dst, data_record);
           break;
         case LOG_STOPPING:
-          finish_log(buf);
+          finish_log(dst);
           break;
     }
     #ifdef DEBUG_RECORD
-    Serial.print(F("buf.len: ")); Serial.println(buf.length());
+    Serial.print(F("BUF:\ndst.cmt     : ")); Serial.println(dst.get_committed());
+    Serial.print(F("dst.len     : ")); Serial.println(dst.length());
+    Serial.print(F("recordStart : ")); Serial.println(recordStart);
     #endif
       
 
     ///////////////////////////////////////////////////////////////////////////////////
 
-    int this_record_idx = dst.length();
-    
-    if( (this_record_idx + buf.length()) < RECORD_BUFFER_SIZE )
+    //int this_record_idx = dst.length();
+
+    if(dst.commit()) //checks if the buffer overran, updates if not, otherwise resets back to last commit 
     {
-      // add the new record to the output buffer
-      dst += buf;
-      
       #ifdef DEBUG_BUFFER
       Serial.println(F("BUF: Record appended"));
-      #endif
+      #endif 
     }
-    else if( (prev_record_idx + buf.length()) < RECORD_BUFFER_SIZE )
-    {
-      //over write the previous record, if not enough space
-      dst.remove(prev_record_idx, this_record_idx - prev_record_idx);
-      dst += buf;
-      this_record_idx = prev_record_idx;
-      
-      #ifdef DEBUG_BUFFER
-      Serial.println(F("BUF: Record overwrite"));
-      #endif
-    }
-    else 
+    else
     {
       #ifdef DEBUG_BUFFER
       Serial.println(F("BUF: Record dropped"));
       #endif
-    } //otherwise drop this record
+    }
+    
   #ifdef DEBUG_BUFFER
-  Serial.print(F("BUF (this idx, this size, buf size): "));
-  Serial.print(this_record_idx); Serial.print(", "); Serial.print(buf.length()); Serial.print(", "); Serial.println(dst.length());
+  Serial.print(F("dst.cmt: ")); Serial.println(dst.get_committed());
+  Serial.print(F("dst.len: ")); Serial.println(dst.length());
   #endif
-  return this_record_idx;
 }
 
 
@@ -332,7 +346,7 @@ void hash_data(DATA_STORAGE *data)
 }
 
 
-void log_io_info( String &dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units)
+void log_io_info( StringBuffer&dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units)
 {
     if(name_pgm)             json_append(dst, F("name"), name_pgm);
     if(number > 1)           json_append(dst, F("num"), number);
@@ -341,7 +355,7 @@ void log_io_info( String &dst, const __FlashStringHelper * name_pgm, byte number
     if(units)                json_append(dst, F("units"), units);
 
 }
-void log_io_info( String &dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units,
+void log_io_info( StringBuffer&dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units,
                   int low, int high, char scale)
 {
   log_io_info(dst, name_pgm, number, rate, units, rate_units);
@@ -353,7 +367,7 @@ void log_io_info( String &dst, const __FlashStringHelper * name_pgm, byte number
   }
 }
 /* write the log header */
-void start_log(String &dst)
+void start_log(StringBuffer&dst)
 {
   #ifdef DEBUG_RECORD
   Serial.println(F("log wr head"));
@@ -391,7 +405,7 @@ void start_log(String &dst)
       if(Data_Config.MAP_no > 0)
       {
         json_append_obj(dst);
-          log_io_info(dst, F("map"), Data_Config.MAP_no, ANALOG_SAMPLE_INTERVAL_ms, F("mbar"), F("ms"));
+          log_io_info(dst, F("map"), Data_Config.MAP_no, ADC_SAMPLE_INTERVAL_ms, F("mbar"), F("ms"));
         json_append_close_object(dst); //map
       }
 
@@ -418,7 +432,7 @@ void start_log(String &dst)
       
       //rotation time sensor
       json_append_obj(dst);
-        log_io_info(dst, F("spd"), 1, 1, F("ms"), F("pr"));
+        log_io_info(dst, F("spd"), 1, 1, F("us"), F("pr"), RPM_MAX_tk, RPM_MIN_tk, 4);
       json_append_close_object(dst); //spd
 
       //derived rpm
@@ -477,7 +491,7 @@ void start_log(String &dst)
   json_append_arr(dst, F("records"));
 }
 /* write the log footer */
-void finish_log(String &dst)
+void finish_log(StringBuffer &dst)
 {
   #ifdef DEBUG_RECORD
   Serial.println(F("log wr tail"));
@@ -488,7 +502,7 @@ void finish_log(String &dst)
 }
 
 /* write a record into the "records" array */
-void write_record(String &dst, DATA_RECORD *data_record)
+void write_record(StringBuffer &dst, DATA_RECORD *data_record)
 {
   #ifdef DEBUG_RECORD
   Serial.println(F("log wr rec"));
@@ -507,7 +521,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       json_append_arr(dst, F("usr"));
       for(byte idx = 0; idx < Data_Config.USR_no; idx++ )
       {
-        json_append_arr(dst, data_record->USR[idx], data_record->ANA_no_of_samples);
+        json_append_arr(dst, data_record->USR[idx], data_record->ANA_no_of_slow_samples);
       }
       json_append_close_array(dst);  
     }
@@ -517,7 +531,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       json_append_arr(dst, F("map"));
       for(byte idx = 0; idx < Data_Config.MAP_no; idx++ )
       {
-        json_append_arr(dst, data_record->MAP[idx], data_record->ANA_no_of_samples);
+        json_append_arr(dst, data_record->MAP[idx], data_record->ANA_no_of_fast_samples);
       }
       json_append_close_array(dst);
     }
@@ -527,7 +541,7 @@ void write_record(String &dst, DATA_RECORD *data_record)
       json_append_arr(dst, F("tmp"));
       for(byte idx = 0; idx < Data_Config.TMP_no; idx++ )
       {
-        json_append_arr(dst, data_record->TMP[idx], data_record->ANA_no_of_samples);
+        json_append_arr(dst, data_record->TMP[idx], data_record->ANA_no_of_slow_samples);
       }
       json_append_close_array(dst);
     }
@@ -542,10 +556,10 @@ void write_record(String &dst, DATA_RECORD *data_record)
       json_append_close_array(dst);
     }
 ////////////////////////////////////////////////////////////////////////// report toque and speed
-    json_append_arr(dst, F("trq"), data_record->TRQ, data_record->ANA_no_of_samples);
+    json_append_arr(dst, F("trq"), data_record->TRQ, data_record->ANA_no_of_slow_samples);
     
-    json_append(dst, F("spd_t0"), data_record->RPM_tick_offset_ms);
-    json_append_arr(dst, F("spd"), data_record->RPM_tick_times_ms, data_record->RPM_no_of_ticks);
+    json_append(dst, F("spd_t0"), data_record->RPM_tick_offset_tk);
+    json_append_arr(dst, F("spd"), data_record->RPM_tick_times_tk, data_record->RPM_no_of_ticks);
 
 ////////////////////////////////////////////////////////////////////////// report servo outputs
     if(Data_Config.SRV_no > 0)

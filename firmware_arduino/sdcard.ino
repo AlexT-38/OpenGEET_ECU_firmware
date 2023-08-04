@@ -9,7 +9,7 @@ File dataFile;
 void dateTime(uint16_t* date, uint16_t* time) {
  DateTime t_now = DS1307_now();
  // return date using FAT_DATE macro to format fields
- *date = FAT_DATE(t_now.year, t_now.month, t_now.day);
+ *date = FAT_DATE(2000 + t_now.year, t_now.month, t_now.day);
 
  // return time using FAT_TIME macro to format fields
  *time = FAT_TIME(t_now.hour, t_now.minute, t_now.second);
@@ -106,13 +106,13 @@ void write_sdcard_data_record()
         #endif
 
         clear_buffer = false;
-        while (dataBuffer.length() >= BLOCK_SIZE)
+        while (dataBuffer.get_committed() >= BLOCK_SIZE)
         {
           // write a single block of data
-          if(dataFile.write(dataBuffer.c_str(), BLOCK_SIZE))
+          if(dataBuffer.pop(dataFile, BLOCK_SIZE))
           {
             // remove written data from dataBuffer if write was sucessfull
-            dataBuffer.remove(0, BLOCK_SIZE);
+            //dataBuffer.remove(0, BLOCK_SIZE);
             
 
             #ifdef DEBUG_SDCARD
@@ -123,7 +123,7 @@ void write_sdcard_data_record()
           {
             Serial.println(F("File write failed"));
             flags_status.file_openable = false;
-            clear_buffer = true;
+            //clear_buffer = true;
             break; //exit the while loop
           }
         }
@@ -134,10 +134,12 @@ void write_sdcard_data_record()
           // if this results in long waits, pad the buffer with zeros before writing.
           // non buffer sized writes typically are a few ms longer, 
           // and only seem to cause big delays after many non buffer sized writes
-          dataFile.write(dataBuffer.c_str(), dataBuffer.length());
-          clear_buffer = true;
+
+          unsigned int written = dataBuffer.pop(dataFile, dataBuffer.get_committed());
+          //dataFile.write(dataBuffer.c_str(), dataBuffer.length());
+          //clear_buffer = true;
           #ifdef DEBUG_SDCARD
-          blocks_written += (dataBuffer.length()>0);
+          blocks_written += (written>0);
           #endif
         }
 
@@ -152,20 +154,25 @@ void write_sdcard_data_record()
     else if(flags_status.logging_state == LOG_STARTING && !dataFile )
     {
       //don't clear the buffer if starting and file not open 
-      clear_buffer = false;
+      //clear_buffer = false;
     }
     
   }
-  
-  if(clear_buffer)
+  else
   {
-    //clear the buffer when not logging to sdcard
-    #ifdef DEBUG_BUFFER
-    if(dataBuffer.length())    {Serial.print(F("BUF: clearing ")); Serial.println(dataBuffer.length());}
-    #endif
-
-    dataBuffer = "";
+    // if not logging to sdcard, clear all committed data from the buffer
+    dataBuffer.pop(NULL, dataBuffer.get_committed());
   }
+  
+//  if(clear_buffer)
+//  {
+//    //clear the buffer when not logging to sdcard
+//    #ifdef DEBUG_BUFFER
+//    if(dataBuffer.length())    {Serial.print(F("BUF: clearing ")); Serial.println(dataBuffer.length());}
+//    #endif
+//
+//    //dataBuffer = "";
+//  }
 
 
   #ifdef DEBUG_SDCARD_TIME
