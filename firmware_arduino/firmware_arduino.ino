@@ -87,7 +87,7 @@
 #include <SPI.h>        //needed for gameduino
 #include <GD2.h>        //Gameduino (FT810 plus micro sdcard
 
-
+#include "src/StringBuffer/StringBuffer.h" //custom string buffer class
 
 #include "tiny_rtc.h"
 #include "hx711.h"

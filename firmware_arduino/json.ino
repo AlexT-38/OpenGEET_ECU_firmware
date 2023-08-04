@@ -68,15 +68,15 @@ void json_up()
 // basic elements
 
 /* starts the json file and reset the heirachy tracker. finish with json_close_object */
-void json_wr_start(String &dst)
+void json_wr_start(StringBuffer &dst)
 {
-  dst = "{";
+  dst += "{";
   json_depth = 1;
   json_first = true;
 }
 
 /* new line, add tabs to depth*/
-void json_wr_nl(String &dst)
+void json_wr_nl(StringBuffer &dst)
 {
   dst += "\n";
   if (JSON_TAB)
@@ -89,14 +89,14 @@ void json_wr_nl(String &dst)
 }
 
 /* add a new entry to the current collection */
-void json_wr_list(String &dst)
+void json_wr_list(StringBuffer &dst)
 {
   if(!json_first)  {     dst += ",";   } //add list separator if not first
   else {    json_first = false;  }
 }
 
 /* add a new entry to the current collection on a new line */
-void json_wr_append(String &dst)
+void json_wr_append(StringBuffer &dst)
 {
   json_wr_list(dst);
   json_wr_nl(dst);
@@ -108,12 +108,12 @@ void json_wr_append(String &dst)
 // add values (inc labels)
 
 /* add a label */
-void json_add_label(String &dst, const char *label)
+void json_add_label(StringBuffer &dst, const char *label)
 {
   json_add(dst, label);
   dst += ":";
 }
-void json_add_label(String &dst, const __FlashStringHelper *label_pgm)
+void json_add_label(StringBuffer &dst, const __FlashStringHelper *label_pgm)
 {
   json_add(dst, label_pgm);
   dst += ":";
@@ -122,29 +122,29 @@ void json_add_label(String &dst, const __FlashStringHelper *label_pgm)
 
 
 /* add an integer value */
-void json_add(String &dst, int value)
+void json_add(StringBuffer &dst, int value)
 {
   dst += value;
   json_first = false;
 }
-void json_add(String &dst, unsigned int value)
+void json_add(StringBuffer &dst, unsigned int value)
 {
   dst += value;
   json_first = false;
 }
-void json_add(String &dst, long value)
+void json_add(StringBuffer &dst, long value)
 {
   dst += value;
   json_first = false;
 }
-void json_add(String &dst, unsigned long value)
+void json_add(StringBuffer &dst, unsigned long value)
 {
   dst += value;
   json_first = false;
 }
 
 /* add a string from sram */
-void json_add(String &dst, const char *string)
+void json_add(StringBuffer &dst, const char *string)
 {
   dst += "\"";
   dst += string;
@@ -152,7 +152,7 @@ void json_add(String &dst, const char *string)
   json_first = false;
 }
 /* append a string from progmem */
-void json_add(String &dst, const __FlashStringHelper *string)
+void json_add(StringBuffer &dst, const __FlashStringHelper *string)
 {
   dst += "\"";
   dst += string;
@@ -162,28 +162,28 @@ void json_add(String &dst, const __FlashStringHelper *string)
 
 // add with label and list separator ///////////////////////////////////////////////////////////
 /* add an integer value */
-void json_add(String &dst, const __FlashStringHelper *label_pgm, int value)
+void json_add(StringBuffer &dst, const __FlashStringHelper *label_pgm, int value)
 {
   json_wr_list(dst);
   json_add_label(dst, label_pgm);
   dst += value;
   json_first = false;
 }
-void json_add(String &dst, const __FlashStringHelper *label_pgm, unsigned int value)
+void json_add(StringBuffer &dst, const __FlashStringHelper *label_pgm, unsigned int value)
 {
   json_wr_list(dst);
   json_add_label(dst, label_pgm);
   dst += value;
   json_first = false;
 }
-void json_add(String &dst, const __FlashStringHelper *label_pgm, long value)
+void json_add(StringBuffer &dst, const __FlashStringHelper *label_pgm, long value)
 {
   json_wr_list(dst);
   json_add_label(dst, label_pgm);
   dst += value;
   json_first = false;
 }
-void json_add(String &dst, const __FlashStringHelper *label_pgm, unsigned long value)
+void json_add(StringBuffer &dst, const __FlashStringHelper *label_pgm, unsigned long value)
 {
   json_wr_list(dst);
   json_add_label(dst, label_pgm);
@@ -192,7 +192,7 @@ void json_add(String &dst, const __FlashStringHelper *label_pgm, unsigned long v
 }
 
 /* add a string from sram */
-void json_add(String &dst, const __FlashStringHelper *label_pgm, const char *string)
+void json_add(StringBuffer &dst, const __FlashStringHelper *label_pgm, const char *string)
 {
   json_wr_list(dst);
   json_add_label(dst, label_pgm);
@@ -202,7 +202,7 @@ void json_add(String &dst, const __FlashStringHelper *label_pgm, const char *str
   json_first = false;
 }
 /* append a string from progmem */
-void json_add(String &dst, const __FlashStringHelper *label_pgm, const __FlashStringHelper *string)
+void json_add(StringBuffer &dst, const __FlashStringHelper *label_pgm, const __FlashStringHelper *string)
 {
   json_wr_list(dst);
   json_add_label(dst, label_pgm);
@@ -220,20 +220,20 @@ void json_add(String &dst, const __FlashStringHelper *label_pgm, const __FlashSt
 // or of objects, each 'append'ed to the list with json_append()
 
 /* start a new array, follow with {json_wr_list, opt. new line, value} (number, string, array or object)*/
-void json_open_array(String &dst)
+void json_open_array(StringBuffer &dst)
 {
   dst += "[";
   json_first = true;
   json_down();
 }
 /* end the current array */
-void json_close_array(String &dst)
+void json_close_array(StringBuffer &dst)
 {
   json_up();
   dst += "]";
   json_first = false;
 }
-void json_append_close_array(String &dst)
+void json_append_close_array(StringBuffer &dst)
 {
   json_up();
   json_wr_nl(dst);
@@ -243,7 +243,7 @@ void json_append_close_array(String &dst)
 
 
 /* add an array and populate with numbers */
-void json_add_array(String &dst, int * values, unsigned int count)
+void json_add_array(StringBuffer &dst, int * values, unsigned int count)
 {
   json_open_array(dst);
   while(count--)
@@ -253,7 +253,7 @@ void json_add_array(String &dst, int * values, unsigned int count)
   }
   json_close_array(dst);
 }
-void json_add_array(String &dst, unsigned int * values, unsigned int count)
+void json_add_array(StringBuffer &dst, unsigned int * values, unsigned int count)
 {
   json_open_array(dst);
   while(count--)
@@ -263,7 +263,7 @@ void json_add_array(String &dst, unsigned int * values, unsigned int count)
   }
   json_close_array(dst);
 }
-void json_add_array(String &dst, long * values, unsigned int count)
+void json_add_array(StringBuffer &dst, long * values, unsigned int count)
 {
   json_open_array(dst);
   while(count--)
@@ -273,7 +273,7 @@ void json_add_array(String &dst, long * values, unsigned int count)
   }
   json_close_array(dst);
 }
-void json_add_array(String &dst, unsigned long * values, unsigned int count)
+void json_add_array(StringBuffer &dst, unsigned long * values, unsigned int count)
 {
   json_open_array(dst);
   while(count--)
@@ -291,20 +291,20 @@ void json_add_array(String &dst, unsigned long * values, unsigned int count)
 // objects
 
 /* start an object */
-void json_open_object(String &dst)
+void json_open_object(StringBuffer &dst)
 {
   dst += "{";
   json_first = true;
   json_down();
 }
 /* end the current object */
-void json_close_object(String &dst)
+void json_close_object(StringBuffer &dst)
 {
   json_up();
   dst += "}";
   json_first = false;
 }
-void json_append_close_object(String &dst)
+void json_append_close_object(StringBuffer &dst)
 {
   json_up();
   json_wr_nl(dst);
@@ -313,13 +313,13 @@ void json_append_close_object(String &dst)
 }
 
 /* add an entry to an object on a new line with the given label */
-void json_append_label(String &dst, const char * label)
+void json_append_label(StringBuffer &dst, const char * label)
 {
   json_wr_append(dst);
   json_add_label(dst, label);
 }
 /* as above, label in prgmem */
-void json_append_label(String &dst, const __FlashStringHelper * label)
+void json_append_label(StringBuffer &dst, const __FlashStringHelper * label)
 {
   json_wr_append(dst);
   json_add_label(dst, label);
@@ -340,13 +340,13 @@ void json_append_label(String &dst, const __FlashStringHelper * label)
 
 // Append Object ///////////////////////////////////////////////////////////////////////////////////////
 /* add an object to an array on a new line */
-void json_append_obj(String &dst)
+void json_append_obj(StringBuffer &dst)
 {
   json_wr_append(dst);
   json_open_object(dst);
 }
 /* add an object to an object with the given label on a new line */
-void json_append_obj(String &dst, const __FlashStringHelper * label )
+void json_append_obj(StringBuffer &dst, const __FlashStringHelper * label )
 {
   json_append_label(dst, label);
   json_open_object(dst);
@@ -356,13 +356,13 @@ void json_append_obj(String &dst, const __FlashStringHelper * label )
 
 // Append array ///////////////////////////////////////////////////////////////////////////////////////
 /* add an object to an array on a new line */
-void json_append_arr(String &dst)
+void json_append_arr(StringBuffer &dst)
 {
   json_wr_append(dst);
   json_open_array(dst);
 }
 /* add an object to an object with the given label on a new line */
-void json_append_arr(String &dst, const __FlashStringHelper * label )
+void json_append_arr(StringBuffer &dst, const __FlashStringHelper * label )
 {
   json_append_label(dst, label);
   json_open_array(dst);
@@ -370,51 +370,51 @@ void json_append_arr(String &dst, const __FlashStringHelper * label )
 
 // Append int array ///////////////////////////////////////////////////////////////////////////////////////
 /* add an array of ints to an array on a new line */
-void json_append_arr(String &dst, int * values, unsigned int count)
+void json_append_arr(StringBuffer &dst, int * values, unsigned int count)
 {
   json_wr_append(dst);
   json_add_array(dst, values,  count);
 }
 /* add an array of ints to an object with the given label on a new line */
-void json_append_arr(String &dst, const __FlashStringHelper * label, int * values, unsigned int count )
+void json_append_arr(StringBuffer &dst, const __FlashStringHelper * label, int * values, unsigned int count )
 {
   json_append_label(dst, label);
   json_add_array(dst,  values,  count);
 }
 /* add an array of unsigned ints to an array on a new line */
-void json_append_arr(String &dst, unsigned int * values, unsigned int count)
+void json_append_arr(StringBuffer &dst, unsigned int * values, unsigned int count)
 {
   json_wr_append(dst);
   json_add_array(dst, values,  count);
 }
 /* add an array of unsigned ints to an object with the given label on a new line */
-void json_append_arr(String &dst, const __FlashStringHelper * label, unsigned int * values, unsigned int count )
+void json_append_arr(StringBuffer &dst, const __FlashStringHelper * label, unsigned int * values, unsigned int count )
 {
   json_append_label(dst, label);
   json_add_array(dst,  values,  count);
 }
 
 /* add an array of unsigned long ints to an array on a new line */
-void json_append_arr(String &dst, unsigned long * values, unsigned int count )
+void json_append_arr(StringBuffer &dst, unsigned long * values, unsigned int count )
 {
   json_wr_append(dst);
   json_add_array(dst,  values,  count);
 }
 /* add an array of unsigned long ints to an object with the given label on a new line */
-void json_append_arr(String &dst, const __FlashStringHelper * label, unsigned long * values, unsigned int count )
+void json_append_arr(StringBuffer &dst, const __FlashStringHelper * label, unsigned long * values, unsigned int count )
 {
   json_append_label(dst, label);
   json_add_array(dst,  values,  count);
 }
 
 /* add an array of long ints to an array on a new line */
-void json_append_arr(String &dst, long * values, unsigned int count )
+void json_append_arr(StringBuffer &dst, long * values, unsigned int count )
 {
   json_wr_append(dst);
   json_add_array(dst,  values,  count);
 }
 /* add an array of long ints to an object with the given label on a new line */
-void json_append_arr(String &dst, const __FlashStringHelper * label, long * values, unsigned int count )
+void json_append_arr(StringBuffer &dst, const __FlashStringHelper * label, long * values, unsigned int count )
 {
   json_append_label(dst, label);
   json_add_array(dst,  values,  count);
@@ -422,75 +422,75 @@ void json_append_arr(String &dst, const __FlashStringHelper * label, long * valu
 
 // Append strings  ///////////////////////////////////////////////////////////////////////////////////////
 /* add an entry to the current object with the given label, for ints and strings with either label or sting in progmem */
-void json_append(String &dst, const char* label, const char* value) //string
+void json_append(StringBuffer &dst, const char* label, const char* value) //string
 {
   json_append_label(dst, label);
   json_add(dst, value);
 }
-void json_append(String &dst, const char* label, const __FlashStringHelper* value) //_string
+void json_append(StringBuffer &dst, const char* label, const __FlashStringHelper* value) //_string
 {
   json_append_label(dst, label);
   json_add(dst, value);
 }
-void json_append(String &dst, const __FlashStringHelper* label, const char* value) //_string
+void json_append(StringBuffer &dst, const __FlashStringHelper* label, const char* value) //_string
 {
   json_append_label(dst, label);
   json_add(dst, value);
 }
-void json_append(String &dst, const __FlashStringHelper* label, const __FlashStringHelper* value) //_string
+void json_append(StringBuffer &dst, const __FlashStringHelper* label, const __FlashStringHelper* value) //_string
 {
   json_append_label(dst, label);
   json_add(dst, value);
 }
 //append strings to arrays
-void json_append(String &dst, const char* value) //_string
+void json_append(StringBuffer &dst, const char* value) //_string
 {
   json_wr_append(dst);
   json_add(dst, value);
 }
-void json_append(String &dst, const __FlashStringHelper* value) //_string
+void json_append(StringBuffer &dst, const __FlashStringHelper* value) //_string
 {
   json_wr_append(dst);
   json_add(dst, value);
 }
 
 // Append integers //////////////////////////////////////////////////////////////////////////////////////////////
-void json_append(String &dst, const char* label, int value) //_int
+void json_append(StringBuffer &dst, const char* label, int value) //_int
 {
   json_append_label(dst, label);
   json_add(dst, value);
 }
-void json_append(String &dst, const __FlashStringHelper* label, int value) //_int
+void json_append(StringBuffer &dst, const __FlashStringHelper* label, int value) //_int
 {
   json_append_label(dst, label);
   json_add(dst, value);
 }
-void json_append(String &dst, const char* label, long value) //_int
+void json_append(StringBuffer &dst, const char* label, long value) //_int
 {
   json_append_label(dst, label);
   json_add(dst, value);
 }
-void json_append(String &dst, const __FlashStringHelper* label, long value) //_int
+void json_append(StringBuffer &dst, const __FlashStringHelper* label, long value) //_int
 {
   json_append_label(dst, label);
   json_add(dst, value);
 }
-void json_append(String &dst, const char* label, unsigned int value) //_int
+void json_append(StringBuffer &dst, const char* label, unsigned int value) //_int
 {
   json_append_label(dst, label);
   json_add(dst, value);
 }
-void json_append(String &dst, const __FlashStringHelper* label, unsigned int value) //_int
+void json_append(StringBuffer &dst, const __FlashStringHelper* label, unsigned int value) //_int
 {
   json_append_label(dst, label);
   json_add(dst, value);
 }
-void json_append(String &dst, const char* label, unsigned long value) //_int
+void json_append(StringBuffer &dst, const char* label, unsigned long value) //_int
 {
   json_append_label(dst, label);
   json_add(dst, value);
 }
-void json_append(String &dst, const __FlashStringHelper* label, unsigned long value) //_int
+void json_append(StringBuffer &dst, const __FlashStringHelper* label, unsigned long value) //_int
 {
   json_append_label(dst, label);
   json_add(dst, value);

@@ -1,5 +1,5 @@
 /*
-  StringBuffer.cpp - Fixed Size String Buffer library for Wiring & Arduino
+  StringCBuffer.cpp - Fixed Size String Buffer library for Wiring & Arduino
   Based loosely on Arduino's WString library
   
   This library is free software; you can redistribute it and/or
@@ -17,15 +17,13 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "StringBuffer.h"
-
-
+#include "StringCBuffer.h"
 
 /*********************************************/
 /*  Constructors                             */
 /*********************************************/
 
-StringBuffer::StringBuffer(const unsigned int size)
+StringCBuffer::StringCBuffer(const unsigned int size)
 {
 	buffer = (char*)malloc(size);
 	if(buffer)
@@ -36,14 +34,14 @@ StringBuffer::StringBuffer(const unsigned int size)
 	init();
 }
 
-StringBuffer::StringBuffer(const unsigned int size, char * static_buffer)
+StringCBuffer::StringCBuffer(const unsigned int size, char * static_buffer)
 {
 	capacity = size;
 	buffer = static_buffer;
 	init();
 }
 
-StringBuffer::~StringBuffer()
+StringCBuffer::~StringCBuffer()
 {
 	if (is_alloc) free(buffer);
 }
@@ -51,10 +49,9 @@ StringBuffer::~StringBuffer()
 /*********************************************/
 /*  Memory Management                        */
 /*********************************************/
-inline void StringBuffer::init(void)
+inline void StringCBuffer::init(void)
 {
 	len = 0;
-	committed = 0;
 	rd = 0;
 	wr = 0;
 	old = 0;
@@ -62,127 +59,140 @@ inline void StringBuffer::init(void)
 }
 
 //copies length chars to the destination if not NULL, moves the start of the buffer forward by length
-unsigned int StringBuffer::pop(char *dst, unsigned int length)
+unsigned int StringCBuffer::pop(char *dst, unsigned int length)
 {
-	//limit request length to buffer length
 	if(length > committed) length = committed;
-	//copy the buffer to dst if defined
 	if(dst)
-		memcpy(dst, &buffer[rd], length);
-	//reset the buffer if all bytes popped
+	{
+		if(wr >= rd)
+		{
+			memcpy(dst, &buffer[rd], length);
+			rd += length;
+		}
+		else
+		{
+			unsigned int to_next = capacity - rd;
+			// write first part to end of buffer
+			memcpy(dst, &buffer[rd], to_next);
+			dst += to_next;
+			to_next = length - to_next;
+			// write 2nd part to start of buffer
+			memcpy(buffer, dst, to_next);
+			rd = to_next;
+		}
+	}
 	if(length == len)
 		init();
 	else
-	{ // otherwise reduce buffer length and move read position
-		rd += length;
+	{
 		len -= length;
 		committed -= length;
 	}
 	return length;
 }
-unsigned int StringBuffer::pop(Stream &dst, unsigned int length)
+unsigned int StringCBuffer::pop(Stream &dst, unsigned int length)
 {
 	if(length > committed) length = committed;
-	
-	length = dst.write(&buffer[rd], length);
-	
+	if(wr >= rd)
+	{
+		dst.write(&buffer[rd], length);
+		rd += length;
+	}
+	else
+	{
+		unsigned int to_next = capacity - rd;
+		// write first part to end of buffer
+		dst.write(&buffer[rd], to_next);
+		to_next = length - to_next;
+		// write 2nd part to start of buffer
+		dst.write(buffer, to_next);
+		rd = to_next;
+	}
 	if(length == len)
 		init();
 	else
 	{
-		rd += length;
 		len -= length;
 		committed -= length;
 	}
 	return length;
 }
 //reset the array markers
-void StringBuffer::clear(void)
+void StringCBuffer::clear(void)
 {
 	init();
 }
 
 // if the buffer has overrun, remove everything added since last commit,
 //returns false if an overrun occurs
-bool StringBuffer::commit(void)
+bool StringCBuffer::commit(void)
 {
 	if(has_overrun)
-	{	//reset the write position to old position, 
+	{
 		wr = old;
-		//re-terminate the string
-		buffer[wr] = '\0';
-		// reset length
 		len = committed;
-		//reset overrun flag
 		has_overrun = false;
 		return false;
 	}
 	else
 	{
-		//update old position to new write position
 		old = wr;
-		//update committed length
 		committed = len;
 		return true;
 	}
-}
-
-unsigned int StringBuffer::rewind(unsigned int threshold)
-{
-	if(rd > threshold) //check the space before the rd marker is greater than the threshold
-	{
-		memmove(buffer, str(), len+1); //move the buffer contents from rd to 0
-		unsigned int moved = rd;
-		wr -= moved;
-		old -= moved;
-		rd = 0;
-		return moved;
-	}
-	return 0;
-}
-unsigned int StringBuffer::rewind(void)
-{
-	return rewind(0);
 }
 
 /*********************************************/
 /*  concat                                   */
 /*********************************************/
 
-unsigned char StringBuffer::concat(const String &s)
+unsigned char StringCBuffer::concat(const String &s)
 {
 	return concat(s.c_str(), s.length());
 }
 
-unsigned char StringBuffer::concat(const char *cstr, unsigned int length)
+unsigned char StringCBuffer::concat(const char *cstr, unsigned int length)
 {
-	if (has_overrun) return 0;	//fail if already overrun
-	if (!cstr) return 0;		//fail if no string provided
-	if (length == 0) return 1;	//trivial success if 0 bytes set to be copied
-	unsigned int newwr = wr + length; //find new write position
-	if (newwr >= capacity)		// check for buffer overrun
+	if (has_overrun) return 0;
+	if (!cstr) return 0;
+	unsigned int newlen = len + length;
+	if (length == 0) return 1;
+	if (newlen >= capacity)
 	{
 		has_overrun = true;
 		return 0;
 	}
-	//copy the source into the buffer
-	memcpy(&buffer[wr], cstr, length);
-	//update the write position
-	wr = newwr;
-
+	
+	//check for index overflow
+	if((wr + length) > capacity) 
+	{
+		unsigned int to_next = capacity - wr;
+		// write first part to end of buffer
+		memcpy(&buffer[wr], cstr, to_next);
+		cstr += to_next;
+		to_next = length - to_next;
+		// write 2nd part to start of buffer
+		memcpy(buffer, cstr, to_next);
+		wr = to_next;
+	}
+	else
+	{
+		memcpy(&buffer[wr], cstr, length);
+		wr+=length;
+	}
 	//terminate the string and update length
 	buffer[wr] = 0;
-	len += length;
+	len = newlen;
 	return 1;
 }
 
-unsigned char StringBuffer::concat(const char *cstr)
+unsigned char StringCBuffer::concat(const char *cstr)
 {
 	if (!cstr) return 0;
 	return concat(cstr, strlen(cstr));
 }
 
-unsigned char StringBuffer::concat(char c)
+unsigned char StringCBuffer::concat(char c)
 {
 	char buf[2];
 	buf[0] = c;
@@ -190,74 +200,83 @@ unsigned char StringBuffer::concat(char c)
 	return concat(buf, 1);
 }
 
-unsigned char StringBuffer::concat(unsigned char num)
+unsigned char StringCBuffer::concat(unsigned char num)
 {
 	char buf[1 + 3 * sizeof(unsigned char)];
 	itoa(num, buf, 10);
 	return concat(buf, strlen(buf));
 }
 
-unsigned char StringBuffer::concat(int num)
+unsigned char StringCBuffer::concat(int num)
 {
 	char buf[2 + 3 * sizeof(int)];
 	itoa(num, buf, 10);
 	return concat(buf, strlen(buf));
 }
 
-unsigned char StringBuffer::concat(unsigned int num)
+unsigned char StringCBuffer::concat(unsigned int num)
 {
 	char buf[1 + 3 * sizeof(unsigned int)];
 	utoa(num, buf, 10);
 	return concat(buf, strlen(buf));
 }
 
-unsigned char StringBuffer::concat(long num)
+unsigned char StringCBuffer::concat(long num)
 {
 	char buf[2 + 3 * sizeof(long)];
 	ltoa(num, buf, 10);
 	return concat(buf, strlen(buf));
 }
 
-unsigned char StringBuffer::concat(unsigned long num)
+unsigned char StringCBuffer::concat(unsigned long num)
 {
 	char buf[1 + 3 * sizeof(unsigned long)];
 	ultoa(num, buf, 10);
 	return concat(buf, strlen(buf));
 }
 
-unsigned char StringBuffer::concat(float num)
+unsigned char StringCBuffer::concat(float num)
 {
 	char buf[20];
 	char* string = dtostrf(num, 4, 2, buf);
 	return concat(string, strlen(string));
 }
 
-unsigned char StringBuffer::concat(double num)
+unsigned char StringCBuffer::concat(double num)
 {
 	char buf[20];
 	char* string = dtostrf(num, 4, 2, buf);
 	return concat(string, strlen(string));
 }
 
-unsigned char StringBuffer::concat(const __FlashStringHelper * str)
+unsigned char StringCBuffer::concat(const __FlashStringHelper * str)
 {
-	if (has_overrun) return 0;	//fail if already overrun
-	if (!str) return 0;		//fail if no string provided
-	unsigned int length = strlen_P((const char *)str); //get the string length
-	if (length == 0) return 1;	//trivial succes if 0 bytes set to be copied
-	unsigned int newwr = wr + length; //find new write position
-	if (newwr >= capacity)		// check for buffer overrun
+	const char * cstr = (const char *) str;
+	if (!str) return 0;
+	int length = strlen_P(cstr);//(const char *) str);
+	if (length == 0) return 1;
+	unsigned int newlen = len + length;
+	if (newlen >= capacity) return 0;
+	
+	//check for index overflow
+	if((wr + length) > capacity) 
 	{
-		has_overrun = true;
-		return 0;
+		unsigned int to_next = capacity - wr;
+		// write first part to end of buffer
+		memcpy_P(&buffer[wr], cstr, to_next);
+		cstr += to_next;
+		to_next = length - to_next;
+		// write 2nd part to start of buffer
+		memcpy_P(buffer, cstr, to_next);
+		wr = to_next;
 	}
-	//copy the source into the buffer
-	memcpy_P(&buffer[wr], (const char *)str, length);
-	//update the write position
-	wr = newwr;
-
+	else
+	{
+		memcpy_P(&buffer[wr], cstr, length);
+		wr+=length;
+	}
 	//terminate the string and update length
-	buffer[wr] = 0;
-	len += length;
+	//buffer[wr] = 0;
+	len = newlen;
 	return 1;
 }

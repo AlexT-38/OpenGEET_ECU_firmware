@@ -1,7 +1,6 @@
 
  #define NO_IDX 0xff
- #define RECORD_RECORD_SIZE 1500
- #define RECORD_BUFFER_SIZE (2*RECORD_RECORD_SIZE)
+ #define RECORD_BUFFER_SIZE (4096)
 
 /* the records to write to */
 DATA_RECORD Data_Records[2];
@@ -18,15 +17,14 @@ DATA_CONFIG Data_Config = {DATA_RECORD_VERSION, NO_OF_USER_INPUTS, NO_OF_MAP_SEN
 
 static DATA_STORAGE data_store;
 
-
-String dataBuffer;
+char dataBuffer_array[RECORD_BUFFER_SIZE];
+StringBuffer dataBuffer(RECORD_BUFFER_SIZE, dataBuffer_array);
 unsigned int recordStart; //length of dataBuffer at time of adding record to buffer;
 
 
 unsigned int lastRecordSize = 0;
 void configure_records()
 {
-  dataBuffer.reserve(RECORD_BUFFER_SIZE);
 }
 
 
@@ -265,7 +263,8 @@ void update_record()
   // convert data to string report if logging and either sdcard or serial is configured for output and in text format
   if(flags_status.logging_state && ( (!flags_config.do_serial_write_hex && flags_config.do_serial_write) || (!flags_config.do_sdcard_write_hex && flags_config.do_sdcard_write) ))
   {
-    recordStart = write_data_record_to_buffer(data_record, dataBuffer, recordStart);
+    recordStart = dataBuffer.get_old(); //get the index of the last committed data
+    write_data_record_to_buffer(data_record, dataBuffer);//, recordStart);
   }
 
   #ifdef DEBUG_BUFFER_TIME
@@ -283,64 +282,52 @@ void update_record()
 }
 
 
-unsigned int write_data_record_to_buffer(DATA_RECORD *data_record, String &dst, int prev_record_idx)
+//unsigned int 
+void write_data_record_to_buffer(DATA_RECORD *data_record, StringBuffer &dst)//, int prev_record_idx)
 {
-    //write the record to a temporary buffer, so that we can handle dst buffer overflows
-    String buf;
-    buf.reserve(RECORD_RECORD_SIZE);
 
     switch (flags_status.logging_state)
     {
         case LOG_STARTING:
-          start_log(buf);
+          dst.clear();
+          start_log(dst);
           break;
         case LOG_STARTED:
-          write_record(buf, data_record);
+          recordStart -= dst.rewind(); //move left over data back to the start of the buffer and adjust recordStart
+          write_record(dst, data_record);
           break;
         case LOG_STOPPING:
-          finish_log(buf);
+          finish_log(dst);
           break;
     }
     #ifdef DEBUG_RECORD
-    Serial.print(F("buf.len: ")); Serial.println(buf.length());
+    Serial.print(F("BUF:\ndst.cmt     : ")); Serial.println(dst.get_committed());
+    Serial.print(F("dst.len     : ")); Serial.println(dst.length());
+    Serial.print(F("recordStart : ")); Serial.println(recordStart);
     #endif
       
 
     ///////////////////////////////////////////////////////////////////////////////////
 
-    int this_record_idx = dst.length();
-    
-    if( (this_record_idx + buf.length()) < RECORD_BUFFER_SIZE )
+    //int this_record_idx = dst.length();
+
+    if(dst.commit()) //checks if the buffer overran, updates if not, otherwise resets back to last commit 
     {
-      // add the new record to the output buffer
-      dst += buf;
-      
       #ifdef DEBUG_BUFFER
       Serial.println(F("BUF: Record appended"));
-      #endif
+      #endif 
     }
-    else if( (prev_record_idx + buf.length()) < RECORD_BUFFER_SIZE )
-    {
-      //over write the previous record, if not enough space
-      dst.remove(prev_record_idx, this_record_idx - prev_record_idx);
-      dst += buf;
-      this_record_idx = prev_record_idx;
-      
-      #ifdef DEBUG_BUFFER
-      Serial.println(F("BUF: Record overwrite"));
-      #endif
-    }
-    else 
+    else
     {
       #ifdef DEBUG_BUFFER
       Serial.println(F("BUF: Record dropped"));
       #endif
-    } //otherwise drop this record
+    }
+    
   #ifdef DEBUG_BUFFER
-  Serial.print(F("BUF (this idx, this size, buf size): "));
-  Serial.print(this_record_idx); Serial.print(", "); Serial.print(buf.length()); Serial.print(", "); Serial.println(dst.length());
+  Serial.print(F("dst.cmt: ")); Serial.println(dst.get_committed());
+  Serial.print(F("dst.len: ")); Serial.println(dst.length());
   #endif
-  return this_record_idx;
 }
 
 
@@ -359,7 +346,7 @@ void hash_data(DATA_STORAGE *data)
 }
 
 
-void log_io_info( String &dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units)
+void log_io_info( StringBuffer&dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units)
 {
     if(name_pgm)             json_append(dst, F("name"), name_pgm);
     if(number > 1)           json_append(dst, F("num"), number);
@@ -368,7 +355,7 @@ void log_io_info( String &dst, const __FlashStringHelper * name_pgm, byte number
     if(units)                json_append(dst, F("units"), units);
 
 }
-void log_io_info( String &dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units,
+void log_io_info( StringBuffer&dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units,
                   int low, int high, char scale)
 {
   log_io_info(dst, name_pgm, number, rate, units, rate_units);
@@ -380,7 +367,7 @@ void log_io_info( String &dst, const __FlashStringHelper * name_pgm, byte number
   }
 }
 /* write the log header */
-void start_log(String &dst)
+void start_log(StringBuffer&dst)
 {
   #ifdef DEBUG_RECORD
   Serial.println(F("log wr head"));
@@ -504,7 +491,7 @@ void start_log(String &dst)
   json_append_arr(dst, F("records"));
 }
 /* write the log footer */
-void finish_log(String &dst)
+void finish_log(StringBuffer &dst)
 {
   #ifdef DEBUG_RECORD
   Serial.println(F("log wr tail"));
@@ -515,7 +502,7 @@ void finish_log(String &dst)
 }
 
 /* write a record into the "records" array */
-void write_record(String &dst, DATA_RECORD *data_record)
+void write_record(StringBuffer &dst, DATA_RECORD *data_record)
 {
   #ifdef DEBUG_RECORD
   Serial.println(F("log wr rec"));
