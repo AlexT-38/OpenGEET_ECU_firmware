@@ -17,6 +17,10 @@
 //#define DEBUG_SCREEN_CONFIG_TOUCH_SLIDERS
 #define DEBUG_EEP_UI
 
+static byte config_servo_idx = 0;
+inline byte get_servo_cal_idx() {return config_servo_idx;}
+inline void set_servo_cal_idx(const byte idx) {config_servo_idx = idx;}
+
 void screen_draw_config()
 {
   MAKE_STRING(S_SAVE);
@@ -43,45 +47,55 @@ void screen_draw_config()
   draw_toggle_button(GRID_XL(2,XN),GRID_YT(4,YNB),GRID_SX(XN),GRID_SY(YNB),TAG_LOG_TOGGLE_SDCARD_HEX,flags_config.do_sdcard_write_hex,S_DOT_RAW_str);
 
 
-  #define NO_OF_SV_CAL (NO_OF_SERVOS*2)
-  char strings[NO_OF_SV_CAL][10];
-  READ_STRING(S_SV0_MIN, strings[0]);
-  READ_STRING(S_SV0_MAX, strings[1]);
-  #if NO_OF_SERVOS >1
-  READ_STRING(S_SV1_MIN, strings[2]);
-  READ_STRING(S_SV1_MAX, strings[3]);
-  #endif
-  #if NO_OF_SERVOS >2
-  READ_STRING(S_SV2_MIN, strings[4]);
-  READ_STRING(S_SV2_MAX, strings[5]);
-  #endif
-  int val;
 
+  MAKE_STRING(S_SERVO_0);
+  draw_toggle_button( GRID_XL(1,XN),GRID_YT(2,YNB), GRID_SX(XN),GRID_SY(YNB), TAG_CAL_SV_0, config_servo_idx==0, S_SERVO_0_str );
+  MAKE_STRING(S_SERVO_1);
+  draw_toggle_button( GRID_XL(2,XN),GRID_YT(2,YNB), GRID_SX(XN),GRID_SY(YNB), TAG_CAL_SV_1, config_servo_idx==1, S_SERVO_1_str );
+  MAKE_STRING(S_SERVO_2);
+  draw_toggle_button( GRID_XL(3,XN),GRID_YT(2,YNB), GRID_SX(XN),GRID_SY(YNB), TAG_CAL_SV_2, config_servo_idx==2, S_SERVO_2_str );
   
-  for (byte n = 0; n< NO_OF_SV_CAL; n++)
-  {
-    byte sv = n>>1;
-    val = ((n&1)?(servo_cal[sv].upper):(servo_cal[sv].lower))- SERVO_MIN_us;// 
-#ifdef DEBUG_SCREEN_CONFIG_DRAW_SLIDERS
-    Serial.print(strings[n]);
-    Serial.print(GRID_XL(1,XN));
-    Serial.print(FS(S_COMMA));
-    Serial.print(GRID_YT(n,YN));
-    Serial.print(FS(S_COMMA));
-    Serial.print(GRID_SX(XN)<<2);
-    Serial.print(FS(S_COMMA));
-    Serial.print(GRID_SY(YN));
-    Serial.print(FS(S_COMMA));
-    Serial.print(GRID_SX(XN));
-    Serial.println();
-    Serial.println(val);
-#endif
-    draw_slider_horz(GRID_XL(1,XN), GRID_YT(n,YN), GRID_SX(XN)<<2, GRID_SY(YN), GRID_SX(XN), strings[n], TAG_CAL_SV0_MIN+n, val, SERVO_RANGE);
+  int val;
+  val = servo_cal[config_servo_idx].lower - SERVO_MIN_us;
+  MAKE_STRING(S_SERVO_MIN);
+  draw_slider_horz(GRID_XL(1,XN), GRID_YT(0,YNB), GRID_SX(XN)<<2, GRID_SY(YNB), GRID_SX(XN), S_SERVO_MIN_str, TAG_CAL_SV_MIN, val, SERVO_RANGE);
 
-  }
 #ifdef DEBUG_SCREEN_CONFIG_DRAW_SLIDERS
+  Serial.print(strings[n]);
+  Serial.print(GRID_XL(1,XN));
+  Serial.print(FS(S_COMMA));
+  Serial.print(GRID_YT(n,YN));
+  Serial.print(FS(S_COMMA));
+  Serial.print(GRID_SX(XN)<<2);
+  Serial.print(FS(S_COMMA));
+  Serial.print(GRID_SY(YN));
+  Serial.print(FS(S_COMMA));
+  Serial.print(GRID_SX(XN));
+  Serial.println();
+  Serial.println(val);
+#endif
+  
+  val = servo_cal[config_servo_idx].upper - SERVO_MIN_us; 
+  MAKE_STRING(S_SERVO_MAX);
+  draw_slider_horz(GRID_XL(1,XN), GRID_YT(1,YNB), GRID_SX(XN)<<2, GRID_SY(YNB), GRID_SX(XN), S_SERVO_MAX_str, TAG_CAL_SV_MAX, val, SERVO_RANGE);
+  
+#ifdef DEBUG_SCREEN_CONFIG_DRAW_SLIDERS
+  Serial.print(strings[n]);
+  Serial.print(GRID_XL(1,XN));
+  Serial.print(FS(S_COMMA));
+  Serial.print(GRID_YT(n,YN));
+  Serial.print(FS(S_COMMA));
+  Serial.print(GRID_SX(XN)<<2);
+  Serial.print(FS(S_COMMA));
+  Serial.print(GRID_SY(YN));
+  Serial.print(FS(S_COMMA));
+  Serial.print(GRID_SX(XN));
+  Serial.println();
+  Serial.println(val);
   Serial.println();
 #endif
+    
+
 
 }
 

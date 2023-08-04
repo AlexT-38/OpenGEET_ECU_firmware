@@ -41,6 +41,7 @@
 #define C_VALUE          RGB(0xFF,0xFF,0xD0)
 
 #define C_BUTTON_FG      RGB(0x00,0x10,0xD0)
+#define C_BUTTON_TOG_FG  RGB(0x00,0xA0,0x20)
 
 #define C_MARKER          RGB(0xFF, 0x50, 0x00)
 
@@ -94,12 +95,11 @@ typedef enum tags
   TAG_LOG_TOGGLE_SERIAL,
   TAG_LOG_TOGGLE_SERIAL_HEX,
 
-  TAG_CAL_SV0_MIN,  //in order of drawing for simplified tag calculation
-  TAG_CAL_SV0_MAX,
-  TAG_CAL_SV1_MIN,
-  TAG_CAL_SV1_MAX,
-  TAG_CAL_SV2_MIN,
-  TAG_CAL_SV2_MAX,
+  TAG_CAL_SV_MIN,
+  TAG_CAL_SV_MAX,
+  TAG_CAL_SV_0,
+  TAG_CAL_SV_1,
+  TAG_CAL_SV_2,
 
   TAG_EEPROM_SAVE,
   TAG_EEPROM_LOAD,
