@@ -115,7 +115,7 @@
 //#define DEBUG_SDCARD
 //#define DEBUG_BUFFER
 //#define DEBUG_ADC
-#define DEBUG_ADC_FAST
+//#define DEBUG_ADC_FAST
 //#define DEBUG_ADC_ISR
 //#define DEBUG_SERVO
 //#define DEBUG_PID
