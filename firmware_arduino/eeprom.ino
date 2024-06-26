@@ -83,7 +83,7 @@ void save_eeprom()
 void check_eeprom_update()
 {
   
-  static int time_now = millis();
+  int time_now = millis();
   int elapsed_time = time_now - eeprom_timestamp_ms;
 
   //prevent stale timer / loopback
