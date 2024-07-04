@@ -7,7 +7,7 @@
 
 
 /* table of letters representing commands, starting with A */
-const COMMAND commands_by_letter[] = {C_PRINT_STATE, C_HELP, C_SET_PRESCALE, C_HELP,           //A,B,C,D
+const COMMAND commands_by_letter[] = {C_PRINT_STATE, C_SET_PWM_BITS, C_SET_PRESCALE, C_HELP,           //A,B,C,D
                                       C_LOAD_EEP, C_FORCE_PWM, C_HELP, C_HELP,               //E,F,G,H
                                       C_SET_PWM_INVERT, C_HELP, C_HELP, C_SET_PWM_LIMIT,  //I,J,K,L
                                       C_HELP, C_HELP, C_OSCILLATE, C_SET_PWM,            //M,N,O,P
@@ -15,7 +15,7 @@ const COMMAND commands_by_letter[] = {C_PRINT_STATE, C_HELP, C_SET_PRESCALE, C_H
                                       C_HELP, C_SET_PWM_RAMP, C_SAVE_EEP,                   //U,V,W
                                       C_RESET_CONFIG, C_HELP, C_PRINT_CONFIG };   //X,Y,Z
                           
-const char command_letters[] = {'S','R','P','F','C','I','V','O','T','L','W','E','X','Z','A','H'}; //this ought to be an indexed intialiser
+const char command_letters[] = {'S','R','P','F','C','I','V','B','O','T','L','W','E','X','Z','A','H'}; //this ought to be an indexed intialiser
 
 
 
@@ -161,6 +161,14 @@ void recieve_command()
       Serial.print(F("ramp: "));
       Serial.println(config.pwm_ramp);
     }
+    break;
+    case C_SET_PWM_BITS:
+    {
+      byte new_bits = atoi(&buf[bpos]);
+      set_pwm_bits(new_bits);
+      Serial.print(F("bit reduce: "));
+      Serial.println(config.pwm_bits);
+    } 
     break;
     case C_OSCILLATE:
     {

@@ -52,6 +52,7 @@ const char PROGMEM  S_SET_PRESCALE[] = "SET_PRESCALE <1...5>";           //C set
 const char PROGMEM  S_SET_PWM_LIMIT[] = "SET_PWM_LIMIT [<0...-254>|<1...255>]";          //L set minimum (-ve) and maximum (+ve) pwm values
 const char PROGMEM  S_SET_PWM_INVERT[] = "SET_PWM_INVERT <in> <out>";         //I set PWM inversion bit0:in (255-pwm) bit1:out (hi/lo)
 const char PROGMEM  S_SET_PWM_RAMP[] = "SET_PWM_RAMP <0...65536>";         //I set PWM inversion bit0:in (255-pwm) bit1:out (hi/lo)
+const char PROGMEM  S_SET_PWM_BITS[] = "SET_PWM_BITS";         //B reduce PWM bits from 8 to 7 above 192
 const char PROGMEM  S_OSCILLATE[] = "OSCILLATE";         //O send LFO to pwm
 const char PROGMEM S_USE_LUT[] = "USE LUT";
 const char PROGMEM  S_SAVE_EEP[] = "SAVE_EEP";               //W
@@ -78,6 +79,7 @@ const char * const command_str[] PROGMEM = { //this should prabably be an indexe
   S_SET_PWM_LIMIT,
   S_SET_PWM_INVERT,
   S_SET_PWM_RAMP,
+  S_SET_PWM_BITS,
   S_OSCILLATE,
   S_USE_LUT,
   S_SAVE_EEP,

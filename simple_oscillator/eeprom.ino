@@ -19,8 +19,8 @@ byte flag_update_eeprom = false;
 
 void reset_config()
 {
-  //                prescale_n, pwm, pwm_osc, pwm_min, pwm_max, pwm_ramp, pwm_invert, pwm_negate, oscillate, enable, lut, interval
-  config = (CONFIG) {1,         0,   PWM_MAX, PWM_MIN, PWM_MAX,        1,      false,       true,     false,  false, true,     500};
+  //                prescale_n, pwm, pwm_osc, pwm_min, pwm_max, pwm_ramp, pwm_bits, pwm_invert, pwm_negate, oscillate, enable, lut, interval
+  config = (CONFIG) {1,         0,   PWM_MAX, PWM_MIN, PWM_MAX,        1,        8,      false,       true,     false,  false, true,     500};
   config_update();
 }
 //update registers to match config
@@ -243,6 +243,9 @@ void export_config(Stream *dst, CONFIG *config_t)
 
   dst->print(F("pwm_ramp: "));
   dst->println(config_t->pwm_ramp);
+
+  dst->print(F("pwm_bits: "));
+  dst->println(config_t->pwm_bits);
 
   dst->print(F("pwm_negate: "));
   dst->println(config_t->pwm_negate);

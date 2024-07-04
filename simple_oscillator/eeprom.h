@@ -10,7 +10,7 @@
  * the function is __builtin_offsetof also defined as offsetof (type, member | .member | [expr])
  */
  
-#define EEP_VERSION 3
+#define EEP_VERSION 4
 #define EEP_DEFAULT_CRC 0x5A
 
 typedef struct configuration
@@ -21,11 +21,13 @@ typedef struct configuration
   byte pwm_min;         //minimum setable value, will jump to 0 below this if 'negate' is set
   byte pwm_max;         //maximum setable value, will jump to 255 above this if  'negate is NOT set
   unsigned int pwm_ramp; //number of PWM cycles between inc/decrement of the current pwm input value
+  byte pwm_bits;    
   byte pwm_invert:1;    //inverts the polarity presented on the output pin 
   byte pwm_negate:1;    //negates the pwm value (255-pwm) prior to writing to OCR1A so that a pwm value of 0 can be achieved
   byte oscillate:1;     //indicates that the LFO should set the target pwm, switching between config.pwm and config.pwm_osc
   byte enable:1;        //enables LFO state output
   byte lut:1;           //enables look up table on pwm values prior to negation and writing to OCR1A
+  
   long int interval;    //half cycle time interval for LFO
 }CONFIG;
 

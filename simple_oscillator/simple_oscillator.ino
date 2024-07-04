@@ -1,4 +1,5 @@
 /*
+ * 
  * this was simple, but now less so
  * 
  * soft generate a square wave up to 25Hz
@@ -86,7 +87,40 @@
  * meanwhile, any transfer function would also be applied by write_pwm()
  * transfer functions apply to the input prior to inversion and negation, which are output configurations
  * 
+ * testing under load (51 Ohm) from a 2A 3A psu, efficiency drops off above ~75% pwm
+ * this is due to the low inductance vs resistance, ie the RL time constant is small compared to the time base of the pwm
+ * this could be compensated for to some extent by reducing the number of bits at high ratios
+ * this may cuase problems with the comparators, since it would increase the proportion of their switching time 
+ * relative to the pwm time base
  * 
+ * a quick test of efficiency shows that running at 7.9kHz is more efficient
+ * than 62.5kHz which is slightly more efficient than 125kHz
+ * 
+ * this loss in efficiency must be due to switching losses
+ * 
+ * at 977Hz, results were erratic and extremely inefficient.
+ * 
+ * therefore it would be desirable to run PWM at full speed
+ * and vary the number of bits to optimise efficiency
+ * ideally, control would continue to be 8bit
+ * and that 8 bits is converted to n bits when writing the value to OCR1A
+ * the value perhaps should be scaled such that a value of 255 is always TOP?
+ * we can also make the LUT 16bit
+ * 
+ * step 1: change the B command to accept a number of bits from 6-14
+ * step 2: change the force and write_pwm commands to scale input to this range
+ *         by bit shifting only. Since we generally don't want full on PWM
+ *         there's no point accounting for this edge case
+ * step 3: create a step sequencer that progresses through each pwm input value    
+ *         measure the input and output voltage, calculates the boost and the efficiency
+ *         and then prints the data to serial
+ *         Vin is to be measured directly
+ *         Vout should be measured with a potential divider
+ *         with the bottom leg switchable between different values
+ * step 4: plot the data in a spreadsheet
+ * step 5: create a table that selects the best bit depth for a given pwm
+ * step 6: update the boost LUT to use the highest number of bits in the above table 
+ *         and scale down as needed
  * 
  */
 #define ARD_LED 13
@@ -96,6 +130,8 @@
 //defaults
 #define PWM_MIN 10    //below this, pwm is off (if PWM is negated)
 #define PWM_MAX 245   //pwm can never be higher than this (unless PWM is negated)
+#define PWM_BITS_MIN  6
+#define PWM_BITS_MAX  14
 
 #include <EEPROM.h>
 #include "eeprom.h"
@@ -143,9 +179,13 @@ void setup() {
   //actualy, TMR1 is 16 bit, and we could probably have full on by writing 256 to OCR1A
   //no prescaling
 
+  //changing to  WGM = 0b1110 Fast PWM, TOP=ICR1
+
   //only set non changing reg bits here. the others will be set by load_eeprom() via their respective setters
-  TCCR1A = (bit(COM1A1) | bit(WGM10));
-  TCCR1B = (bit(WGM12));
+  TCCR1A = (bit(COM1A1) |  bit(WGM11)); //bit(WGM10) |
+  TCCR1B = (bit(WGM13) | bit(WGM12));
+
+  ICR1=255;
   
 
 
@@ -167,6 +207,51 @@ void setup() {
 //enable ramp interrupt
   TIMSK1 = bit(TOIE1);
   
+}
+static byte update_top = 0;
+static byte update_ocr1a = 0;
+
+void set_pwm_bits(byte bits)
+{
+  //limit bit range
+  if(bits < PWM_BITS_MIN) bits = PWM_BITS_MIN;
+  else if(bits > PWM_BITS_MAX) bits = PWM_BITS_MAX;
+  
+  //new top value
+  unsigned int top = bit(bits)-1;
+  
+  //difference between old bits and new bits
+  char bit_change = bits-config.pwm_bits;
+
+  //modify OCR1A to reflect the new bitage
+  unsigned long ocr1a = OCR1A;
+  //note that this is the non negated value, which means that we may need to unnegate, shift, renegate
+  if(config.pwm_negate)
+  {
+    ocr1a = ICR1 - ocr1a; //unnegate using the old top
+    ocr1a = (ocr1a<<bit_change); //not sure if bit shifting negative values is allowed?
+    ocr1a = top - ocr1a; //re negate using the new top
+  }
+  else
+  {
+    ocr1a = (ocr1a<<bit_change);
+  }
+
+  //writing directly to the registers here may cause problems if top < OCR1A, in which case update ICR1/OCR1A in the ISR
+  //not also that if OCR1A has been written prior to this, but hasnt buffered through yet,
+  //this may cause problems if the readback of OCR1A is the actual value of OCR1A and not the BUFFERED value. Check the data sheet
+  //data sheet say CPU has access only to the buffered value when in PWM mode so no problem there.
+  if(top<OCR1A)
+  {
+    update_top = top;
+    update_ocr1a = ocr1a;
+  }
+  else
+  {
+    OCR1A = ocr1a;
+    ICR1 = top;  
+  }
+  config.pwm_bits = bits;
 }
 
 void loop() {
@@ -245,10 +330,23 @@ void set_time_interval(long int new_interval)
 ISR(TIMER1_OVF_vect)
 {
   //Serial.println(F("ISR"));
+  
+  //if bits have changed such that top < OCR1A when change requested,
+  //we must update OCR1A and ICR1 here
+  if (update_top)
+  {
+    ICR1 = update_top;
+    OCR1A = update_ocr1a;
+    update_top = 0;
+    update_ocr1a = 0;
+  }
+  
+  //process ramping
   if(ramp_value != ramp_target)
   {
     if(config.pwm_ramp != 0)
     {
+      //ramp using the ramp counter
       if(ramp_counter++ >= config.pwm_ramp)
       {
         ramp_counter = 0;
@@ -264,12 +362,14 @@ ISR(TIMER1_OVF_vect)
     }
     else
     {
+      //jump directly to target when ramp is 0
       ramp_value = ramp_target;
     }
     write_pwm(ramp_value);
   }
   else
   {
+    //keep ramp counter reset when target reached
     ramp_counter = 0;
   }
 }
@@ -377,12 +477,23 @@ void force_pwm(byte pwm)
   forced = true;
   forced_value = pwm;
   config.oscillate = false;
+
+  //shift the bits before negating
+  char bit_shift = config.pwm_bits - 8;
+  if (bit_shift) pwm<<bit_shift;
+
+  //use TOP (ICR1) to negate
   if(config.pwm_negate)
   {
-    pwm=255-pwm;
+    pwm=ICR1-pwm;
   }
-  
+
   OCR1A = pwm;
+
+  Serial.print(F("ICR1:  "));
+  Serial.println(ICR1);
+  Serial.print(F("OCR1A: "));
+  Serial.println(OCR1A);
 }
 
 /* write_pwm(pwm)
@@ -393,14 +504,21 @@ void write_pwm(byte pwm)
   //apply look up table
   if(config.lut)
     pwm = LUT[pwm];
-  //apply limits
+  //apply limits        this should account for pwm_bits, and be applied after bit shifting
   pwm = limit_pwm(pwm);
+
+
+  //shift the bits before negating, we should also ignore this if using a 16bit LUT
+  char bit_shift = config.pwm_bits - 8;
+  if (bit_shift) pwm<<bit_shift;
+  
   //negate
   if(config.pwm_negate)
   {
-    pwm=255-pwm;
+    pwm=ICR1-pwm;
   }
-  //write to register
+  
+  //write the final value to OCR1A  
   OCR1A = pwm;
 }
 
