@@ -22,18 +22,52 @@ const char command_letters[] = {'S','R','P','F','C','I','V','B','O','T','L','W',
 /* check for serial commands and produce periodic report */
 void Process_Commands()
 {
-  //Serial.println(F("process commands"));
+  #ifdef DEBUG_TRAP
+  //static long interval_time = micros();
+  #ifdef DEBUG_COMMAND_TIME
+  unsigned long elapsed_time;
+  #endif
+  static int count;
+  //long time_interval = micros()-interval_time;
+  //interval_time = micros();
+  if(count==0)
+  {
+    Serial.println(F("process commands"));
+    #ifdef DEBUG_COMMAND_TIME
+    elapsed_time = micros();
+    #endif
+  }
+  #endif
+  
   if (Serial.available() > 0)
   {
     recieve_command();
   }
+  
+  #ifdef DEBUG_TRAP
+  if(count==0)
+  {
+    #ifdef DEBUG_COMMAND_TIME
+    elapsed_time = micros() - elapsed_time;
+    #endif
+    Serial.println(F("end proc' cmd"));
+    #ifdef DEBUG_COMMAND_TIME
+    Serial.print(F("t: "));
+    Serial.println(elapsed_time);
+    #endif
+  }
+  count++;
+  #endif
 }
 
 
 
 void recieve_command()
 {
-  //Serial.println(F("rcv"));
+  #ifdef DEBUG_TRAP
+  Serial.println(F("recieve commands"));
+  #endif
+  
   #define CMD_BUF_SIZE 255
   char buf[CMD_BUF_SIZE+1];
   byte bpos = 0; //buffer position
@@ -166,7 +200,7 @@ void recieve_command()
     {
       byte new_bits = atoi(&buf[bpos]);
       set_pwm_bits(new_bits);
-      Serial.print(F("bit reduce: "));
+      Serial.print(F("set pwm bits: "));
       Serial.println(config.pwm_bits);
     } 
     break;
@@ -220,7 +254,13 @@ void recieve_command()
     print_help();
     break;
   }
+
+
+  #ifdef DEBUG_TRAP
+  Serial.println(F("end rcv cmd"));
+  #endif
   
+
 }
 
 

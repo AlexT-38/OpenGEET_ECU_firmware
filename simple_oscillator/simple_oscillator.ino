@@ -122,16 +122,39 @@
  * step 6: update the boost LUT to use the highest number of bits in the above table 
  *         and scale down as needed
  * 
+ * 
+ * #notes - Realistically, faster switching rate than 8bit are not feasible without seriously optimising the ISR.
+ *          At 6bit resolution, interupts occur every 4 micro seconds, but ISR currently takes at least 12 us.
+ *          Even at 8 bits, ISR is every 16us, so ISR is 75% of available CPU time
+ *          Infact, with context switching included, the ISR is 16us.
+ *          
+ *          we could disable the isr when no ramping action is needed.
+ *          this doesn't really solve the problem
+ *          
+ *          the only way to make this work with an arbitrary bit depth is to use another timer
+ *          that runs at 30kHz or less to process ramping.
+ *          
+ *          the pwm isr may still be needed to syncronise ICR1 updates.
  */
 #define ARD_LED 13
 #define ARD_PWM 9
+#define ARD_ISR_LED 7
+#define SET_ISR_LED()   PORTD |= bit(7)
+#define CLR_ISR_LED()   PORTD &= ~bit(7)
+#define TOG_ISR_LED()   PORTD ^= bit(7)
 
 #define INTERVAL_MIN  20
 //defaults
 #define PWM_MIN 10    //below this, pwm is off (if PWM is negated)
 #define PWM_MAX 245   //pwm can never be higher than this (unless PWM is negated)
-#define PWM_BITS_MIN  6
+#define PWM_BITS_MIN  8
 #define PWM_BITS_MAX  14
+
+#define DEBUG_PWM_BITS
+//#define DEBUG_TRAP
+#define DEBUG_ISR
+
+//#define DEBUG_COMMAND_TIME
 
 #include <EEPROM.h>
 #include "eeprom.h"
@@ -139,9 +162,6 @@
 #include "commands.h"
 
 
-//look up tables
-#define LUT lut_boost_01x_8bit
-byte lut_boost_01x_8bit[] = {0,23,43,59,73,85,96,105,113,121,128,134,139,144,149,153,157,161,164,167,170,173,175,178,180,182,184,186,188,190,191,193,194,196,197,198,200,201,202,203,204,205,206,207,208,209,209,210,211,212,213,213,214,215,215,216,216,217,218,218,219,219,220,220,221,221,221,222,222,223,223,224,224,224,225,225,225,226,226,226,227,227,227,228,228,228,228,229,229,229,230,230,230,230,230,231,231,231,231,232,232,232,232,232,233,233,233,233,233,234,234,234,234,234,234,235,235,235,235,235,235,236,236,236,236,236,236,236,237,237,237,237,237,237,237,237,238,238,238,238,238,238,238,238,238,239,239,239,239,239,239,239,239,239,239,240,240,240,240,240,240,240,240,240,240,240,241,241,241,241,241,241,241,241,241,241,241,241,241,242,242,242,242,242,242,242,242,242,242,242,242,242,242,242,243,243,243,243,243,243,243,243,243,243,243,243,243,243,243,243,243,243,244,244,244,244,244,244,244,244,244,244,244,244,244,244,244,244,244,244,244,244,244,245,245,245,245,245,245,245,245,245,245,245,245,245,245,245,245,245,245,245,245,245,245,245};
 
 //LFO oscillator control
 static long int osc_time_stamp;
@@ -153,6 +173,18 @@ static byte ramp_value;
 static byte ramp_target;
 static byte forced = false;
 static byte forced_value;
+
+
+#ifdef DEBUG_ISR
+static unsigned long isr_interval_time;
+static unsigned long isr_interval_time_last;
+static unsigned int isr_time_start;
+static unsigned int isr_time_stop;
+
+static unsigned int last_ramp_value;
+#endif
+
+
 
 
 
@@ -204,58 +236,55 @@ void setup() {
   Serial.println(FS(S_DATE));
   Serial.println(FS(S_TIME));
 
-//enable ramp interrupt
-  TIMSK1 = bit(TOIE1);
+  
   
 }
-static byte update_top = 0;
-static byte update_ocr1a = 0;
 
-void set_pwm_bits(byte bits)
-{
-  //limit bit range
-  if(bits < PWM_BITS_MIN) bits = PWM_BITS_MIN;
-  else if(bits > PWM_BITS_MAX) bits = PWM_BITS_MAX;
-  
-  //new top value
-  unsigned int top = bit(bits)-1;
-  
-  //difference between old bits and new bits
-  char bit_change = bits-config.pwm_bits;
-
-  //modify OCR1A to reflect the new bitage
-  unsigned long ocr1a = OCR1A;
-  //note that this is the non negated value, which means that we may need to unnegate, shift, renegate
-  if(config.pwm_negate)
-  {
-    ocr1a = ICR1 - ocr1a; //unnegate using the old top
-    ocr1a = (ocr1a<<bit_change); //not sure if bit shifting negative values is allowed?
-    ocr1a = top - ocr1a; //re negate using the new top
-  }
-  else
-  {
-    ocr1a = (ocr1a<<bit_change);
-  }
-
-  //writing directly to the registers here may cause problems if top < OCR1A, in which case update ICR1/OCR1A in the ISR
-  //not also that if OCR1A has been written prior to this, but hasnt buffered through yet,
-  //this may cause problems if the readback of OCR1A is the actual value of OCR1A and not the BUFFERED value. Check the data sheet
-  //data sheet say CPU has access only to the buffered value when in PWM mode so no problem there.
-  if(top<OCR1A)
-  {
-    update_top = top;
-    update_ocr1a = ocr1a;
-  }
-  else
-  {
-    OCR1A = ocr1a;
-    ICR1 = top;  
-  }
-  config.pwm_bits = bits;
-}
 
 void loop() {
-  //Serial.println(F("Loop"));
+  #ifdef DEBUG_TRAP
+  static int count;
+  if(count==0)
+  {
+    Serial.println();
+    Serial.println(F("Loop"));
+  }
+  count++;
+  #endif
+
+  #ifdef DEBUG_ISR
+  if(last_ramp_value != ramp_value)
+  {
+    last_ramp_value = ramp_value;
+    Serial.println(F("---"));
+    Serial.print(F("Ramp: "));
+    Serial.println(last_ramp_value);
+    Serial.print(F("OCR1A: "));
+    Serial.println(OCR1A);
+    Serial.print(F("ICR1: "));
+    Serial.println(ICR1);
+    Serial.println(F("---"));
+  }
+  if(isr_time_start && isr_time_stop )
+  {
+    cli();
+    unsigned long isr_interval_time_copy = isr_interval_time;
+    unsigned long isr_interval_time_last_copy = isr_interval_time_last;
+    unsigned int isr_time_start_copy = isr_time_start;
+    unsigned int isr_time_stop_copy = isr_time_stop;
+    isr_time_start = 0;
+    isr_time_stop = 0;
+    sei();
+
+    unsigned long isr_interval = isr_interval_time_copy - isr_interval_time_last_copy;
+    Serial.print(F("ISR Interval: "));
+    Serial.println(isr_interval);
+
+    unsigned int isr_duration = isr_time_stop_copy - isr_time_start_copy;
+    Serial.print(F("ISR Duration: "));
+    Serial.println(isr_duration);
+  }
+  #endif
 
   long int time_now = millis();
 
@@ -325,254 +354,4 @@ void set_time_interval(long int new_interval)
   osc_time_stamp -= config.interval;
   osc_time_stamp += new_interval;
   config.interval = new_interval;
-}
-
-ISR(TIMER1_OVF_vect)
-{
-  //Serial.println(F("ISR"));
-  
-  //if bits have changed such that top < OCR1A when change requested,
-  //we must update OCR1A and ICR1 here
-  if (update_top)
-  {
-    ICR1 = update_top;
-    OCR1A = update_ocr1a;
-    update_top = 0;
-    update_ocr1a = 0;
-  }
-  
-  //process ramping
-  if(ramp_value != ramp_target)
-  {
-    if(config.pwm_ramp != 0)
-    {
-      //ramp using the ramp counter
-      if(ramp_counter++ >= config.pwm_ramp)
-      {
-        ramp_counter = 0;
-        if(ramp_value < ramp_target)
-        {
-          ramp_value++;
-        }
-        else
-        {
-          ramp_value--;
-        }
-      }
-    }
-    else
-    {
-      //jump directly to target when ramp is 0
-      ramp_value = ramp_target;
-    }
-    write_pwm(ramp_value);
-  }
-  else
-  {
-    //keep ramp counter reset when target reached
-    ramp_counter = 0;
-  }
-}
-
-/*limit_pwm(pwm)
- * applies absolute pwm range limits to the given value
- * used only when writing to OCR1A after LUT and before Negate
- */
-byte limit_pwm(byte pwm)
-{
-  if (pwm <config.pwm_min) pwm = (config.pwm_negate) ? 0 : config.pwm_min;         //jump to zero only if negate is enabled
-  else if (pwm > config.pwm_max) pwm = (config.pwm_negate) ? config.pwm_max : 255;  //jump to max only if negate is NOT enabled 
-  return pwm;
-}
-
-/*set_target(pwm)
- * sets the ramp target for ISR updates
- */
-void set_target(byte pwm)
-{
-  //enforce limits, incase they changed since setting the pwm/pwm_osc values
-  ramp_target = pwm;
-  //check if the pwm value was forced, in which set the current ramp value to match
-  //the forced value. if look up table is enabled, the nearest value will be used
-  if(forced)
-  {
-    ramp_value = find_in_table(forced_value);
-    forced = false;
-  }
-}
-/*set_osc(pwm)
- * set the alternate value for LFO oscillation mode, stored in config.pwm_osc
- * if oscillation is enabled and the state is high, the ramp target will be set also
- */
-void set_osc(byte pwm)
-{
-  //write the value to the pwm config
-  config.pwm_osc = pwm;
-
-  //if oscillating and oscilation state is 1, also change the current target value
-  if(config.oscillate && osc_state)
-  {
-    set_target(pwm);
-  }
-  
-  //Serial.println(pwm);
-}
-
-/*find_in_table(val)
- * finds and index in the look up table that is near to the given value 
- * starts in the middle and works outward, selecting the first table value that
- * is closer to the middle or equal to than the given value
- */
-byte find_in_table(byte val)
-{
-  //if lut isnt enabled then do nothing and return the value
-  if(!config.lut)
-    return val;
-
-  //start in the middle and work outward
-  byte idx = 128;
-  if(LUT[idx] > val)
-  {
-    while(LUT[idx] > val && idx > 0)
-    {
-      idx--;
-    }
-  }
-  else 
-  {
-    while(LUT[idx] < val && idx < 255)
-    {
-      idx++;
-    }
-  }
-}
-/*set_pwm()
- * set the target pwm, without limits or look up tables
- * the ISR will ramp to this value
- * the value will be used by the LFO if oscillate is enabled
- */
-void set_pwm(byte pwm)
-{
-  //write the value to the pwm config
-  config.pwm = pwm;
-
-  //if not oscillating, or oscilation state is 0, also change the current target value
-  if(!config.oscillate || !osc_state)
-  {
-    set_target(pwm);
-    Serial.println(pwm);
-  }
-  
-  
-  
-}
-
-/* force_pwm(pwm)
- * writes a value to OCR1A after negating if required
- * disables oscillation
- * ignores limits and look up tables
- */
-void force_pwm(byte pwm)
-{
-  forced = true;
-  forced_value = pwm;
-  config.oscillate = false;
-
-  //shift the bits before negating
-  char bit_shift = config.pwm_bits - 8;
-  if (bit_shift) pwm<<bit_shift;
-
-  //use TOP (ICR1) to negate
-  if(config.pwm_negate)
-  {
-    pwm=ICR1-pwm;
-  }
-
-  OCR1A = pwm;
-
-  Serial.print(F("ICR1:  "));
-  Serial.println(ICR1);
-  Serial.print(F("OCR1A: "));
-  Serial.println(OCR1A);
-}
-
-/* write_pwm(pwm)
- * writes a value to OCR1A after applying lookup tables, limiting and negating as required
- */
-void write_pwm(byte pwm)
-{
-  //apply look up table
-  if(config.lut)
-    pwm = LUT[pwm];
-  //apply limits        this should account for pwm_bits, and be applied after bit shifting
-  pwm = limit_pwm(pwm);
-
-
-  //shift the bits before negating, we should also ignore this if using a 16bit LUT
-  char bit_shift = config.pwm_bits - 8;
-  if (bit_shift) pwm<<bit_shift;
-  
-  //negate
-  if(config.pwm_negate)
-  {
-    pwm=ICR1-pwm;
-  }
-  
-  //write the final value to OCR1A  
-  OCR1A = pwm;
-}
-
-void set_pwm_prescale(byte prescale)
-{
-  //1 8 64 256 1024
-  if(prescale >0 && prescale < 6)
-  {
-    config.pwm_prescale = prescale;
-    byte reg = TCCR1B;
-    reg &= ~0b111;
-    reg |= prescale;
-    TCCR1B = reg;
-    byte scale[] = {0,1,8,64,256,1024};
-    unsigned int clk[] = {0, 16000, 2000, 250, 63, 16};
-    unsigned int frq[] = {0, 62500, 7813, 977, 244, 61};
-    /* move this to commands, so that only a command will illicit a response
-    Serial.print(F("PWM pre: "));
-    Serial.println(prescale);
-    Serial.print(F("PWM clk: "));
-    Serial.println(clk[prescale]);
-    Serial.print(F("PWM frq: "));
-    Serial.println(frq[prescale]);
-    */
-  }
-}
-void set_pwm_invert(byte negate, byte invert)
-{
-  byte do_invert = (config.pwm_invert != invert);
-  config.pwm_invert = (invert != 0);
-  config.pwm_negate = (negate != 0);
-
-  if(config.pwm_invert)
-    TCCR1A |= bit(COM1A0);
-  else
-    TCCR1A &= ~bit(COM1A0);
-
-  // if negate has changed, we need to update the pwm register
-  if(do_invert)
-  {
-    if(forced) //if previously forced, update with force+pwm()
-    {
-      force_pwm(forced_value);
-    }
-    else //otherwise write the current ramp value
-    {
-      write_pwm(ramp_value);
-    }
-  }
-  /* move this to commands, so that only a command will illicit a response
-  Serial.print("PWM inv in: ");
-  Serial.println(config.pwm_negate);
-  Serial.print("PWM inv out: ");
-  Serial.println(config.pwm_invert);
-  */
-  
 }
