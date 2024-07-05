@@ -89,6 +89,7 @@ void force_pwm(byte pwm)
  */
 void write_pwm(byte pwm)
 {
+  unsigned int ocr1a;// = pwm;
   #ifdef DEBUG_TRAP
   //no prints insde isr
   if(!in_isr)
@@ -103,8 +104,11 @@ void write_pwm(byte pwm)
   pwm = limit_pwm(pwm);
 
   #ifdef DEBUG_PWM_BITS
-  if(!in_isr)
+  #ifndef DEBUG_PRINT_IN_ISR
+  if(!in_isr )
+  #endif
   {
+  
     Serial.print(F("W, pwm:"));
     Serial.println(pwm);
   }
@@ -112,27 +116,29 @@ void write_pwm(byte pwm)
   
   //shift the bits before negating, we should also ignore this if using a 16bit LUT
   #if PWM_BITS_MIN < 8
-  pwm = (bit_shift>0)? pwm<<bit_shift : pwm>>-bit_shift;
+  ocr1a = (bit_shift>0)? pwm<<bit_shift : pwm>>-bit_shift;
   #else
-  pwm = pwm<<bit_shift;
+  ocr1a = pwm<<bit_shift;
   #endif
   
   #ifdef DEBUG_PWM_BITS
+  #ifndef DEBUG_PRINT_IN_ISR
   if(!in_isr)
+  #endif
   {
     Serial.print(F("F, shifted:"));
-    Serial.println(pwm);
+    Serial.println(ocr1a);
   }
   #endif
   
   //negate
   if(config.pwm_negate)
   {
-    pwm=ICR1-pwm;
+    ocr1a=ICR1-ocr1a;
   }
   
   //write the final value to OCR1A  
-  OCR1A = pwm;
+  OCR1A = ocr1a;
 
 
 
@@ -177,7 +183,7 @@ void set_target(byte pwm)
 
   //actually, just enable it whenever a target is set.
   //if the target has already been reached, the ISR will turn itself off
-  enable_isr();
+  //enable_isr();
 }
 /*set_osc(pwm)
  * set the alternate value for LFO oscillation mode, stored in config.pwm_osc
@@ -199,10 +205,6 @@ void set_osc(byte pwm)
 
 // ISR -------------------------------------------------------------------------------
 
-inline byte isr_is_enabled()
-{
-  return (TIMSK1 & bit(TOIE1)) != 0;
-}
 inline void enable_isr()
 {
   TIMSK1 = bit(TOIE1);
@@ -211,19 +213,30 @@ inline void disable_isr()
 {
   TIMSK1 = 0;
 }
-/* the ISR updates the ICR register when a change is requested
- * the ISR is active until the target value is reached
- */
+
+// OCR1A updates are now executed on the TMR2 overflow ISR, TMR1 OVF is only for ICR1 updates
+// this could probably be a naked ISR, but KISS
+
+/* update ICR1 and then disable this interrupt */
 ISR(TIMER1_OVF_vect)
 {
-  #if defined(DEBUG_TRAP) || defined(DEBUG_PWM_BITS) || defined(DEBUG_ISR)
-  in_isr = true;
+  ICR1 = update_top;
+  disable_isr();
+}
+
+/* pwm ramp, update OCR1A. runs constantly but could be disabled when not in use (again, KISS). */
+ISR(TIMER2_OVF_vect)
+{
+  #ifdef DEBUG_ISR_LED
   SET_ISR_LED();
   //TOG_ISR_LED();
   #endif
   
-  #ifdef DEBUG_ISR
+  #if defined(DEBUG_TRAP) || defined(DEBUG_PWM_BITS) || defined(DEBUG_ISR)
+  in_isr = true;
+  #endif
   
+  #ifdef DEBUG_ISR
   static int count;
   isr_interval_time_last = isr_interval_time;
   isr_interval_time = micros();
@@ -232,13 +245,6 @@ ISR(TIMER1_OVF_vect)
     isr_time_start = isr_interval_time;
   }
   #endif
-  
-  //update the TOP value
-  if (update_top)
-  {
-    ICR1 = update_top;
-    update_top = 0;
-  }
   
   //process ramping
   if(ramp_value != ramp_target)
@@ -249,7 +255,6 @@ ISR(TIMER1_OVF_vect)
       ramp_value = ramp_target;
       //keep the ramp counter reset and disable the isr
       ramp_counter = 0;
-      disable_isr();
     }
     //ramp using the ramp counter
     else if(ramp_counter++ >= config.pwm_ramp)
@@ -270,7 +275,6 @@ ISR(TIMER1_OVF_vect)
   {
     //keep ramp counter reset when target reached
     ramp_counter = 0;
-    disable_isr();
   }
 
   #ifdef DEBUG_ISR
@@ -283,6 +287,8 @@ ISR(TIMER1_OVF_vect)
   
   #if defined(DEBUG_TRAP) || defined(DEBUG_PWM_BITS) || defined(DEBUG_ISR)
   in_isr = false;
+  #endif
+  #ifdef DEBUG_ISR_LED
   CLR_ISR_LED();
   #endif
 }
@@ -307,17 +313,17 @@ void set_pwm_bits(byte bits)
   char bit_change = bits-config.pwm_bits;
 
   //modify OCR1A to reflect the new bitage
-  unsigned long ocr1a = OCR1A;
+  unsigned int ocr1a = OCR1A;
 
   #ifdef DEBUG_PWM_BITS
   Serial.print(F("new bits: "));
-  Serial.println((int)bits);
+  Serial.println(bits);
   Serial.print(F("new top: "));
-  Serial.println((int)top);
+  Serial.println(top);
   Serial.print(F("bit change: "));
-  Serial.println((int)bit_change);
+  Serial.println(bit_change);
   Serial.print(F("old OCR1A:"));
-  Serial.println((int)ocr1a);
+  Serial.println(ocr1a);
   #endif //DEBUG_PWM_BITS
 
   //note that this is the non negated value, which means that we may need to unnegate, shift, renegate

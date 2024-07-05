@@ -127,14 +127,26 @@
  *          At 6bit resolution, interupts occur every 4 micro seconds, but ISR currently takes at least 12 us.
  *          Even at 8 bits, ISR is every 16us, so ISR is 75% of available CPU time
  *          Infact, with context switching included, the ISR is 16us.
+ *          Actually, more like 20ms since constext switching also needs to occur after exiting he ISR.
  *          
  *          we could disable the isr when no ramping action is needed.
  *          this doesn't really solve the problem
  *          
  *          the only way to make this work with an arbitrary bit depth is to use another timer
  *          that runs at 30kHz or less to process ramping.
+ *          this has the advantage of making ramp time independent of pwm frequency
  *          
- *          the pwm isr may still be needed to syncronise ICR1 updates.
+ *          the pwm isr is still needed to syncronise ICR1 updates.
+ *          however, if we use OCR1A as TOP, it will be double buffered and no cpu overhead is required.
+ *          that being said, it requires that I change the circuit and do a whole bunch of refactoring
+ *          and since ICR1 does not change as part of waveform generation, 
+ *          but rather is a configurable fixed value, there's no real benefit.
+ *          
+ *          all that being said, I've been measuing the time of the ISR _WITH_ debug code.
+ *          it may be more spritely with all that taken out.
+ *          
+ *          indeed, the ISR runtime is 5.6us (not including context switching at around 8us total)
+ *          so 13.6us out of the available 16us @8bit clk/1
  */
 #define ARD_LED 13
 #define ARD_PWM 9
@@ -147,12 +159,14 @@
 //defaults
 #define PWM_MIN 10    //below this, pwm is off (if PWM is negated)
 #define PWM_MAX 245   //pwm can never be higher than this (unless PWM is negated)
-#define PWM_BITS_MIN  8
+#define PWM_BITS_MIN  6
 #define PWM_BITS_MAX  14
 
-#define DEBUG_PWM_BITS
+//#define DEBUG_PWM_BITS
 //#define DEBUG_TRAP
-#define DEBUG_ISR
+//#define DEBUG_ISR
+#define DEBUG_ISR_LED
+//#define DEBUG_PRINT_IN_ISR
 
 //#define DEBUG_COMMAND_TIME
 
@@ -205,7 +219,7 @@ void setup() {
   pinMode(ARD_PWM,OUTPUT);
   digitalWrite(ARD_PWM,LOW);
 
-  //setup PWM
+  //setup PWM (TMR1)
   //WGM = 0b101 Fast PWM, 8-bit
   //inverted output (PWM is always at least 1 bit on. We want to go completely off, and never completey on).
   //actualy, TMR1 is 16 bit, and we could probably have full on by writing 256 to OCR1A
@@ -218,6 +232,13 @@ void setup() {
   TCCR1B = (bit(WGM13) | bit(WGM12));
 
   ICR1=255;
+
+
+  //setup RAMP timer (TMR2)
+  //WGM, COM2A, COM2B = 0; - we just want the timer to run and trigger overflows
+  TCCR2A = 0;
+  TCCR2B = 2; // clk/8
+  TIMSK2 = bit(TOIE2); // always trigger the interrupt for the sake of simplicity
   
 
 
