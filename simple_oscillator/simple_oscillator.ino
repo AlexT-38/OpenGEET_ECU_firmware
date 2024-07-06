@@ -1,91 +1,20 @@
 /*
- * 
- * this was simple, but now less so
- * 
- * soft generate a square wave up to 25Hz
- * generate a PWM signal with optional min and max values and ramp rate
- * 
- * this could do with a command to invert the PWM output
- * and another to change the base PWM frequency prescale
- * and eeprom saving of all these params
- * 
- * just now I need to be able to set, or clear or bypass the min and max values
- * that works.
- * 
- * now working on eeprom, copied and adapted from openGeet firmware
- * needs commands to save and load. 
- * suggest 'W' for "Write eeprom" and 'E' for "load Eeprom"
- * commands should alter control register as needed
- * set commands should heed config
+ * Not so much a simple oscillator as a halfbridge waveform generator
+ * and sytematic tester.
+ *
+ * Control via serial interface, simple single letter command codes
+ * Soft generated LFO square wave up to 25Hz
+ * PWM output with optional min and max values and ramp rate
+ * Configurable PWM prescale, resolution, inversion and negation
+ * Negation accounts for the inability Atmega to generate zero pwm.
+ * PWM value input specified as 8-bit values, regardless of resolution
+ * LFO modulation of PWM
+ * Configurable look up table for boost conversion application
+ * Configuration stored in EEPROM
+ * Override command to instantly set PWM to any value and disable modulation
  * 
  * 
- * pwm prescale, limit and invert commands implemented
- * eeprom load and save commands implemented
- * pwm registers updated when loading eeprom
- * pwm invert in respected by set_ and force_pwm
- * 
- * it's not clear if pwm input inversion should occur befor or after min/max limit
- * given that max is an absolute limit, and min jumps to zero,
- * this will have an impact on behavior
- * since PWM is byte ranged and cannot go to full max,
- * I believe the inversion should occur first
- * otherwise jump to zero would occur at the high end where 'inverted zero' does not occur
- * 
- * time interval and enable references point to config now
- * 
- * successful eeprom load will dump eeprom to serial
- * 
- * fixed set invert function and command to use two parameters
- * 
- * ramp control implemented
- * LFO control over PWM
- * 
- * trying to imlpement transfer functions but I need to rationalise inversion first
- * 
- * we have the following:
- * OCR1A
- * config.pwm
- * write_pwm()
- * force_pwm()
- * set_pwm()
- * negate
- * invert
- * pwm_min and _max
- * oscillate
- * 
- * a value of OCR1A = 0 produces a 1bit on waveform
- * this is a stupid design flaw. 0 should be FULL OFF but it isnt
- * for most applications full off is a requirement, including boost conversion
- * for boost confversion, full on is not desirable
- * to achieve full off, the output must be inverted (or uninverted) and the value of OCR1A must be negated
- * only by negating the PWM before writing to OCR1A can an input value of 0 produce a 0 waveform
- * this negation must occur at the very last moment before writing to OCR1A as it is part of the PWM output characteristic
- * 
- * this should be performed by write_pwm()
- * 
- * However, when applying a minimum and maximum value to the PWM, it may be required that beyond the limit
- * the PWM is maxed out in that direction.
- * This can only be achieved at the high end of OCR1A values, so the negation of OCR1A should be accounted for 
- * when jumping from a limit to a 0/255 value
- * ie, if negated, value will jump to 0 below min_value and clamp to max value
- *     if not negated, value will be clamped at min_value, but jump to 255 above max_value
- *     
- * force_pwm should set maybe set config.pwm and write that value directly using write_pwm, ignoring limits
- * set_pwm should only set config.pwm after applying limits, allowing the ISR to ramp to config.pwm
- * 
- * the ISR needs a target_pwm value instead of using config.pwm, so that it can oscillate without changing config.pwm
- * 
- * oscillate currently uses min and max values as targets
- * when selecting a target, the value is written to config.pwm
- * it would be better to have a set min and max for oscillation
- * config.pwm should be ideally only be altered by set_pwm(), and maybe force_pwm()
- * oscillate command should probably take a parameter that is the value to switch to from the current pwm value
- * 
- * force_pwm should probably disable oscillation, since it is forceing pwm to a particular value
- * while set pwm would only change the config.pwm, allowing changes to oscilate values while oscillating
- * 
- * meanwhile, any transfer function would also be applied by write_pwm()
- * transfer functions apply to the input prior to inversion and negation, which are output configurations
+ * Test and Dev notes:
  * 
  * testing under load (51 Ohm) from a 2A 3A psu, efficiency drops off above ~75% pwm
  * this is due to the low inductance vs resistance, ie the RL time constant is small compared to the time base of the pwm
@@ -108,9 +37,11 @@
  * we can also make the LUT 16bit
  * 
  * step 1: change the B command to accept a number of bits from 6-14
+ * DONE
  * step 2: change the force and write_pwm commands to scale input to this range
  *         by bit shifting only. Since we generally don't want full on PWM
  *         there's no point accounting for this edge case
+ * DONE
  * step 3: create a step sequencer that progresses through each pwm input value    
  *         measure the input and output voltage, calculates the boost and the efficiency
  *         and then prints the data to serial
@@ -148,6 +79,14 @@
  *          indeed, the ISR runtime is 5.6us (not including context switching at around 8us total)
  *          so 13.6us out of the available 16us @8bit clk/1
  */
+#define PIN_SAMPLE_GAIN_1 2   //lowest value resistor
+#define PIN_SAMPLE_GAIN_2 3
+#define PIN_SAMPLE_GAIN_3 4
+#define PIN_SAMPLE_GAIN_4 5   //highest value resistor
+
+#define TEST_CH_INPUT            A0
+#define TEST_CH_OUTPUT           A1
+
 #define ARD_LED 13
 #define ARD_PWM 9
 #define ARD_ISR_LED 7
@@ -214,6 +153,7 @@ void setup() {
   Serial.println(FS(S_BAR));
   
   // set up pins
+  init_sample_pins();
   pinMode(ARD_LED,OUTPUT);
   digitalWrite(ARD_LED,LOW);
   pinMode(ARD_PWM,OUTPUT);

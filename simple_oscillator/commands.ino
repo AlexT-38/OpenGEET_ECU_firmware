@@ -191,7 +191,8 @@ void recieve_command()
     break;
     case C_SET_PWM_RAMP:
     {
-      config.pwm_ramp = atoi(&buf[bpos]);
+      unsigned int ramp = atoi(&buf[bpos]);
+      set_pwm_ramp(ramp);
       Serial.print(F("ramp: "));
       Serial.println(config.pwm_ramp);
     }

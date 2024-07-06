@@ -426,3 +426,9 @@ void set_pwm_invert(byte negate, byte invert)
   Serial.println(config.pwm_invert);
   */
 }
+#define MS_PER_RAMP_UPDATE 33 //actually 32.768
+void set_pwm_ramp(unsigned int ramp_ms)
+{
+  unsigned long ramp_time = (unsigned long)ramp_time / MS_PER_RAMP_UPDATE;
+  config.pwm_ramp = ramp_time;
+}
