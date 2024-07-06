@@ -79,13 +79,7 @@
  *          indeed, the ISR runtime is 5.6us (not including context switching at around 8us total)
  *          so 13.6us out of the available 16us @8bit clk/1
  */
-#define PIN_SAMPLE_GAIN_1 2   //lowest value resistor
-#define PIN_SAMPLE_GAIN_2 3
-#define PIN_SAMPLE_GAIN_3 4
-#define PIN_SAMPLE_GAIN_4 5   //highest value resistor
 
-#define TEST_CH_INPUT            A0
-#define TEST_CH_OUTPUT           A1
 
 #define ARD_LED 13
 #define ARD_PWM 9
@@ -113,6 +107,7 @@
 #include "eeprom.h"
 #include "strings.h"
 #include "commands.h"
+#include "test.h"
 
 
 
@@ -277,6 +272,9 @@ void loop() {
 
   //to reduce latency in the LFO, other tasks will be performed in sequence here
   static byte func_slot = false;
+
+  //check to see if a test is running, if so only run the eeprom update
+  if(run_test()) func_slot = false;
   //Serial.print(F("func slot: "));
   //Serial.println(func_slot);
   if(func_slot)

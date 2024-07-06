@@ -9,13 +9,13 @@
 /* table of letters representing commands, starting with A */
 const COMMAND commands_by_letter[] = {C_PRINT_STATE, C_SET_PWM_BITS, C_SET_PRESCALE, C_HELP,           //A,B,C,D
                                       C_LOAD_EEP, C_FORCE_PWM, C_HELP, C_HELP,               //E,F,G,H
-                                      C_SET_PWM_INVERT, C_HELP, C_HELP, C_SET_PWM_LIMIT,  //I,J,K,L
+                                      C_SET_PWM_INVERT, C_HELP, C_CALIBRATE_TEST, C_SET_PWM_LIMIT,  //I,J,K,L
                                       C_HELP, C_HELP, C_OSCILLATE, C_SET_PWM,            //M,N,O,P
-                                      C_HELP, C_SET_RATE, C_STOP_ALL, C_USE_LUT,        //Q,R,S,T
+                                      C_RUN_TEST, C_SET_RATE, C_STOP_ALL, C_USE_LUT,        //Q,R,S,T
                                       C_HELP, C_SET_PWM_RAMP, C_SAVE_EEP,                   //U,V,W
                                       C_RESET_CONFIG, C_HELP, C_PRINT_CONFIG };   //X,Y,Z
                           
-const char command_letters[] = {'S','R','P','F','C','I','V','B','O','T','L','W','E','X','Z','A','H'}; //this ought to be an indexed intialiser
+const char command_letters[] = {'S','R','P','F','C','I','V','B','O','T','L','W','E','X','Z','A','Q','K','H'}; //this ought to be an indexed intialiser
 
 
 
@@ -247,6 +247,14 @@ void recieve_command()
   case C_PRINT_STATE:
     print_state(&Serial);
     break;
+  case C_RUN_TEST:
+    {
+      byte test_selection= atoi(&buf[bpos]);
+      start_test(TT_FULL_SWEEP);
+    }
+    break;
+  case C_CALIBRATE_TEST:
+    start_test(TT_CALIBRATE);
   case NO_OF_COMMANDS:
     break;
   default:

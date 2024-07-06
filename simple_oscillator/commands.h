@@ -21,6 +21,8 @@ typedef enum
   C_RESET_CONFIG,           //X
   C_PRINT_CONFIG,           //Z
   C_PRINT_STATE,            //A
+  C_RUN_TEST,               //Q sweep through a range of pwm values and frequencies, measure some voltages
+  C_CALIBRATE_TEST,          //K test the electrical set up for the above test
   C_HELP,                   //H prints available commands
   NO_OF_COMMANDS
 }COMMAND;

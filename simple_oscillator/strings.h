@@ -61,6 +61,8 @@ const char PROGMEM S_RESET_CONFIG[] = "RESET_CONFIG";           //X
 const char PROGMEM S_PRINT_CONFIG[] = "PRINT_CONFIG";           //Z
 const char PROGMEM S_PRINT_STATE[] = "PRINT_STATE";           //A
 
+const char PROGMEM S_TEST_FULL_SWEEP[] = "TEST_FULL_SWEEP";
+const char PROGMEM S_TEST_CALIBRATE[] = "TEST_CALIBRATE";
 
 const char PROGMEM S_STOP[] = "STOP";
 const char PROGMEM S_START[] = "START";
@@ -87,6 +89,8 @@ const char * const command_str[] PROGMEM = { //this should prabably be an indexe
   S_RESET_CONFIG,
   S_PRINT_CONFIG,
   S_PRINT_STATE,
+  S_TEST_FULL_SWEEP,
+  S_TEST_CALIBRATE,
   S_HELP,                   
 };
   
