@@ -1,14 +1,18 @@
+//#define DEBUG_TEST
+
 #define TEST_RAMP_TIME_ms       100     //time take to ramp between 0-255
-#define TEST_DELAY_TIME_ms      500    //time after setting value before making reading
-#define TEST_GAIN_TIME_ms         2    //time for gain change to settle
+#define TEST_DELAY_TIME_ms      1000    //time after setting value before making reading
+#define TEST_GAIN_TIME_ms        50    //time for gain change to settle
 #define TEST_SAMPLES             16    //number of samples to take in total
 #define TEST_SAMPLE_TOLERANCE_lsb 8   //total min max variance allowable
 #define TEST_SAMPLE_OVERLOAD      (1022*TEST_SAMPLES)
 #define TEST_SAMPLE_MAX           (1023*TEST_SAMPLES) //might be 1024?
+#define TEST_SPREAD_RETRY_MAX     128
 
 #define TEST_NO_OF_GAIN_SETTINGS  6
 #define TEST_UNITY_GAIN_IDX       (TEST_NO_OF_GAIN_SETTINGS-1)
 #define TEST_PWM_INC_INIT        21
+#define TEST_PWM_INC_MIN          2
 
 #define TEST_DB(x)      if(test_debug) Serial.print(x);
 #define TEST_DBLN(x)    if(test_debug) Serial.println(x);
@@ -56,6 +60,25 @@ unsigned int output_sample;
 unsigned int test_setup_idx;
 
 unsigned long test_elapsed_time_ms;
+
+#ifdef DEBUG_TEST
+
+const char PROGMEM S_TEST_IDLE[] = "TEST IDLE";
+const char PROGMEM S_TEST_SETUP[] = "TEST SETUP";
+const char PROGMEM S_TEST_SAMPLE[] = "TEST SAMPLE";
+const char PROGMEM S_TEST_REPORT[] = "TEST REPORT";
+const char PROGMEM S_TEST_NEXT[] = "TEST NEXT";
+const char PROGMEM S_TEST_INVALID[] = "TEST STATE INVALID";
+
+const char * const test_stages_str[] PROGMEM = { //this should prabably be an indexed intialiser
+  S_TEST_IDLE,
+  S_TEST_SETUP,
+  S_TEST_SAMPLE,
+  S_TEST_REPORT,
+  S_TEST_NEXT
+};
+
+#endif
 
 void print_test_time()
 {
@@ -134,6 +157,9 @@ void start_test(TEST_TYPE test_no)
       break;
       
     case TT_FULL_SWEEP:
+      #ifdef DEBUG_TEST
+      Serial.println(F("Full Sweep Test"));
+      #endif
       test_stage = TS_SETUP;
       test_pwm = 0;
       test_bits = PWM_BITS_MIN;
@@ -170,7 +196,18 @@ byte run_test()
       }
       break;
     case TT_FULL_SWEEP:
+      #ifdef DEBUG_TEST
+      Serial.print(F("Running Test: "));
+      char buf[50];
+      if (test_stage > NO_OF_TEST_STAGES) test_stage = NO_OF_TEST_STAGES;
+      READ_STRING_FROM(test_stages_str,test_stage,buf);
+      Serial.println(buf);
+      #endif
       going = run_sweep_test();
+      #ifdef DEBUG_TEST
+      Serial.print(F("Going: "));
+      Serial.println(going);
+      #endif
       if(!going) 
       {
         print_test_time();
@@ -233,7 +270,11 @@ byte run_sweep_test()
       break;
     case TS_NEXT:
       test_sweep_next();
+      break;
     default:
+      #ifdef DEBUG_TEST
+      Serial.println(F("Undefined test state: resetting"));
+      #endif
       test_reset();
       break;
   }
@@ -292,26 +333,47 @@ void test_print_voltage(float value, byte gain_idx)
 void test_sweep_next()
 {
   //select the next setup
-
+  #ifdef DEBUG_TEST
+  Serial.println(F("Selecting next test params"));
+  #endif
+  test_stage = TS_SETUP;
   //check if we can increase PWM
   if(test_pwm < config.pwm_max)
   {
+    
     //increase the pwm
     test_pwm += test_pwm_inc;
     //decrease the increment
-    if (test_pwm_inc > 1) test_pwm_inc--;
+    if (test_pwm_inc > TEST_PWM_INC_MIN) test_pwm_inc--;
+
+    #ifdef DEBUG_TEST
+    Serial.print(F("Test PWM inc. : "));
+    Serial.print(test_pwm);
+    Serial.print(FS(S_COMMA));
+    Serial.println(test_pwm_inc);
+    #endif
   }
   //otherwise reset the pwm back to 0 and change the resolution/freq
   else if (test_bits < PWM_BITS_MAX)
   {
+    
     test_bits++;
     test_pwm = 0;
     test_pwm_inc = TEST_PWM_INC_INIT;
+    #ifdef DEBUG_TEST
+    Serial.println(F("Test Bits inc. : "));
+    Serial.print(test_bits);
+    Serial.print(FS(S_COMMA));
+    Serial.print(test_pwm);
+    Serial.print(FS(S_COMMA));
+    Serial.println(test_pwm_inc);
+    #endif
   }
   else
   {
     Serial.println(F("Test Complete"));
     test_stage = TS_IDLE;
+    set_pwm(0);
   }
 }
 
@@ -319,7 +381,9 @@ void test_sample()
 {
   //testing for stability on the output side only.
   //it will be the least stable, and therfore easier to detect
-  
+  #ifdef DEBUG_TEST
+  Serial.println(F("Test sample... "));
+  #endif
   
   
   test_gain_idx = 0;                //global, for Report
@@ -328,11 +392,13 @@ void test_sample()
   byte go = true;
   test_sample_overload = false;     //global, for Report
 
+  unsigned long spread_retry_avg = 0;
+  unsigned int spread_retry_count = 0;
+  
   //keep looping till we have the final value
   while(go)
   {
     TEST_DBLN();
-    
     unsigned int min_sample = UINT16_MAX;
     unsigned int max_sample = 0;
 
@@ -372,11 +438,21 @@ void test_sample()
       test_print_voltage(output_sample,test_gain_idx);
       Serial.println();
     }
-
     // check if sample spread is within specified tolerance
-    if (spread < TEST_SAMPLE_TOLERANCE_lsb)
+    if (spread < TEST_SAMPLE_TOLERANCE_lsb || spread_retry_count >= TEST_SPREAD_RETRY_MAX)
     {
-      TEST_DBLN(F("Sample spread in tolerance"));
+      if(spread_retry_count < TEST_SPREAD_RETRY_MAX)
+      {
+        TEST_DBLN(F("Sample spread in tolerance"));
+      }
+      else
+      {
+        Serial.println(F("Test sample spread persistantly out of tolerance: using average of retries"));
+        output_sample = spread_retry_avg/spread_retry_count;
+        spread_retry_avg = 0;
+        spread_retry_count = 0;
+      }
+      
       //check for overload, reduce 
       if(output_sample > TEST_SAMPLE_OVERLOAD)
       {
@@ -428,7 +504,15 @@ void test_sample()
         //stop sampling when gain maxed out
         go = false;
       }
-    }//range tolerance
+    }//spread range out of tolerance
+    else
+    {
+      //start averaging samples. 
+      //if not within spec after N retrys, use the average
+      TEST_DBLN(F("Sample spread out of range, trying again"));
+      spread_retry_avg += output_sample;
+      spread_retry_count++;
+    }
   }//sampling loop
 
   //done

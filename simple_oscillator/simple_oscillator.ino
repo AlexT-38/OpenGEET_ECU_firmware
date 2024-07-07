@@ -1,6 +1,6 @@
 /*
  * Not so much a simple oscillator as a halfbridge waveform generator
- * and sytematic tester.
+ * and systematic tester.
  *
  * Control via serial interface, simple single letter command codes
  * Soft generated LFO square wave up to 25Hz

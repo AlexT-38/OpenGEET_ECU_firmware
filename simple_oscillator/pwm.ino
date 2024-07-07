@@ -25,7 +25,7 @@ void set_pwm(byte pwm)
   if(!config.oscillate || !osc_state)
   {
     set_target(pwm);
-    Serial.println(pwm);
+    //Serial.println(pwm);
   }
   
   
