@@ -242,8 +242,8 @@ void export_config(Stream *dst, CONFIG *config_t)
   dst->print(F("pwm_max: "));
   dst->println(config_t->pwm_max);
 
-  dst->print(F("pwm_ramp: "));
-  dst->println(config_t->pwm_ramp);
+  dst->print(F("pwm_ramp(ms): "));
+  dst->println(get_pwm_ramp_ms());
 
   dst->print(F("pwm_bits: "));
   dst->println(config_t->pwm_bits);

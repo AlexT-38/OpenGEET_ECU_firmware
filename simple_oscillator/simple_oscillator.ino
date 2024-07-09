@@ -88,6 +88,8 @@
 #define CLR_ISR_LED()   PORTD &= ~bit(7)
 #define TOG_ISR_LED()   PORTD ^= bit(7)
 
+#define ARD_ENABLE  6
+
 #define INTERVAL_MIN  20
 //defaults
 #define PWM_MIN 10    //below this, pwm is off (if PWM is negated)
@@ -95,7 +97,7 @@
 #define PWM_BITS_MIN  6
 #define PWM_BITS_MAX  14
 
-//#define DEBUG_PWM_BITS
+#define DEBUG_PWM_BITS
 //#define DEBUG_TRAP
 //#define DEBUG_ISR
 #define DEBUG_ISR_LED
@@ -153,6 +155,8 @@ void setup() {
   digitalWrite(ARD_LED,LOW);
   pinMode(ARD_PWM,OUTPUT);
   digitalWrite(ARD_PWM,LOW);
+  pinMode(ARD_ENABLE,OUTPUT);
+  digitalWrite(ARD_ENABLE,LOW);
 
   //setup PWM (TMR1)
   //WGM = 0b101 Fast PWM, 8-bit
@@ -192,7 +196,7 @@ void setup() {
   Serial.println(FS(S_DATE));
   Serial.println(FS(S_TIME));
 
-  
+  digitalWrite(ARD_ENABLE,HIGH);
   
 }
 

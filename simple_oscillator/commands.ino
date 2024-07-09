@@ -5,6 +5,8 @@
 /* list of commands */
 //config commands should only work when stopped or disabled
 
+//#define DEBUG_CMD_EXTRA
+
 
 /* table of letters representing commands, starting with A */
 const COMMAND commands_by_letter[] = {C_PRINT_STATE, C_SET_PWM_BITS, C_SET_PRESCALE, C_HELP,           //A,B,C,D
@@ -38,9 +40,13 @@ void Process_Commands()
     #endif
   }
   #endif
-  
+  int avail = Serial.available();
   if (Serial.available() > 0)
   {
+    #ifdef DEBUG_CMD_EXTRA
+    Serial.print(F("Avail: "));
+    Serial.println(avail);
+    #endif
     recieve_command();
   }
   
@@ -75,20 +81,54 @@ void recieve_command()
 
   //read a line from the buffer
   byte bend = Serial.readBytesUntil('/n', buf, CMD_BUF_SIZE);
-
+  #ifdef DEBUG_CMD_EXTRA
+  Serial.print(buf);
+  Serial.println();
+  #endif
   //return if no bytes read
-  if (!bend) return;
+  if (!bend || buf[0] == '\n') 
+  {
+    #ifdef DEBUG_CMD_EXTRA
+    Serial.print(F("No bytes read"));
+    #endif
+    return;
+  }
   //ensure buffer is null terminated
   buf[bend]=0;
+  #ifdef DEBUG_CMD_EXTRA
+  Serial.print(F("bend: "));
+  Serial.println(bend);
+  #endif
   //otherise look for the first capital alpha
-  while(!(buf[bpos] >= 'A' && buf[bpos] <= 'Z') && !(buf[bpos] >= 'a' && buf[bpos] <= 'z') && bpos < 255) bpos++;
+  while(!(buf[bpos] >= 'A' && buf[bpos] <= 'Z') && !(buf[bpos] >= 'a' && buf[bpos] <= 'z' && buf[bpos] != 0  && buf[bpos] != '\n') && bpos < 255) 
+  {
+    #ifdef DEBUG_CMD_EXTRA
+    Serial.print(F(">"));
+    Serial.println(buf[bpos]);
+    #endif
+    bpos++;
+  }
   //return if command not found
-  if (bpos == 255) return;
-  
+  if (bpos == bend) 
+  {
+    #ifdef DEBUG_CMD_EXTRA
+    Serial.print(F("No command found"));
+    #endif
+    return;
+  }
+  #ifdef DEBUG_CMD_EXTRA
+  Serial.print(F("bpos: "));
+  Serial.println(bpos);
+  #endif
   //get the command from the commands table
   COMMAND cmd = print_command(buf[bpos]);
+  #ifdef DEBUG_CMD_EXTRA
+  Serial.print(F("cmd: "));
+  Serial.println(cmd);
+  #endif
   
   bpos++;
+  
   switch (cmd)
   {
        //basic commands
@@ -254,7 +294,11 @@ void recieve_command()
     }
     break;
   case C_CALIBRATE_TEST:
+    #ifdef DEBUG_CMD_EXTRA
+    Serial.println(F("K command recieved"));
+    #endif
     start_test(TT_CALIBRATE);
+    break;
   case NO_OF_COMMANDS:
     break;
   default:

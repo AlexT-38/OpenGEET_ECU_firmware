@@ -1,8 +1,13 @@
 //#define DEBUG_TEST
 
-#define TEST_RAMP_TIME_ms       100     //time take to ramp between 0-255
-#define TEST_DELAY_TIME_ms      1000    //time after setting value before making reading
+#define TEST_CSV_OUTPUT
+
+//ramp test time now uses the configured ramp time.
+//#define TEST_RAMP_TIME_ms       1000     //time take to ramp between 0-255
+#define TEST_RAMP_TIME_FACTOR     5     //nmultiplier for TEST_RAMP_TIME_ms
+#define TEST_DELAY_TIME_ms      2000    //time after setting value before making reading
 #define TEST_GAIN_TIME_ms        50    //time for gain change to settle
+#define TEST_RESET_TIME_ms       10    //time between checks for Vin to match Vout when resetting pwm to 0
 #define TEST_SAMPLES             16    //number of samples to take in total
 #define TEST_SAMPLE_TOLERANCE_lsb 8   //total min max variance allowable
 #define TEST_SAMPLE_OVERLOAD      (1022*TEST_SAMPLES)
@@ -16,6 +21,7 @@
 
 #define TEST_DB(x)      if(test_debug) Serial.print(x);
 #define TEST_DBLN(x)    if(test_debug) Serial.println(x);
+
 
 
 //measure each resistor and enter the values here
@@ -42,6 +48,8 @@ float test_gain_steps[] = {TEST_G_RATIO(TEST_R_ALL,TEST_R_1), TEST_G_RATIO(TEST_
 
 static TEST_TYPE test_type = TT_NONE;
 static TEST_STAGE test_stage = TS_IDLE;
+
+static unsigned long TEST_RAMP_TIME_ms;
 
 static byte test_debug = false;
 
@@ -135,6 +143,7 @@ void test_print_ratios()
 
 void test_reset()
 {
+  set_pwm(0);
   test_set_gain(0);
   test_type = TT_NONE;
   test_stage = TS_IDLE;
@@ -150,7 +159,8 @@ void start_test(TEST_TYPE test_no)
       test_stage = TS_SETUP;
       test_pwm = 0;
       test_bits = 8;
-      set_pwm_ramp(TEST_RAMP_TIME_ms);
+      //set_pwm_ramp(TEST_RAMP_TIME_ms);
+      TEST_RAMP_TIME_ms = get_pwm_ramp_ms();
       test_setup_idx = 0;
       config.lut = false;
       test_pwm_inc = 0;
@@ -160,10 +170,14 @@ void start_test(TEST_TYPE test_no)
       #ifdef DEBUG_TEST
       Serial.println(F("Full Sweep Test"));
       #endif
+      #ifdef TEST_CSV_OUTPUT
+      Serial.println(F("IDX, BITS, PWM, IN, OUT, IN(v), OUT(v), IN(tol%), OUT(tol%), OUT(rng), RATIO, TARG, LOSS(%)"));
+      #endif
       test_stage = TS_SETUP;
       test_pwm = 0;
       test_bits = PWM_BITS_MIN;
-      set_pwm_ramp(TEST_RAMP_TIME_ms);
+      //set_pwm_ramp(TEST_RAMP_TIME_ms);
+      TEST_RAMP_TIME_ms = get_pwm_ramp_ms();
       test_setup_idx = 0;
       config.lut = false;
       test_pwm_inc = TEST_PWM_INC_INIT;
@@ -175,7 +189,7 @@ void start_test(TEST_TYPE test_no)
   }
 
   test_elapsed_time_ms = millis();
-  
+  Serial.flush();
 }
 
 //called from main loop, could be made non blocking... but why bother?
@@ -183,6 +197,9 @@ void start_test(TEST_TYPE test_no)
 byte run_test()
 {
   byte going = false;
+
+  
+  
   switch(test_type)
   {
     case TT_NONE:
@@ -218,6 +235,16 @@ byte run_test()
       test_reset();
       break;
   }
+  
+  if(going && Serial.available()>0)
+  {
+    Serial.println(F("Interrupting test."));
+    Serial.flush();
+    test_reset();
+    going = false;
+    //for some reason this is causing the kalibration test to run
+  }
+  
   return going;
 }
 
@@ -280,11 +307,16 @@ byte run_sweep_test()
   }
   return (test_stage != TS_IDLE);
 }
+void test_ramp_delay()
+{
+  delay((TEST_RAMP_TIME_ms * TEST_RAMP_TIME_FACTOR * (unsigned long)test_pwm_inc)>>8 + TEST_DELAY_TIME_ms);
+}
 void test_setup()
 {
-  set_pwm_bits(test_bits);
-  set_pwm(test_pwm);
+  
+  
 
+  #ifndef TEST_CSV_OUTPUT
   Serial.println(FS(S_BAR));
   Serial.print(F("Setup no.: "));
   Serial.println(test_setup_idx);
@@ -293,8 +325,12 @@ void test_setup()
   Serial.print(test_bits);
   Serial.print(' ');
   Serial.println(test_pwm);
+  #endif
+
+  set_pwm(test_pwm);
+  test_ramp_delay();
+  set_pwm_bits(test_bits);
   
-  delay(TEST_RAMP_TIME_ms + TEST_DELAY_TIME_ms);
   test_stage = TS_SAMPLE;
   test_setup_idx++;
 }
@@ -304,7 +340,38 @@ void test_report()
   //calculate some useful values (could be processed externally, but what the hey)
   float scaled_output = (float)output_sample * test_gains[test_gain_idx];
   float output_ratio = scaled_output / (float)input_sample;
-  
+  float target_ratio = 1/(1-((float)test_pwm/256.0));
+  float loss = 100*(1.0-(output_ratio/target_ratio));
+
+  #ifdef TEST_CSV_OUTPUT
+  //Serial.println(F("\tIDX, \tBITS, \tPWM, \tIN(lsb), \tOUT(lsb), \tIN(v), \tOUT(v), \tIN(tol), \tOUT(tol), \tOUT(gain), \tRATIO, \rTARG, \tLOSS%"));
+  MAKE_STRING(S_COMMA);
+  Serial.print(test_setup_idx);
+  Serial.print(S_COMMA_str);
+  Serial.print(test_bits);
+  Serial.print(S_COMMA_str);
+  Serial.print(test_pwm);
+  Serial.print(S_COMMA_str);
+  Serial.print(input_sample);
+  Serial.print(S_COMMA_str);
+  Serial.print(output_sample);
+  Serial.print(S_COMMA_str);
+  Serial.print(get_voltage(input_sample,TEST_UNITY_GAIN_IDX));
+  Serial.print(S_COMMA_str);
+  Serial.print(get_voltage(output_sample,test_gain_idx));
+  Serial.print(S_COMMA_str);
+  Serial.print(get_voltage_tol(TEST_UNITY_GAIN_IDX)*100);
+  Serial.print(S_COMMA_str);
+  Serial.print(get_voltage_tol(test_gain_idx)*100);
+  Serial.print(S_COMMA_str);
+  Serial.print(test_gains[test_gain_idx]);
+  Serial.print(S_COMMA_str);
+  Serial.print(output_ratio);
+  Serial.print(S_COMMA_str);
+  Serial.print(target_ratio);
+  Serial.print(S_COMMA_str);
+  Serial.println(loss);
+  #else
   Serial.print(F("\nInput: "));
   Serial.println(input_sample);
   Serial.print(F("Output: "));
@@ -317,18 +384,27 @@ void test_report()
   Serial.println(output_ratio);
   test_print_voltage(output_sample,test_gain_idx);
   Serial.println(FS(S_BAR));
+  #endif
 
   test_stage = TS_NEXT;
 }
 
+float get_voltage(float value, byte gain_idx)
+{
+  return 5.0 * test_gains[gain_idx] * (float)value / (float)TEST_SAMPLE_MAX;
+}
+float get_voltage_tol(byte gain_idx)
+{
+  return 5.0 * test_gains[gain_idx] * (float)TEST_SAMPLES*2 /  (float)TEST_SAMPLE_MAX;   //base ADC accuracy is +/- 2 LSB
+}
 void test_print_voltage(float value, byte gain_idx)
 {
-  float voltage = 5.0 * test_gains[gain_idx] * (float)value / (float)TEST_SAMPLE_MAX;
-  float err = 5.0 * test_gains[gain_idx] * (float)TEST_SAMPLES*2 /  (float)TEST_SAMPLE_MAX;   //base ADC accuracy is +/- 2 LSB
+  float voltage = get_voltage(value, gain_idx);
+  float tol = get_voltage_tol(gain_idx);
   Serial.print(F("Calc. volts: "));
   Serial.print(voltage);
   Serial.print(F("V +/-"));
-  Serial.println(err);
+  Serial.println(tol);
 }
 void test_sweep_next()
 {
@@ -340,7 +416,6 @@ void test_sweep_next()
   //check if we can increase PWM
   if(test_pwm < config.pwm_max)
   {
-    
     //increase the pwm
     test_pwm += test_pwm_inc;
     //decrease the increment
@@ -356,7 +431,6 @@ void test_sweep_next()
   //otherwise reset the pwm back to 0 and change the resolution/freq
   else if (test_bits < PWM_BITS_MAX)
   {
-    
     test_bits++;
     test_pwm = 0;
     test_pwm_inc = TEST_PWM_INC_INIT;
@@ -368,6 +442,30 @@ void test_sweep_next()
     Serial.print(FS(S_COMMA));
     Serial.println(test_pwm_inc);
     #endif
+    
+    //immediately set pwm to zero and wait for output voltage to drop back down to input
+    set_pwm(0);
+    test_ramp_delay();
+    unsigned int input, output, count;
+    do
+    {
+      delay(TEST_RESET_TIME_ms);
+      input = analogRead(TEST_CH_INPUT);
+      output = analogRead(TEST_CH_OUTPUT);
+      #ifdef DEBUG_TEST
+      if (count&0x3FF)
+        Serial.println(F("Waiting on Vin to match Vout"));
+      #endif
+    }while(input < output && ++count != 0);
+    #ifdef DEBUG_TEST
+    if(count == 0)
+      Serial.println(F("Gave up waiting"));
+    #endif
+
+    #ifdef TEST_CSV_OUTPUT
+    Serial.println();
+    #endif
+    
   }
   else
   {
@@ -417,6 +515,11 @@ void test_sample()
       
       min_sample = min(min_sample, new_output_sample);
       max_sample = max(max_sample, new_output_sample);
+      if(Serial.available()>0)
+      {
+        test_reset();
+        return;
+      }
     }
     unsigned int spread = max_sample - min_sample;
     if(test_debug)
@@ -447,7 +550,9 @@ void test_sample()
       }
       else
       {
+        #ifndef TEST_CSV_OUTPUT
         Serial.println(F("Test sample spread persistantly out of tolerance: using average of retries"));
+        #endif
         output_sample = spread_retry_avg/spread_retry_count;
         spread_retry_avg = 0;
         spread_retry_count = 0;

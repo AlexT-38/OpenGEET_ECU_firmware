@@ -33,7 +33,14 @@ void set_pwm(byte pwm)
   Serial.println(F("set_pwm end"));
   #endif
 }
-
+unsigned int pwm_bitshift(byte pwm)
+{
+  #if PWM_BITS_MIN < 8
+  return (bit_shift>0)? pwm<<bit_shift : pwm>>-bit_shift;
+  #else
+  return pwm<<bit_shift;
+  #endif
+}
 /* force_pwm(pwm)
  * writes a value to OCR1A after negating if required
  * disables oscillation
@@ -55,8 +62,9 @@ void force_pwm(byte pwm)
   #endif
   
   //shift the bits before negating
-  pwm = (bit_shift>0)? pwm<<bit_shift : pwm>>-bit_shift;
-
+  pwm = pwm_bitshift(pwm);
+  //pwm = (bit_shift>0)? pwm<<bit_shift : pwm>>-bit_shift;
+    
   #ifdef DEBUG_PWM_BITS
   Serial.print(F("F, shifted:"));
   Serial.println((int)pwm);
@@ -115,6 +123,7 @@ void write_pwm(byte pwm)
   #endif
   
   //shift the bits before negating, we should also ignore this if using a 16bit LUT
+//  pwm = pwm_bitshift(pwm);
   #if PWM_BITS_MIN < 8
   ocr1a = (bit_shift>0)? pwm<<bit_shift : pwm>>-bit_shift;
   #else
@@ -429,6 +438,12 @@ void set_pwm_invert(byte negate, byte invert)
 #define MS_PER_RAMP_UPDATE 33 //actually 32.768
 void set_pwm_ramp(unsigned int ramp_ms)
 {
-  unsigned long ramp_time = (unsigned long)ramp_time / MS_PER_RAMP_UPDATE;
+  unsigned long ramp_time = (unsigned long)ramp_ms / MS_PER_RAMP_UPDATE;
   config.pwm_ramp = ramp_time;
+}
+
+unsigned long get_pwm_ramp_ms()
+{
+  unsigned long ramp_ms = config.pwm_ramp * MS_PER_RAMP_UPDATE;
+  return ramp_ms;
 }
