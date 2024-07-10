@@ -5,6 +5,7 @@ static unsigned int update_top = 0;
 static byte in_isr = false;
 #endif
 static char bit_shift = 0;
+static byte pwm_param_is_16bit = false;
 
 
 /*set_pwm()
@@ -33,14 +34,7 @@ void set_pwm(byte pwm)
   Serial.println(F("set_pwm end"));
   #endif
 }
-unsigned int pwm_bitshift(byte pwm)
-{
-  #if PWM_BITS_MIN < 8
-  return (bit_shift>0)? pwm<<bit_shift : pwm>>-bit_shift;
-  #else
-  return pwm<<bit_shift;
-  #endif
-}
+
 /* force_pwm(pwm)
  * writes a value to OCR1A after negating if required
  * disables oscillation
@@ -61,54 +55,42 @@ void force_pwm(byte pwm)
   Serial.println((int)pwm);
   #endif
   
-  //shift the bits before negating
-  pwm = pwm_bitshift(pwm);
-  //pwm = (bit_shift>0)? pwm<<bit_shift : pwm>>-bit_shift;
-    
-  #ifdef DEBUG_PWM_BITS
-  Serial.print(F("F, shifted:"));
-  Serial.println((int)pwm);
-  #endif
-  
-  //use TOP (ICR1) to negate
-  if(config.pwm_negate)
-  {
-    pwm=ICR1-pwm;
-  }
-
-  OCR1A = pwm;
-
-  #ifdef DEBUG_PWM_BITS
-  Serial.print(F("ICR1:  "));
-  Serial.println((int)ICR1);
-  Serial.print(F("OCR1A: "));
-  Serial.println((int)OCR1A);
-  #endif
+  write_pwm(pwm); //write the value to the PWM reg
 
   #ifdef DEBUG_TRAP
   Serial.println(F("force_pwm end"));
   #endif
 }
 
-/* write_pwm(pwm)
- * writes a value to OCR1A after applying lookup tables, limiting and negating as required
+/* update_pwm(pwm)
+ * applies lookup tables and limits on the input value,
+ * and then writes it to the PWM register
  * 
- * this function is called by the ISR and should be heavily optimised
  */
-void write_pwm(byte pwm)
+void update_pwm(byte pwm)
 {
   unsigned int ocr1a;// = pwm;
   #ifdef DEBUG_TRAP
   //no prints insde isr
+  #ifndef DEBUG_PRINT_IN_ISR
   if(!in_isr)
-    Serial.println(F("write_pwm start"));
+  #endif
+    Serial.println(F("update_pwm start"));
   #endif
 
   //TODO: high resolution LUT
+  // call set_pwm_param_bits(true) to enable 16 bit inputs
   //apply look up table
   if(config.lut)
+  {
     pwm = LUT[pwm];
-  //apply limits        this should account for pwm_bits, and be applied after bit shifting
+    #ifdef LUT_IS_16BIT
+    set_pwm_param_bits(true);
+    #else
+    set_pwm_param_bits(false);
+    #endif
+  }
+  //apply limits
   pwm = limit_pwm(pwm);
 
   #ifdef DEBUG_PWM_BITS
@@ -122,20 +104,36 @@ void write_pwm(byte pwm)
   }
   #endif
   
-  //shift the bits before negating, we should also ignore this if using a 16bit LUT
-//  pwm = pwm_bitshift(pwm);
-  #if PWM_BITS_MIN < 8
-  ocr1a = (bit_shift>0)? pwm<<bit_shift : pwm>>-bit_shift;
-  #else
-  ocr1a = pwm<<bit_shift;
+  write_pwm(pwm); //write the value to the PWM reg
+
+
+
+  #ifdef DEBUG_TRAP
+  if(!in_isr)
+  {
+    Serial.println(F("update_pwm end"));
+  }
   #endif
-  
+}
+
+
+
+/* write_pwm(byte pwm)
+ * 
+ * Final step of writing to PWM reg.
+ * Applies negation and writes value to the PWM register.
+ */
+void write_pwm(unsigned int pwm)
+{
+  //shift the bits before negating, we should also ignore this if using a 16bit LUT
+  unsigned int ocr1a = pwm_bitshift(pwm);
+
   #ifdef DEBUG_PWM_BITS
   #ifndef DEBUG_PRINT_IN_ISR
   if(!in_isr)
   #endif
   {
-    Serial.print(F("F, shifted:"));
+    Serial.print(F("shifted:"));
     Serial.println(ocr1a);
   }
   #endif
@@ -149,28 +147,58 @@ void write_pwm(byte pwm)
   //write the final value to OCR1A  
   OCR1A = ocr1a;
 
-
-
-  #ifdef DEBUG_TRAP
+  #ifdef DEBUG_PWM_BITS
+  #ifndef DEBUG_PRINT_IN_ISR
   if(!in_isr)
+  #endif
   {
-    Serial.println(F("write_pwm end"));
+    Serial.print(F("ICR1:  "));
+    Serial.println((int)ICR1);
+    Serial.print(F("OCR1A: "));
+    Serial.println((int)OCR1A);
   }
   #endif
 }
-
 
 /*limit_pwm(pwm)
  * applies absolute pwm range limits to the given value
  * used only when writing to OCR1A after LUT and before Negate
  */
-byte limit_pwm(byte pwm)
+unsigned int limit_pwm(unsigned int pwm)
 {
-  if (pwm <config.pwm_min) pwm = (config.pwm_negate) ? 0 : config.pwm_min;         //jump to zero only if negate is enabled
-  else if (pwm > config.pwm_max) pwm = (config.pwm_negate) ? config.pwm_max : 255;  //jump to max only if negate is NOT enabled 
+  unsigned int pwm_min = pwm_param_is_16bit ? config.pwm_min<<8: config.pwm_min;
+  unsigned int pwm_max = pwm_param_is_16bit ? config.pwm_max<<8: config.pwm_max;
+  if      (pwm < pwm_min) pwm = (config.pwm_negate) ? 0       : pwm_min;         //jump to zero only if negate is enabled
+  else if (pwm > pwm_max) pwm = (config.pwm_negate) ? pwm_max :     255;  //jump to max only if negate is NOT enabled 
   return pwm;
 }
-
+/* convert the given 8-bit or 16-bit pwm value to the target resolution */
+unsigned int pwm_bitshift(unsigned int pwm)
+{
+  
+  #if PWM_BITS_MIN < 8
+  return (bit_shift>0)? pwm<<bit_shift : pwm>>-bit_shift;
+  #else
+  return pwm<<bit_shift;
+  #endif
+}
+/* use this function to select pwm input resolution
+ *  
+ */
+void set_pwm_param_bits(bool is_16bit)
+{
+  if(pwm_param_is_16bit != is_16bit)
+  { 
+    pwm_param_is_16bit = is_16bit;
+    pwm_update_bits();
+  }
+    
+}
+void pwm_update_bits()
+{
+  //new bitshift value
+  bit_shift = config.pwm_bits - (pwm_param_is_16bit ? 16 : 8);
+}
 /*set_target(pwm)
  * sets the ramp target for ISR updates
  */
@@ -185,14 +213,8 @@ void set_target(byte pwm)
   {
     ramp_value = find_in_table(forced_value);
     forced = false;
-    //enable_isr();
   }
-  //if the target has changed, enable the isr
-  //else if (old_target != ramp_target)
 
-  //actually, just enable it whenever a target is set.
-  //if the target has already been reached, the ISR will turn itself off
-  //enable_isr();
 }
 /*set_osc(pwm)
  * set the alternate value for LFO oscillation mode, stored in config.pwm_osc
@@ -278,7 +300,7 @@ ISR(TIMER2_OVF_vect)
         ramp_value--;
       }
     }
-    write_pwm(ramp_value);
+    update_pwm(ramp_value);
   }
   else
   {
@@ -362,8 +384,7 @@ void set_pwm_bits(byte bits)
   
   config.pwm_bits = bits;
   
-  //new bitshift value
-  bit_shift = config.pwm_bits - 8;
+  pwm_update_bits();
   
   OCR1A = ocr1a;
   if(top != ICR1)
@@ -425,7 +446,7 @@ void set_pwm_invert(byte negate, byte invert)
     }
     else //otherwise write the current ramp value
     {
-      write_pwm(ramp_value);
+      update_pwm(ramp_value);
     }
   }
   /* move this to commands, so that only a command will illicit a response

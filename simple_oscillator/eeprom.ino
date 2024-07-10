@@ -29,7 +29,7 @@ void config_update()
   set_pwm_invert(config.pwm_negate, config.pwm_invert);
   set_pwm_prescale(config.pwm_prescale);
   set_pwm_bits(config.pwm_bits);
-  write_pwm(config.pwm);
+  update_pwm(config.pwm);
 }
 
 /* Load config from eeprom, check the crc and if a match, store in ram 

@@ -136,7 +136,7 @@ void recieve_command()
     Serial.println(FS(S_STOP_ALL));
     config.enable = false;
     config.oscillate = false;
-    write_pwm(0);
+    update_pwm(0);
     break;
   case C_SET_RATE:   //R set relay rate
     {
