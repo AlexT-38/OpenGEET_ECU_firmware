@@ -62,6 +62,39 @@ void force_pwm(byte pwm)
   #endif
 }
 
+/* force_pwm_w(pwm)
+ * writes a value to ocr1a as an unsigned int
+ * does not ramp, disables oscillation
+ * ignores limits and look up tables
+ */
+void force_pwm_w(unsigned int pwm)
+{
+  #ifdef DEBUG_TRAP
+  Serial.println(F("force_pwm start"));
+  #endif
+  
+  forced = true;
+  forced_value = pwm;
+  config.oscillate = false;
+
+  bool is_16bit = pwm_param_is_16bit;
+  set_pwm_param_bits(true);
+  
+  #ifdef DEBUG_PWM_BITS
+  Serial.print(F("F, pwm:"));
+  Serial.println((int)pwm);
+  #endif
+  
+  write_pwm(pwm); //write the value to the PWM reg
+
+  //reset the param bit width setting
+  set_pwm_param_bits(is_16bit);
+  
+  #ifdef DEBUG_TRAP
+  Serial.println(F("force_pwm end"));
+  #endif
+}
+
 /* update_pwm(pwm)
  * applies lookup tables and limits on the input value,
  * and then writes it to the PWM register

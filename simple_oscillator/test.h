@@ -11,6 +11,7 @@ typedef enum test_type
   TT_NONE = 0,
   TT_CALIBRATE,           //a single measurement. provide a custom voltage and check that the output value is correct, enables debug messages
   TT_FULL_SWEEP,          //full sweep through all bit ranges and from 0 to max pwm with decremental step ups, starting at 21
+  TT_MEASURE,             //performs a single measurement
   NO_OF_TEST_TYPES
 } TEST_TYPE;
 

@@ -1,4 +1,5 @@
 //#define DEBUG_TEST
+//#define DEBUG_TEST_DELAY
 
 #define TEST_CSV_OUTPUT
 
@@ -32,7 +33,21 @@
 #define TEST_R_1        0.679             // 0.680
 #define TEST_R_ALL      (1.0/((1.0/TEST_R_1)+(1.0/TEST_R_2)+(1.0/TEST_R_3)+(1.0/TEST_R_4)))
 
-#define TEST_R_RATIO(rb) (( (rb) + TEST_R_TOP) / (rb))          // range gain: 1 / (divider ratio)
+#define TEST_R_IN_TOP  9.98
+#define TEST_R_IN_BOT  9.96 
+
+//input measured 4.34 (tenma) 4.358 (DM6000) 4.97 (this, input) 4.36 (this, output)
+//input measured 6.21 (tenma) 6.23 (DM6000) 6.85 (this, input) 6.23 (this, output)
+//actual input to the ADC for input channel 3.427, times the measured ratio = 6.86
+//ADC is reading right, but divider is not the expected value? No, it is infact correct.
+//DMMs were measuring output, and there's upto a diode drop depending on comparator states.
+
+
+
+#define TEST_PD_RATIO(rt, rb) (( (rb) + (rt)) / (rb))
+#define TEST_INPUT_GAIN     TEST_PD_RATIO(TEST_R_IN_TOP, TEST_R_IN_BOT)
+
+#define TEST_R_RATIO(rb) TEST_PD_RATIO(TEST_R_TOP, rb)          // range gain: 1 / (divider ratio)
 #define TEST_G_RATIO(n0, n1)  (TEST_R_RATIO(n1) / TEST_R_RATIO(n0)) // next range gain relative to current: smaller range / larger range
 #define TEST_G_RATIO_FINAL(n0)  (1.0 / TEST_R_RATIO(n0))             //final relative range gain
 //gain divider resistors of 10 / [ 10 | 3.3 | 1.5 | 0.68 ], see test_set_gain()
@@ -141,13 +156,17 @@ void test_print_ratios()
   Serial.println(FS(S_BAR));
 }
 
-void test_reset()
+void test_stop()
 {
-  set_pwm(0);
   test_set_gain(0);
   test_type = TT_NONE;
   test_stage = TS_IDLE;
   test_debug = false;
+}
+void test_reset()
+{
+  test_stop();
+  set_pwm(0);
 }
 //command call to start test.
 void start_test(TEST_TYPE test_no)
@@ -155,6 +174,10 @@ void start_test(TEST_TYPE test_no)
   test_type = test_no;
   switch(test_no)
   {
+    case TT_MEASURE:
+      test_stage = TS_SETUP;
+      test_setup_idx = 0;
+      break;
     case TT_CALIBRATE:
       test_stage = TS_SETUP;
       test_pwm = 0;
@@ -171,7 +194,7 @@ void start_test(TEST_TYPE test_no)
       Serial.println(F("Full Sweep Test"));
       #endif
       #ifdef TEST_CSV_OUTPUT
-      Serial.println(F("IDX, BITS, PWM, IN, OUT, IN(v), OUT(v), IN(tol%), OUT(tol%), OUT(rng), RATIO, TARG, LOSS(%)"));
+      Serial.println(FS(S_CSV_HEADER));
       #endif
       test_stage = TS_SETUP;
       test_pwm = 0;
@@ -184,7 +207,7 @@ void start_test(TEST_TYPE test_no)
       break;
       
     default:
-      test_reset();
+      test_stop();
       break;
   }
 
@@ -197,12 +220,12 @@ void start_test(TEST_TYPE test_no)
 byte run_test()
 {
   byte going = false;
-
-  
-  
   switch(test_type)
   {
     case TT_NONE:
+      break;
+    case TT_MEASURE:
+      run_measure_test();
       break;
     case TT_CALIBRATE:
       going = run_calib_test();
@@ -232,7 +255,7 @@ byte run_test()
       }
       break;
     default:
-      test_reset();
+      test_stop();
       break;
   }
   
@@ -240,24 +263,45 @@ byte run_test()
   {
     Serial.println(F("Interrupting test."));
     Serial.flush();
-    test_reset();
+    if(test_type == TT_MEASURE)
+      test_stop();
+    else
+      test_reset();
     going = false;
-    //for some reason this is causing the kalibration test to run
   }
   
   return going;
 }
 
 //run a single sample
+byte run_measure_test()
+{
+  switch(test_stage)
+  {
+    case TS_IDLE:
+      break;
+    case TS_SETUP:
+      #ifdef TEST_CSV_OUTPUT
+      Serial.println(FS(S_CSV_HEADER));
+      #endif
+      test_stage = TS_SAMPLE;
+      break;
+    case TS_SAMPLE:
+      test_sample();
+      break;
+    case TS_REPORT:
+      test_report();
+      break;
+    default:
+      test_stop();
+      break;
+  }
+  return (test_stage != TS_IDLE);
+}
+//run a single sample
 byte run_calib_test()
 {
-  
-  
-  //Serial.print(F("test_debug: "));
-  //Serial.println(test_debug);
-
   test_debug = true;
-  
   switch(test_stage)
   {
     case TS_IDLE:
@@ -309,13 +353,27 @@ byte run_sweep_test()
 }
 void test_ramp_delay()
 {
-  delay((TEST_RAMP_TIME_ms * TEST_RAMP_TIME_FACTOR * (unsigned long)test_pwm_inc)>>8 + TEST_DELAY_TIME_ms);
+  unsigned long delay_ms = ((TEST_RAMP_TIME_ms * TEST_RAMP_TIME_FACTOR * (unsigned long)test_pwm_inc)>>8) + TEST_DELAY_TIME_ms;
+  #ifdef DEBUG_TEST_DELAY
+  Serial.print(F("Delay: "));
+  Serial.println(delay_ms);
+  Serial.print(F("TEST_RAMP_TIME_ms: "));
+  Serial.println(TEST_RAMP_TIME_ms);
+  Serial.print(F("TEST_RAMP_TIME_FACTOR: "));
+  Serial.println(TEST_RAMP_TIME_FACTOR);
+  Serial.print(F("test_pwm_inc: "));
+  Serial.println(test_pwm_inc);
+  Serial.print(F("product of above: "));
+  Serial.println((TEST_RAMP_TIME_ms * TEST_RAMP_TIME_FACTOR * (unsigned long)test_pwm_inc));
+  Serial.print(F("div by 256: "));
+  Serial.println((TEST_RAMP_TIME_ms * TEST_RAMP_TIME_FACTOR * (unsigned long)test_pwm_inc)>>8);
+  Serial.print(F("TEST_DELAY_TIME_ms: "));
+  Serial.println(TEST_DELAY_TIME_ms);
+  #endif
+  delay(delay_ms);
 }
 void test_setup()
 {
-  
-  
-
   #ifndef TEST_CSV_OUTPUT
   Serial.println(FS(S_BAR));
   Serial.print(F("Setup no.: "));
@@ -339,7 +397,8 @@ void test_report()
 {
   //calculate some useful values (could be processed externally, but what the hey)
   float scaled_output = (float)output_sample * test_gains[test_gain_idx];
-  float output_ratio = scaled_output / (float)input_sample;
+  float scaled_input = TEST_INPUT_GAIN * (float)input_sample;
+  float output_ratio = scaled_output / scaled_input;
   float target_ratio = 1/(1-((float)test_pwm/256.0));
   float loss = 100*(1.0-(output_ratio/target_ratio));
 
@@ -356,7 +415,7 @@ void test_report()
   Serial.print(S_COMMA_str);
   Serial.print(output_sample);
   Serial.print(S_COMMA_str);
-  Serial.print(get_voltage(input_sample,TEST_UNITY_GAIN_IDX));
+  Serial.print(get_voltage(input_sample,TEST_UNITY_GAIN_IDX)*TEST_INPUT_GAIN);
   Serial.print(S_COMMA_str);
   Serial.print(get_voltage(output_sample,test_gain_idx));
   Serial.print(S_COMMA_str);
@@ -374,6 +433,8 @@ void test_report()
   #else
   Serial.print(F("\nInput: "));
   Serial.println(input_sample);
+  Serial.print(F("\nScaled Input: "));
+  Serial.println(scaled_input);
   Serial.print(F("Output: "));
   Serial.println(output_sample);
   Serial.print(F("Range Gain: "));
@@ -446,24 +507,31 @@ void test_sweep_next()
     //immediately set pwm to zero and wait for output voltage to drop back down to input
     set_pwm(0);
     test_ramp_delay();
-    unsigned int input, output, count;
+    
+    unsigned int  count;
+    float input, output;
+    float err = get_voltage_tol(0) * 2;
+    test_set_gain(0);//should already be set, but just to make sure
     do
     {
       delay(TEST_RESET_TIME_ms);
-      input = analogRead(TEST_CH_INPUT);
-      output = analogRead(TEST_CH_OUTPUT);
+      
+      input = get_voltage(analogRead(TEST_CH_INPUT)*TEST_INPUT_GAIN, TEST_UNITY_GAIN_IDX)+(err);
+      output = get_voltage(analogRead(TEST_CH_OUTPUT), 0);
       #ifdef DEBUG_TEST
       if (count&0x3FF)
         Serial.println(F("Waiting on Vin to match Vout"));
+        Serial.println(input);
+        Serial.println(output);
       #endif
-    }while(input < output && ++count != 0);
+    }while((input) < output && ++count != 0);
     #ifdef DEBUG_TEST
     if(count == 0)
       Serial.println(F("Gave up waiting"));
     #endif
 
     #ifdef TEST_CSV_OUTPUT
-    Serial.println();
+    Serial.println(FS(S_CSV_HEADER));
     #endif
     
   }
@@ -475,6 +543,7 @@ void test_sweep_next()
   }
 }
 
+//void fetch_scaled_samples (float *input_val, float 
 void test_sample()
 {
   //testing for stability on the output side only.
@@ -517,7 +586,7 @@ void test_sample()
       max_sample = max(max_sample, new_output_sample);
       if(Serial.available()>0)
       {
-        test_reset();
+        test_stop();
         return;
       }
     }
@@ -537,7 +606,7 @@ void test_sample()
       Serial.print(F("test range gain: "));
       Serial.println(test_gains[test_gain_idx]);
 
-      test_print_voltage(input_sample,TEST_UNITY_GAIN_IDX);
+      test_print_voltage((float)input_sample*TEST_INPUT_GAIN,TEST_UNITY_GAIN_IDX);
       test_print_voltage(output_sample,test_gain_idx);
       Serial.println();
     }
@@ -622,6 +691,7 @@ void test_sample()
 
   //done
   test_stage = TS_REPORT;
+  test_set_gain(0);
 }
 
 

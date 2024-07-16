@@ -40,12 +40,15 @@ const char S_BAR[] PROGMEM = "------------------------";
 
 const char S_DONE[] PROGMEM = "Done";
 
+const char S_CSV_HEADER[] PROGMEM = "IDX, BITS, PWM, IN, OUT, IN(v), OUT(v), IN(tol%), OUT(tol%), OUT(rng), RATIO, TARG, LOSS(%)";
+
 
 
 const char PROGMEM S_STOP_ALL[] = "STOP_ALL";            //S sets PWM to 0 and disables LFO
 const char PROGMEM S_SET_INTERVAL[] = "SET_INTERVAL <0...4.3M>ms";    //set LFO total interval
 const char PROGMEM S_SET_PWM[] = "SET_PWM <0...255>";              //V set PWM, observing min and max
 const char PROGMEM S_FORCE_PWM[] = "FORCE_PWM <0...255>";          //F set PWM, ignoring min and max
+const char PROGMEM S_FORCE_PWM_W[] = "FORCE_PWM_W <0...65535>";          //F set PWM, ignoring min and max
 const char PROGMEM S_HELP[] = "HELP";                    //H prints available commands
 
 const char PROGMEM  S_SET_PRESCALE[] = "SET_PRESCALE <1...5>";           //C set clock rate for PWM
@@ -63,6 +66,7 @@ const char PROGMEM S_PRINT_STATE[] = "PRINT_STATE";           //A
 
 const char PROGMEM S_TEST_FULL_SWEEP[] = "TEST_FULL_SWEEP";
 const char PROGMEM S_TEST_CALIBRATE[] = "TEST_CALIBRATE";
+const char PROGMEM S_TEST_MEASURE[] = "TEST_MEASURE";
 
 const char PROGMEM S_STOP[] = "STOP";
 const char PROGMEM S_START[] = "START";
@@ -77,6 +81,7 @@ const char * const command_str[] PROGMEM = { //this should prabably be an indexe
   S_SET_INTERVAL,               
   S_SET_PWM,              
   S_FORCE_PWM,
+  S_FORCE_PWM_W,
   S_SET_PRESCALE,
   S_SET_PWM_LIMIT,
   S_SET_PWM_INVERT,
@@ -91,6 +96,7 @@ const char * const command_str[] PROGMEM = { //this should prabably be an indexe
   S_PRINT_STATE,
   S_TEST_FULL_SWEEP,
   S_TEST_CALIBRATE,
+  S_TEST_MEASURE,
   S_HELP,                   
 };
   

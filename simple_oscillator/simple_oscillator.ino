@@ -48,36 +48,32 @@
  *         Vin is to be measured directly
  *         Vout should be measured with a potential divider
  *         with the bottom leg switchable between different values
+ * DONE
  * step 4: plot the data in a spreadsheet
+ * DONE
  * step 5: create a table that selects the best bit depth for a given pwm
+ * Not needed, 10 and 11bits are best and too close to be worth switching on the go
  * step 6: update the boost LUT to use the highest number of bits in the above table 
  *         and scale down as needed
+ * In progress.
  * 
  * 
- * #notes - Realistically, faster switching rate than 8bit are not feasible without seriously optimising the ISR.
- *          At 6bit resolution, interupts occur every 4 micro seconds, but ISR currently takes at least 12 us.
- *          Even at 8 bits, ISR is every 16us, so ISR is 75% of available CPU time
- *          Infact, with context switching included, the ISR is 16us.
- *          Actually, more like 20ms since constext switching also needs to occur after exiting he ISR.
- *          
- *          we could disable the isr when no ramping action is needed.
- *          this doesn't really solve the problem
- *          
- *          the only way to make this work with an arbitrary bit depth is to use another timer
- *          that runs at 30kHz or less to process ramping.
- *          this has the advantage of making ramp time independent of pwm frequency
- *          
- *          the pwm isr is still needed to syncronise ICR1 updates.
- *          however, if we use OCR1A as TOP, it will be double buffered and no cpu overhead is required.
- *          that being said, it requires that I change the circuit and do a whole bunch of refactoring
- *          and since ICR1 does not change as part of waveform generation, 
- *          but rather is a configurable fixed value, there's no real benefit.
- *          
- *          all that being said, I've been measuing the time of the ISR _WITH_ debug code.
- *          it may be more spritely with all that taken out.
- *          
- *          indeed, the ISR runtime is 5.6us (not including context switching at around 8us total)
- *          so 13.6us out of the available 16us @8bit clk/1
+ * I'd like to add the following features:
+ * 1) test parameters, specifically no of bits and step size, step size reduction
+ *    should be configurable using the q command
+ * 2) make single measurement with the current config settings at a command
+ * 
+ * for (2) command 'M' for measure, and there should probably be a Test Typ TT_MEASURE
+ * an optional parameter select csv output format as a boolean parameter
+ * 
+ * OK, measure done.
+ * 
+ * skipping test params for now.
+ * 
+ * need to configure  input voltage measurement gain.
+ * 
+ * 
+ * 
  */
 
 
@@ -97,7 +93,7 @@
 #define PWM_BITS_MIN  6
 #define PWM_BITS_MAX  14
 
-#define DEBUG_PWM_BITS
+//#define DEBUG_PWM_BITS
 //#define DEBUG_TRAP
 //#define DEBUG_ISR
 #define DEBUG_ISR_LED
