@@ -15,7 +15,7 @@
 #define PIN_INPUT_2        7      //comp hi
 #define PIN_INPUT_3        6      //comp hi @ -20V
 
-#define PIN_DAC_GAIN       A7
+#define PIN_DAC_GAIN       A3
 
 
 #define TEST_RANGE_800mV   LOW

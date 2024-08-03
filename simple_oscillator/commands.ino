@@ -19,7 +19,10 @@ const COMMAND commands_by_letter[] = {C_PRINT_STATE, C_SET_PWM_BITS, C_SET_PRESC
                           
 const char command_letters[] = {'S','R','P','F','G','C','I','V','B','O','T','L','W','E','X','Z','A','Q','K','M','H'}; //this ought to be an indexed intialiser
 
-
+void clear_serial()
+{
+  while(Serial.available()) {Serial.read();}
+}
 
 /* check for serial commands and produce periodic report */
 void Process_Commands()
@@ -330,6 +333,9 @@ void recieve_command()
           break;
         case 1:
           start_test(TT_CAL_DAC);
+          break;
+        case 2:
+          tog_dac_gain();
           break;
       }
     }

@@ -32,6 +32,8 @@
  * should be entered via serial comms. 
  * The DAC and ADC are calibrated independantly.
  */
+#define DEBUG_DAC_CAL
+
 
 #define DAC_BITS 12
 #define DAC_STEP (1<<(16-DAC_BITS))
@@ -47,6 +49,9 @@ float dac_voltage;        //value entered via serial
 
 void dac_read_sample()
 {
+  #ifdef DEBUG_DAC_CAL
+  Serial.println(F("dac_read_sample"));
+  #endif
   byte dac_sample_idx = 0;
   dac_sample = 0;
 
@@ -66,10 +71,17 @@ void dac_read_sample()
     }
     adc_spread = adc_max - adc_min;
     attempts++;
+    #ifdef DEBUG_DAC_CAL
+    Serial.print(F("attempts: "));
+    Serial.println(attempts);
+    #endif
   }
 }
 void set_dac(unsigned int new_dac_value)
 {
+  #ifdef DEBUG_DAC_CAL
+  Serial.print(F("set_dac ")); Serial.println(new_dac_value);
+  #endif
   force_pwm_w(new_dac_value);
   if(new_dac_value != dac_value)
   {
@@ -78,9 +90,16 @@ void set_dac(unsigned int new_dac_value)
     dac_value = new_dac_value;
   }
 }
-
+void tog_dac_gain()
+{
+  if(dac_range == TEST_RANGE_800mV) {set_dac_gain(TEST_RANGE_80mV);}
+  else {set_dac_gain(TEST_RANGE_800mV);}
+}
 void set_dac_gain(byte range)
 {
+  #ifdef DEBUG_DAC_CAL
+  Serial.print(F("set_dac_gain ")); Serial.println(range);
+  #endif
   if(range != dac_range)
   {
     digitalWrite(PIN_DAC_GAIN, range);
@@ -100,7 +119,7 @@ void export_dac_cal_row(Stream *dst, unsigned int dac, unsigned int adc, float m
 
 void export_dac_cal_set(Stream *dst, CALIBRATION_POINTS *cal, byte points)
 {
-  dst->print(FS(S_DAC_HEADER));
+  dst->println(FS(S_DAC_HEADER));
   for(byte n = 0; n < points; n++)
   {
     export_dac_cal_row(dst, cal->dac[n] , cal->adc[n],cal->mV[n]);
@@ -163,6 +182,10 @@ bool run_dac_cal()
 
 void cal_dac_setup()
 {
+  #ifdef DEBUG_DAC_CAL
+  Serial.println(F("cal_dac_setup"));
+  #endif
+  
   unsigned int cal_range = test_setup_idx / NO_OF_CALIBRATION_POINTS;
   unsigned int new_dac_value = test_setup_idx % NO_OF_CALIBRATION_POINTS;
   new_dac_value = (DAC_STEP*2) + (new_dac_value * ((UINT16_MAX - DAC_STEP*4) / NO_OF_CALIBRATION_POINTS));
@@ -172,12 +195,17 @@ void cal_dac_setup()
     set_dac_gain(TEST_RANGE_80mV);
   }
   set_dac(new_dac_value);
+  test_stage = TS_SAMPLE;
 
 }
 void cal_stop()
 {
+  #ifdef DEBUG_DAC_CAL
+  Serial.println(F("cal_stop"));
+  #endif
   test_type = TT_NONE;
   test_stage = TS_IDLE;
+  set_dac_gain(LOW);
 }
 void cal_dac_sample()
 {
@@ -188,11 +216,14 @@ void cal_dac_sample()
     Serial.println(F("Enter measured DAC voltage"));
     while(Serial.available()==0);
     dac_voltage = Serial.parseFloat();
-    Serial.flush();
+    clear_serial();
+    Serial.print(dac_voltage);
+    Serial.print(F(" mV: "));
     Serial.println(F("Correct Value? (Y/n/c)"));
     is_correct = true;
     while(Serial.available()==0);
     char user_input = Serial.read();
+    clear_serial();
     if(user_input == 'n') { is_correct = false; }
     if(user_input == 'c') { cal_stop(); return; }
   }while(!is_correct);
@@ -216,18 +247,23 @@ void cal_dac_sample()
 
 void cal_dac_report()
 {
-  Serial.print(F("Cal Report, range: "));
+  Serial.print(FS(S_BAR));
+  Serial.print(F("\nCal Report, range: "));
   if(dac_range == TEST_RANGE_800mV)  Serial.println(FS(S_800MV));
   else Serial.println(FS(S_80MV));
 
   unsigned int cal_range = test_setup_idx / NO_OF_CALIBRATION_POINTS;
   export_dac_cal_set(&Serial, &calibration.range[cal_range], NO_OF_CALIBRATION_POINTS);
 
+  Serial.print(FS(S_BAR));
+  
   test_setup_idx++;
 
-  if(test_setup_idx >= NO_OF_CALIBRATION_POINTS*2)
-  {
+  if(test_setup_idx >= NO_OF_CALIBRATION_POINTS*2)  {
     test_stage = TS_NEXT;
+  }
+  else  {
+    test_stage = TS_SETUP;
   }
 }
 
