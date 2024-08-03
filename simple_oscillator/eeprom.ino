@@ -149,6 +149,14 @@ void update_eeprom()
   flag_update_eeprom = true;
 }
 
+void update_eeprom_cal()
+{
+  #ifdef DEBUG_EEPROM_SYSTEM
+  Serial.println(F("update_eep_cal"));
+  #endif
+  flag_update_eeprom_cal = true;
+}
+
 /* at startup, check if the eeprom version has changed.
  *  if so, we cannot load configuration values
  *  instead, we write the defualt config to eeprom

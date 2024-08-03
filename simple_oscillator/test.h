@@ -18,12 +18,15 @@
 #define PIN_DAC_GAIN       A7
 
 
-
 #define TEST_RANGE_800mV   LOW
 #define TEST_RANGE_80mV    HIGH
 
+
 #define NO_OF_CALIBRATION_POINTS 3
 
+#define TEST_SAMPLES             16    //number of samples to take in total
+#define TEST_SAMPLE_TOLERANCE_lsb 8   //total min max variance allowable
+#define TEST_SPREAD_RETRY_MAX     128
     
 
 typedef enum test_type
@@ -32,6 +35,9 @@ typedef enum test_type
   TT_CALIBRATE,           //a single measurement. provide a custom voltage and check that the output value is correct, enables debug messages
   TT_FULL_SWEEP,          //full sweep through all bit ranges and from 0 to max pwm with decremental step ups, starting at 21
   TT_MEASURE,             //performs a single measurement
+  TT_CAL_DAC,             //calibrates the DAC and its monitor ADC channel
+  TT_COMPARATOR_LO,       //tests the UUT's upper and lower comparator thresholds at 0v, using J9 Test Connector
+  TT_COMPARATOR_HI,       //tests the UUT's upper comparator thresholds at -20V
   NO_OF_TEST_TYPES
 } TEST_TYPE;
 
@@ -49,15 +55,15 @@ typedef enum test_stage
 
 typedef struct calibration_points
 {
-  float mV[NO_OF_CALIBRATION_POINTS];
-  int LSB[NO_OF_CALIBRATION_POINTS];
+  unsigned int dac[NO_OF_CALIBRATION_POINTS];      //dac setting for the following measurments
+  unsigned int adc[NO_OF_CALIBRATION_POINTS];      //adc measurement of the DAC output
+  float mV[NO_OF_CALIBRATION_POINTS];              //DMM measurement of the DAC output
 } CALIBRATION_POINTS;
 
 typedef struct calibration
 {
   byte points;
-  CALIBRATION_POINTS dac_cal[2]; //calibration points for DAC, high and low ranges
-  CALIBRATION_POINTS adc_cal[2]; //calibration points for ADC, high and low ranges
+  CALIBRATION_POINTS range[2]; //calibration points for DAC, high and low ranges
 } CALIBRATION;
 
 CALIBRATION calibration;

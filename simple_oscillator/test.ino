@@ -9,11 +9,8 @@
 #define TEST_DELAY_TIME_ms      2000    //time after setting value before making reading
 #define TEST_GAIN_TIME_ms        50    //time for gain change to settle
 #define TEST_RESET_TIME_ms       10    //time between checks for Vin to match Vout when resetting pwm to 0
-#define TEST_SAMPLES             16    //number of samples to take in total
-#define TEST_SAMPLE_TOLERANCE_lsb 8   //total min max variance allowable
 #define TEST_SAMPLE_OVERLOAD      (1022L*TEST_SAMPLES)
 #define TEST_SAMPLE_MAX           (1023L*TEST_SAMPLES) //might be 1024?
-#define TEST_SPREAD_RETRY_MAX     128
 
 #define TEST_NO_OF_OUTPUT_GAIN_SETTINGS  6
 #define TEST_OUTPUT_UNITY_GAIN_IDX       (TEST_NO_OF_OUTPUT_GAIN_SETTINGS-1)
@@ -37,8 +34,8 @@
 #define TEST_RO_ALL      (1.0/((1.0/TEST_RO_1)+(1.0/TEST_RO_2)+(1.0/TEST_RO_3)+(1.0/TEST_RO_4)))
 
 #define TEST_RI_TOP      10.0
-#define TEST_RI_1        5.107 
-#define TEST_RI_2        1.306 
+#define TEST_RI_2        5.107 
+#define TEST_RI_1        1.306 
 #define TEST_RI_ALL      (1.0/((1.0/TEST_RI_1)+(1.0/TEST_RI_2)))
 
 //input measured 4.34 (tenma) 4.358 (DM6000) 4.97 (this, input) 4.36 (this, output)
@@ -118,104 +115,54 @@ const char * const test_stages_str[] PROGMEM = { //this should prabably be an in
 };
 
 #endif
+/*** test_is_running()
+ *  returns true if a test is running
+ */
+bool test_is_running(){
+  return    test_type != TT_NONE;
+}
 
-void print_test_time()
-{
+/*** print_test_time()
+ *  prints the time since the a test was last started
+ */
+void print_test_time(){
   test_elapsed_time_ms = millis() - test_elapsed_time_ms;
   Serial.print(F("Elapsed test time (ms): "));
   Serial.println(test_elapsed_time_ms);
   Serial.println(FS(S_BAR));
 }
-//print all the gains and ratios
-void test_print_ratios()
-{
-  Serial.println(FS(S_BAR));
-  /* //debugging the ratio function
-  Serial.println(F("TEST_RO_RATIO(R):\n"));
-  for(float f = 0.1; f<= 16.0; f*=1.189207115)
-  {
-    Serial.print(f);
-    Serial.print(FS(S_COLON));
-    Serial.println(TEST_RO_RATIO(f));
-  }
-  */
 
-  Serial.println(F("\n INPUT:\n"));
-
-  Serial.println(F("RESISTORS:\n"));
-  Serial.print(F("Rtop: "));
-  Serial.println(TEST_RO_TOP);
-  Serial.print(F("Rall: "));
-  Serial.println(TEST_RO_ALL);
-  Serial.print(F("R1  : "));
-  Serial.println(TEST_RO_1);
-  Serial.print(F("R2  : "));
-  Serial.println(TEST_RO_2);
-
-  Serial.println(F("\nRANGE GAINS / RATIOS:\n"));
-  for(byte n; n < TEST_NO_OF_INPUT_GAIN_SETTINGS; n++)
-  {
-    Serial.print(n);
-    Serial.print(FS(S_COLON));
-    Serial.print(test_input_gains[n]);
-    Serial.print(FS(S_COMMA));
-    Serial.println(test_input_gain_steps[n]);
-  }
-
-  Serial.println(F("\n OUTPUT:\n"));
-  
-  Serial.println(F("RESISTORS:\n"));
-  Serial.print(F("Rtop: "));
-  Serial.println(TEST_RO_TOP);
-  Serial.print(F("Rall: "));
-  Serial.println(TEST_RO_ALL);
-  Serial.print(F("R1  : "));
-  Serial.println(TEST_RO_1);
-  Serial.print(F("R2  : "));
-  Serial.println(TEST_RO_2);
-  Serial.print(F("R3  : "));
-  Serial.println(TEST_RO_3);
-  Serial.print(F("R4  : "));
-  Serial.println(TEST_RO_4);
-  Serial.println(F("\nRANGE GAINS / RATIOS:\n"));
-  for(byte n; n < TEST_NO_OF_OUTPUT_GAIN_SETTINGS; n++)
-  {
-    //this deosnt work?
-//    static const char PROGMEM fmt[] = "%d1 : %f2.3,  %f2.3\n";
-//    #define STR_BUF_SIZE 255
-//    char string[STR_BUF_SIZE];
-//    int count = snprintf(string, STR_BUF_SIZE, fmt, n, test_output_gains[n], test_output_gain_steps[n]);
-//    if(count < STR_BUF_SIZE)
-//      Serial.println(string);
-
-    Serial.print(n);
-    Serial.print(FS(S_COLON));
-    Serial.print(test_output_gains[n]);
-    Serial.print(FS(S_COMMA));
-    Serial.println(test_output_gain_steps[n]);
-  }
-  
-  Serial.println(FS(S_BAR));
-}
-
-void test_stop()
-{
+/*** test_stop()
+ *  sets the test state to none/idle and resets gain settings
+ */
+void test_stop(){
   test_set_output_gain(0);
+  test_set_input_gain(0);
   test_type = TT_NONE;
   test_stage = TS_IDLE;
   test_debug = false;
 }
-void test_reset()
-{
+
+/*** test_reset()
+ *  stops the test and sets pwm to 0
+ */
+void test_reset(){
   test_stop();
   set_pwm(0);
 }
-//command call to start test.
+
+/*** start_test(TEST_TYPE)
+ * command call to start test.
+ * params - test type to start
+ */
 void start_test(TEST_TYPE test_no)
 {
   test_type = test_no;
   switch(test_no)
   {
+    case TT_CAL_DAC:
+      start_dac_cal();
+      break;
     case TT_MEASURE:
       test_stage = TS_SETUP;
       test_setup_idx = 0;
@@ -257,14 +204,19 @@ void start_test(TEST_TYPE test_no)
   Serial.flush();
 }
 
-//called from main loop, could be made non blocking... but why bother?
-//none the less, call from main loop and use the return value to decide what other tasks to perform
+/*** run_test()
+ *  called from main loop, runs the currently selected test and stops if serial input detected
+ *  returns true if a test is running
+ */
 byte run_test()
 {
   byte going = false;
   switch(test_type)
   {
     case TT_NONE:
+      break;
+    case TT_CAL_DAC:
+      going = run_dac_cal();
       break;
     case TT_MEASURE:
       run_measure_test();
@@ -279,16 +231,20 @@ byte run_test()
       break;
     case TT_FULL_SWEEP:
       #ifdef DEBUG_TEST
-      Serial.print(F("Running Test: "));
-      char buf[50];
-      if (test_stage > NO_OF_TEST_STAGES) test_stage = NO_OF_TEST_STAGES;
-      READ_STRING_FROM(test_stages_str,test_stage,buf);
-      Serial.println(buf);
+      {
+        Serial.print(F("Running Test: "));
+        char buf[50];
+        if (test_stage > NO_OF_TEST_STAGES) test_stage = NO_OF_TEST_STAGES;
+        READ_STRING_FROM(test_stages_str,test_stage,buf);
+        Serial.println(buf);
+      }
       #endif
       going = run_sweep_test();
       #ifdef DEBUG_TEST
-      Serial.print(F("Going: "));
-      Serial.println(going);
+      {
+        Serial.print(F("Going: "));
+        Serial.println(going);
+      }
       #endif
       if(!going) 
       {
@@ -301,7 +257,7 @@ byte run_test()
       break;
   }
   
-  if(going && Serial.available()>0)
+  if(going && test_type != TT_CAL_DAC && Serial.available()>0)
   {
     Serial.println(F("Interrupting test."));
     Serial.flush();
@@ -315,7 +271,10 @@ byte run_test()
   return going;
 }
 
-//run a single sample
+//------------------------------------------------------------ TEST TYPES
+/*** run_measure_test()
+ * run a single sample and report
+ */
 byte run_measure_test()
 {
   switch(test_stage)
@@ -340,7 +299,10 @@ byte run_measure_test()
   }
   return (test_stage != TS_IDLE);
 }
-//run a single sample
+
+/*** run_calib_test()
+ * print all gains and ratios, then run a single sample with debug messages enabled
+ */
 byte run_calib_test()
 {
   test_debug = true;
@@ -366,6 +328,10 @@ byte run_calib_test()
   }
   return (test_stage != TS_IDLE);
 }
+
+/*** run_sweep_test()
+ *  sweep through all pwm-bitage and pwm-value settings and report reuslts for each
+ */
 byte run_sweep_test()
 {
   switch(test_stage)
@@ -393,38 +359,50 @@ byte run_sweep_test()
   }
   return (test_stage != TS_IDLE);
 }
+
+/*** test_ramp_delay()
+ *  Delay after changing pwm to allow values to settle
+ */
 void test_ramp_delay()
 {
   unsigned long delay_ms = ((TEST_RAMP_TIME_ms * TEST_RAMP_TIME_FACTOR * (unsigned long)test_pwm_inc)>>8) + TEST_DELAY_TIME_ms;
   #ifdef DEBUG_TEST_DELAY
-  Serial.print(F("Delay: "));
-  Serial.println(delay_ms);
-  Serial.print(F("TEST_RAMP_TIME_ms: "));
-  Serial.println(TEST_RAMP_TIME_ms);
-  Serial.print(F("TEST_RAMP_TIME_FACTOR: "));
-  Serial.println(TEST_RAMP_TIME_FACTOR);
-  Serial.print(F("test_pwm_inc: "));
-  Serial.println(test_pwm_inc);
-  Serial.print(F("product of above: "));
-  Serial.println((TEST_RAMP_TIME_ms * TEST_RAMP_TIME_FACTOR * (unsigned long)test_pwm_inc));
-  Serial.print(F("div by 256: "));
-  Serial.println((TEST_RAMP_TIME_ms * TEST_RAMP_TIME_FACTOR * (unsigned long)test_pwm_inc)>>8);
-  Serial.print(F("TEST_DELAY_TIME_ms: "));
-  Serial.println(TEST_DELAY_TIME_ms);
+  {
+    Serial.print(F("Delay: "));
+    Serial.println(delay_ms);
+    Serial.print(F("TEST_RAMP_TIME_ms: "));
+    Serial.println(TEST_RAMP_TIME_ms);
+    Serial.print(F("TEST_RAMP_TIME_FACTOR: "));
+    Serial.println(TEST_RAMP_TIME_FACTOR);
+    Serial.print(F("test_pwm_inc: "));
+    Serial.println(test_pwm_inc);
+    Serial.print(F("product of above: "));
+    Serial.println((TEST_RAMP_TIME_ms * TEST_RAMP_TIME_FACTOR * (unsigned long)test_pwm_inc));
+    Serial.print(F("div by 256: "));
+    Serial.println((TEST_RAMP_TIME_ms * TEST_RAMP_TIME_FACTOR * (unsigned long)test_pwm_inc)>>8);
+    Serial.print(F("TEST_DELAY_TIME_ms: "));
+    Serial.println(TEST_DELAY_TIME_ms);
+  }
   #endif
   delay(delay_ms);
 }
+
+/*** test_setup()
+ *  Set the initial conditions for a test run
+ */
 void test_setup()
 {
   #ifndef TEST_CSV_OUTPUT
-  Serial.println(FS(S_BAR));
-  Serial.print(F("Setup no.: "));
-  Serial.println(test_setup_idx);
-  
-  Serial.print(F("\nTEST SETUP (bits, pwm): "));
-  Serial.print(test_bits);
-  Serial.print(' ');
-  Serial.println(test_pwm);
+  {
+    Serial.println(FS(S_BAR));
+    Serial.print(F("Setup no.: "));
+    Serial.println(test_setup_idx);
+    
+    Serial.print(F("\nTEST SETUP (bits, pwm): "));
+    Serial.print(test_bits);
+    Serial.print(' ');
+    Serial.println(test_pwm);
+  }
   #endif
 
   set_pwm(test_pwm);
@@ -434,7 +412,9 @@ void test_setup()
   test_stage = TS_SAMPLE;
   test_setup_idx++;
 }
-
+/*** test_report()
+ *  print the latest test report to Serial
+ */
 void test_report()
 {
   //calculate some useful values
@@ -446,78 +426,59 @@ void test_report()
 
   #ifdef TEST_CSV_OUTPUT
   //Serial.println(F("\tIDX, \tBITS, \tPWM, \tIN(lsb), \tOUT(lsb), \tIN(v), \tOUT(v), \tIN(tol), \tOUT(tol), \tOUT(gain), \tRATIO, \rTARG, \tLOSS%"));
-  MAKE_STRING(S_COMMA);
-  Serial.print(test_setup_idx);
-  Serial.print(S_COMMA_str);
-  Serial.print(test_bits);
-  Serial.print(S_COMMA_str);
-  Serial.print(test_pwm);
-  Serial.print(S_COMMA_str);
-  Serial.print(input_sample);
-  Serial.print(S_COMMA_str);
-  Serial.print(output_sample);
-  Serial.print(S_COMMA_str);
-  Serial.print(get_input_voltage());
-  Serial.print(S_COMMA_str);
-  Serial.print(get_output_voltage());
-  Serial.print(S_COMMA_str);
-  Serial.print(get_input_voltage_tol());
-  Serial.print(S_COMMA_str);
-  Serial.print(get_output_voltage_tol());
-  Serial.print(S_COMMA_str);
-  Serial.print(test_output_gains[test_output_gain_idx]); //I'd like to add input gain here, but that would upset my spreadsheets. It can be infered from tolerance
-  Serial.print(S_COMMA_str);
-  Serial.print(output_ratio);
-  Serial.print(S_COMMA_str);
-  Serial.print(target_ratio);
-  Serial.print(S_COMMA_str);
-  Serial.println(loss);
+  {
+    MAKE_STRING(S_COMMA);
+    Serial.print(test_setup_idx);
+    Serial.print(S_COMMA_str);
+    Serial.print(test_bits);
+    Serial.print(S_COMMA_str);
+    Serial.print(test_pwm);
+    Serial.print(S_COMMA_str);
+    Serial.print(input_sample);
+    Serial.print(S_COMMA_str);
+    Serial.print(output_sample);
+    Serial.print(S_COMMA_str);
+    Serial.print(get_input_voltage());
+    Serial.print(S_COMMA_str);
+    Serial.print(get_output_voltage());
+    Serial.print(S_COMMA_str);
+    Serial.print(get_input_voltage_tol());
+    Serial.print(S_COMMA_str);
+    Serial.print(get_output_voltage_tol());
+    Serial.print(S_COMMA_str);
+    Serial.print(test_output_gains[test_output_gain_idx]); //I'd like to add input gain here, but that would upset my spreadsheets. It can be infered from tolerance
+    Serial.print(S_COMMA_str);
+    Serial.print(output_ratio);
+    Serial.print(S_COMMA_str);
+    Serial.print(target_ratio);
+    Serial.print(S_COMMA_str);
+    Serial.println(loss);
+  }
   #else
-  Serial.print(F("\nInput: "));
-  Serial.println(input_sample);
-  Serial.print(F("Scaled Input: "));
-  Serial.println(scaled_input);
-  Serial.print(F("Input Range Gain: "));
-  Serial.println(test_input_gains[test_input_gain_idx]);
-  Serial.print(F("\nOutput: "));
-  Serial.println(output_sample);
-  Serial.print(F("Output Range Gain: "));
-  Serial.println(test_output_gains[test_output_gain_idx]);
-  Serial.print(F("Scaled Output: "));
-  Serial.println(scaled_output);
-  Serial.print(F("Ratio: "));
-  Serial.println(output_ratio);
-  test_print_voltage(output_sample,test_output_gain_idx);
-  Serial.println(FS(S_BAR));
+  {
+    Serial.print(F("\nInput: "));
+    Serial.println(input_sample);
+    Serial.print(F("Scaled Input: "));
+    Serial.println(scaled_input);
+    Serial.print(F("Input Range Gain: "));
+    Serial.println(test_input_gains[test_input_gain_idx]);
+    Serial.print(F("\nOutput: "));
+    Serial.println(output_sample);
+    Serial.print(F("Output Range Gain: "));
+    Serial.println(test_output_gains[test_output_gain_idx]);
+    Serial.print(F("Scaled Output: "));
+    Serial.println(scaled_output);
+    Serial.print(F("Ratio: "));
+    Serial.println(output_ratio);
+    test_print_voltage(output_sample,test_output_gain_idx);
+    Serial.println(FS(S_BAR));
+  }
   #endif
 
   test_stage = TS_NEXT;
 }
 
-float get_sample_voltage(float value,  float gain, float max_count){
-  return 5.0 * gain * value / max_count;
-}
-float get_output_voltage_tol(){
-  return  test_output_gains[test_output_gain_idx] * (float)TEST_SAMPLES * 2/(float)TEST_SAMPLE_MAX;   //base ADC accuracy is +/- 2 LSB
-}
-float get_output_voltage(){
-  return get_sample_voltage(output_sample, test_output_gains[test_output_gain_idx], (float)TEST_SAMPLE_MAX);
-}
-float get_input_voltage_tol(){
-  return 5.0 * test_input_gains[test_input_gain_idx] * (float)TEST_SAMPLES * 2/(float)TEST_SAMPLE_MAX;   //base ADC accuracy is +/- 2 LSB
-}
-float get_input_voltage(){
-  return get_sample_voltage(input_sample, test_input_gains[test_input_gain_idx], (float)TEST_SAMPLE_MAX);
-}
 
-
-void test_print_voltage(float voltage, float tol)
-{
-  Serial.print(FS(S_COLON));
-  Serial.print(voltage);
-  Serial.print(F("V +/-"));
-  Serial.println(tol);
-}
 void test_sweep_next()
 {
   //select the next setup
@@ -572,7 +533,7 @@ void test_sweep_next()
 
       SAMPLE sample;
 
-      if (!test_read_sample(&sample)) return;
+      if (!test_sample_read(&sample)) return;
   
       output_sample = sample.out;
       input_sample = sample.in;
@@ -605,7 +566,13 @@ void test_sweep_next()
   }
 }
 
-bool test_read_sample(SAMPLE *sample)
+//--------------------------------------------------------------------- TEST SAMPLE
+/*** test_sample_read(SAMPLE *)
+ *   Reads a number of input and output channel samples into a SAMPLE
+ *   params - pointer to the output struct
+ *   returns - true if completed without interuption from Serial
+ */
+bool test_sample_read(SAMPLE *sample)
 {
   *sample = (SAMPLE){ 0, 0, UINT16_MAX, 0 };
   
@@ -617,7 +584,7 @@ bool test_read_sample(SAMPLE *sample)
     sample->out += new_output_sample;
     
     sample->out_min = min(sample->out_min, new_output_sample);
-    sample->out_min = max(sample->out_min, new_output_sample);
+    sample->out_max = max(sample->out_max, new_output_sample);
     if(Serial.available()>0)
     {
       test_stop();
@@ -626,7 +593,10 @@ bool test_read_sample(SAMPLE *sample)
   }
   return true;
 }
-//void fetch_scaled_samples (float *input_val, float 
+/*** test_sample()
+ *  repeatedly takes sample of input and output channels, until the sample is stable,
+ *  and adjusting gain settings as required.
+ */
 void test_sample()
 {
   //testing for stability on the output side only.
@@ -656,7 +626,7 @@ void test_sample()
     TEST_DBLN();
     SAMPLE sample;
 
-    if (!test_read_sample(&sample)) return;
+    if (!test_sample_read(&sample)) return;
 
     output_sample = sample.out;
     input_sample = sample.in;
@@ -701,8 +671,8 @@ void test_sample()
         spread_retry_count = 0;
       }
       
-      if(go_output) go_output = test_adjust_gain(output_sample, true);
-      if(go_input)go_input = test_adjust_gain(input_sample, false);
+      if(go_output) go_output = test_sample_adjust_gain(output_sample, true);
+      if(go_input)go_input = test_sample_adjust_gain(input_sample, false);
       go = (go_output || go_input);
     }//spread range out of tolerance
     else
@@ -719,8 +689,13 @@ void test_sample()
   test_stage = TS_REPORT;
   test_set_output_gain(0);
 }
-
-bool test_adjust_gain(unsigned int sample, bool is_output)
+/*** test_sample_adjust_gain(uint, bool)
+ *  adjusts the input or output channel gain settings based on the given sample
+ *  params - sample: the value to use for adjustment
+ *           is_output: true if the sample is from the output channel
+ *  returns - true if an adjustment has been made, and a new sample should be taken
+ */
+bool test_sample_adjust_gain(unsigned int sample, bool is_output)
 {
   byte * gain_idx =          is_output?   &test_output_gain_idx           : &test_input_gain_idx;
   byte * overload =          is_output?   &test_output_overload           : &test_input_overload;
@@ -728,16 +703,21 @@ bool test_adjust_gain(unsigned int sample, bool is_output)
 
   const float *gain_steps =        is_output?   &test_output_gain_steps[0]      : &test_input_gain_steps[0];
   byte no_of_gain_settings = is_output?   TEST_NO_OF_OUTPUT_GAIN_SETTINGS : TEST_NO_OF_INPUT_GAIN_SETTINGS;
-
-  bool go = true;
+  no_of_gain_settings--;
   
+  TEST_DB(F("gain: "));
+  TEST_DB(*gain_idx);
+  TEST_DB(F(" / "));
+  TEST_DBLN(no_of_gain_settings);
+  bool go = true;
+
    //check for overload, reduce 
   if(sample > TEST_SAMPLE_OVERLOAD)
   {
     TEST_DBLN(F("Sample overloaded"));
     if(*gain_idx)
     { 
-      *gain_idx--;
+      (*gain_idx)--;
       *overload = true;
       (*set_gain)(*gain_idx);
     }
@@ -755,7 +735,7 @@ bool test_adjust_gain(unsigned int sample, bool is_output)
     go = false;
   }
   //check if sample is below the gain change threshold, if there are more gain settings to try
-  else if (*gain_idx < (no_of_gain_settings-1))
+  else if (*gain_idx < (no_of_gain_settings))
   {
     TEST_DBLN(F("Checking against threshold (ratio, lsb): "));
     TEST_DB(gain_steps[*gain_idx]);
@@ -766,7 +746,7 @@ bool test_adjust_gain(unsigned int sample, bool is_output)
     if(sample < threshold)
     {
         TEST_DBLN(F("Reducing range"));
-        *gain_idx++;
+        (*gain_idx)++;
         (*set_gain)(*gain_idx);
     }
     else
@@ -785,6 +765,116 @@ bool test_adjust_gain(unsigned int sample, bool is_output)
   return go;
 }
 
+/*** get_sample_voltage(float, float, float)
+ *  returns a value in volts, given gain and max value
+ */
+float get_sample_voltage(float value,  float gain, float max_count){
+  return 5.0 * gain * value / max_count;
+}
+
+/*** get_output_voltage()
+ *  returns output_sample as a voltage
+ */
+float get_output_voltage(){
+  return get_sample_voltage(output_sample, test_output_gains[test_output_gain_idx], (float)TEST_SAMPLE_MAX);
+}
+/*** get_input_voltage()
+ *  returns input_sample as a voltage
+ */
+float get_input_voltage(){
+  return get_sample_voltage(input_sample, test_input_gains[test_input_gain_idx], (float)TEST_SAMPLE_MAX);
+}
+/*** get_output_voltage_tol()
+ *  returns adc accuracy in volts for the current output gain setting
+ */
+float get_output_voltage_tol(){
+  return  test_output_gains[test_output_gain_idx] * (float)TEST_SAMPLES * 2/(float)TEST_SAMPLE_MAX;   //base ADC accuracy is +/- 2 LSB
+}
+/*** get_input_voltage_tol()
+ *  returns adc accuracy in volts for the current input gain setting
+ */
+float get_input_voltage_tol(){
+  return 5.0 * test_input_gains[test_input_gain_idx] * (float)TEST_SAMPLES * 2/(float)TEST_SAMPLE_MAX;   //base ADC accuracy is +/- 2 LSB
+}
+
+/*** test_print_voltage(float, float)
+ *  print the given voltage and accuracy values to Serial
+ */
+void test_print_voltage(float voltage, float tol)
+{
+  Serial.print(FS(S_COLON));
+  Serial.print(voltage);
+  Serial.print(F("V +/-"));
+  Serial.println(tol);
+}
+/*** test_print_ratios()
+ *    print all the gains and ratios for the input and output channels
+ */
+void test_print_ratios()
+{
+  Serial.println(FS(S_BAR));
+  /* //debugging the ratio function
+  Serial.println(F("TEST_RO_RATIO(R):\n"));
+  for(float f = 0.1; f<= 16.0; f*=1.189207115)
+  {
+    Serial.print(f);
+    Serial.print(FS(S_COLON));
+    Serial.println(TEST_RO_RATIO(f));
+  }
+  */
+
+  Serial.println(F("\n INPUT:\n"));
+
+  Serial.println(F("RESISTORS:\n"));
+  Serial.print(F("Rtop: "));
+  Serial.println(TEST_RI_TOP);
+  Serial.print(F("Rall: "));
+  Serial.println(TEST_RI_ALL);
+  Serial.print(F("R1  : "));
+  Serial.println(TEST_RI_1);
+  Serial.print(F("R2  : "));
+  Serial.println(TEST_RI_2);
+
+  Serial.println(F("\nRANGE GAINS / RATIOS:\n"));
+  for(byte n; n < TEST_NO_OF_INPUT_GAIN_SETTINGS; n++)
+  {
+    Serial.print(n);
+    Serial.print(FS(S_COLON));
+    Serial.print(test_input_gains[n]);
+    Serial.print(FS(S_COMMA));
+    Serial.println(test_input_gain_steps[n]);
+  }
+
+  Serial.println(F("\n OUTPUT:\n"));
+  
+  Serial.println(F("RESISTORS:\n"));
+  Serial.print(F("Rtop: "));
+  Serial.println(TEST_RO_TOP);
+  Serial.print(F("Rall: "));
+  Serial.println(TEST_RO_ALL);
+  Serial.print(F("R1  : "));
+  Serial.println(TEST_RO_1);
+  Serial.print(F("R2  : "));
+  Serial.println(TEST_RO_2);
+  Serial.print(F("R3  : "));
+  Serial.println(TEST_RO_3);
+  Serial.print(F("R4  : "));
+  Serial.println(TEST_RO_4);
+  Serial.println(F("\nRANGE GAINS / RATIOS:\n"));
+  for(byte n; n < TEST_NO_OF_OUTPUT_GAIN_SETTINGS; n++)
+  {
+    Serial.print(n);
+    Serial.print(FS(S_COLON));
+    Serial.print(test_output_gains[n]);
+    Serial.print(FS(S_COMMA));
+    Serial.println(test_output_gain_steps[n]);
+  }
+  
+  Serial.println(FS(S_BAR));
+}
+
+
+//-------------------------------------------------------------- I/O
 void init_sample_pins()
 {
   //default state should be maximum gain range, to minimise risk of over voltaging the analog pin
@@ -832,48 +922,51 @@ void test_set_output_gain(byte gain_idx)
    * if the result, when stable, is less than 1/change of full scale,
    * we increment the gain index and repeat the sample
    */
-
+  TEST_DB(F("set_output_gain: "));
+  TEST_DBLN(gain_idx);
   //set outputs first so range goes up then down, never down then up
-   switch(gain_idx)
-   {
-    case 0:
-      pinMode(PIN_SAMPLE_GAIN_1,OUTPUT);
-      pinMode(PIN_SAMPLE_GAIN_2,OUTPUT);
-      pinMode(PIN_SAMPLE_GAIN_3,OUTPUT);
-      pinMode(PIN_SAMPLE_GAIN_4,OUTPUT);
-      break;
-    case 1:
-      pinMode(PIN_SAMPLE_GAIN_1,OUTPUT);
-      pinMode(PIN_SAMPLE_GAIN_2,INPUT);
-      pinMode(PIN_SAMPLE_GAIN_3,INPUT);
-      pinMode(PIN_SAMPLE_GAIN_4,INPUT);
-      break;
-    case 2:
-      pinMode(PIN_SAMPLE_GAIN_2,OUTPUT);
-      pinMode(PIN_SAMPLE_GAIN_1,INPUT);
-      pinMode(PIN_SAMPLE_GAIN_3,INPUT);
-      pinMode(PIN_SAMPLE_GAIN_4,INPUT);
-      break;
-    case 3:
-      pinMode(PIN_SAMPLE_GAIN_3,OUTPUT);
-      pinMode(PIN_SAMPLE_GAIN_1,INPUT);
-      pinMode(PIN_SAMPLE_GAIN_2,INPUT);
-      pinMode(PIN_SAMPLE_GAIN_4,INPUT);
-      break;
-    case 4:
-      pinMode(PIN_SAMPLE_GAIN_4,OUTPUT);
-      pinMode(PIN_SAMPLE_GAIN_1,INPUT);
-      pinMode(PIN_SAMPLE_GAIN_2,INPUT);
-      pinMode(PIN_SAMPLE_GAIN_3,INPUT);
-      break;
-    case 5:
-      pinMode(PIN_SAMPLE_GAIN_1,INPUT);
-      pinMode(PIN_SAMPLE_GAIN_2,INPUT);
-      pinMode(PIN_SAMPLE_GAIN_3,INPUT);
-      pinMode(PIN_SAMPLE_GAIN_4,INPUT);
-      break;
-   }
-   delay(TEST_GAIN_TIME_ms);
+  switch(gain_idx)
+  {
+  case 0:
+    pinMode(PIN_SAMPLE_GAIN_1,OUTPUT);
+    pinMode(PIN_SAMPLE_GAIN_2,OUTPUT);
+    pinMode(PIN_SAMPLE_GAIN_3,OUTPUT);
+    pinMode(PIN_SAMPLE_GAIN_4,OUTPUT);
+    break;
+  case 1:
+    pinMode(PIN_SAMPLE_GAIN_1,OUTPUT);
+    pinMode(PIN_SAMPLE_GAIN_2,INPUT);
+    pinMode(PIN_SAMPLE_GAIN_3,INPUT);
+    pinMode(PIN_SAMPLE_GAIN_4,INPUT);
+    break;
+  case 2:
+    pinMode(PIN_SAMPLE_GAIN_2,OUTPUT);
+    pinMode(PIN_SAMPLE_GAIN_1,INPUT);
+    pinMode(PIN_SAMPLE_GAIN_3,INPUT);
+    pinMode(PIN_SAMPLE_GAIN_4,INPUT);
+    break;
+  case 3:
+    pinMode(PIN_SAMPLE_GAIN_3,OUTPUT);
+    pinMode(PIN_SAMPLE_GAIN_1,INPUT);
+    pinMode(PIN_SAMPLE_GAIN_2,INPUT);
+    pinMode(PIN_SAMPLE_GAIN_4,INPUT);
+    break;
+  case 4:
+    pinMode(PIN_SAMPLE_GAIN_4,OUTPUT);
+    pinMode(PIN_SAMPLE_GAIN_1,INPUT);
+    pinMode(PIN_SAMPLE_GAIN_2,INPUT);
+    pinMode(PIN_SAMPLE_GAIN_3,INPUT);
+    break;
+  case 5:
+    pinMode(PIN_SAMPLE_GAIN_1,INPUT);
+    pinMode(PIN_SAMPLE_GAIN_2,INPUT);
+    pinMode(PIN_SAMPLE_GAIN_3,INPUT);
+    pinMode(PIN_SAMPLE_GAIN_4,INPUT);
+    break;
+  default:
+    return;
+  }
+  delay(TEST_GAIN_TIME_ms);
 }
 
 void test_set_input_gain(byte gain_idx)
@@ -893,25 +986,29 @@ void test_set_input_gain(byte gain_idx)
    * if the result, when stable, is less than 1/change of full scale,
    * we increment the gain index and repeat the sample
    */
-
-   switch(gain_idx)
-   {
-    case 0:
-      pinMode(PIN_SOURCE_GAIN_1,OUTPUT);
-      pinMode(PIN_SOURCE_GAIN_2,OUTPUT);
-      break;
-    case 1:
-      pinMode(PIN_SOURCE_GAIN_1,OUTPUT);
-      pinMode(PIN_SOURCE_GAIN_2,INPUT);
-      break;
-    case 2:
-      pinMode(PIN_SOURCE_GAIN_1,INPUT);
-      pinMode(PIN_SOURCE_GAIN_2,OUTPUT);
-      break;
-    case 3:
-      pinMode(PIN_SOURCE_GAIN_1,INPUT);
-      pinMode(PIN_SOURCE_GAIN_2,INPUT);
-      break;
-   }
-   delay(TEST_GAIN_TIME_ms);
+  TEST_DB(F("set_input_gain: "));
+  TEST_DBLN(gain_idx);
+  
+  switch(gain_idx)
+  {
+  case 0:
+    pinMode(PIN_SOURCE_GAIN_1,OUTPUT);
+    pinMode(PIN_SOURCE_GAIN_2,OUTPUT);
+    break;
+  case 1:
+    pinMode(PIN_SOURCE_GAIN_1,OUTPUT);
+    pinMode(PIN_SOURCE_GAIN_2,INPUT);
+    break;
+  case 2:
+    pinMode(PIN_SOURCE_GAIN_1,INPUT);
+    pinMode(PIN_SOURCE_GAIN_2,OUTPUT);
+    break;
+  case 3:
+    pinMode(PIN_SOURCE_GAIN_1,INPUT);
+    pinMode(PIN_SOURCE_GAIN_2,INPUT);
+    break;
+  default:
+    return;
+  }
+  delay(TEST_GAIN_TIME_ms);
 }

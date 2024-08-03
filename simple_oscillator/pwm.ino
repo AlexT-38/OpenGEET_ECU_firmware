@@ -8,7 +8,7 @@ static char bit_shift = 0;
 static byte pwm_param_is_16bit = false;
 
 
-/*set_pwm()
+/*** set_pwm()
  * set the target pwm, without limits or look up tables
  * the ISR will ramp to this value
  * the value will be used by the LFO if oscillate is enabled
@@ -35,7 +35,7 @@ void set_pwm(byte pwm)
   #endif
 }
 
-/* force_pwm(pwm)
+/*** force_pwm(pwm)
  * writes a value to OCR1A after negating if required
  * disables oscillation
  * ignores limits and look up tables
@@ -62,7 +62,7 @@ void force_pwm(byte pwm)
   #endif
 }
 
-/* force_pwm_w(pwm)
+/*** force_pwm_w(pwm)
  * writes a value to ocr1a as an unsigned int
  * does not ramp, disables oscillation
  * ignores limits and look up tables
@@ -95,7 +95,7 @@ void force_pwm_w(unsigned int pwm)
   #endif
 }
 
-/* update_pwm(pwm)
+/*** update_pwm(pwm)
  * applies lookup tables and limits on the input value,
  * and then writes it to the PWM register
  * 
@@ -151,7 +151,7 @@ void update_pwm(byte pwm)
 
 
 
-/* write_pwm(byte pwm)
+/*** write_pwm(byte pwm)
  * 
  * Final step of writing to PWM reg.
  * Applies negation and writes value to the PWM register.
@@ -193,7 +193,7 @@ void write_pwm(unsigned int pwm)
   #endif
 }
 
-/*limit_pwm(pwm)
+/*** limit_pwm(pwm)
  * applies absolute pwm range limits to the given value
  * used only when writing to OCR1A after LUT and before Negate
  */
@@ -205,7 +205,9 @@ unsigned int limit_pwm(unsigned int pwm)
   else if (pwm > pwm_max) pwm = (config.pwm_negate) ? pwm_max :     255;  //jump to max only if negate is NOT enabled 
   return pwm;
 }
-/* convert the given 8-bit or 16-bit pwm value to the target resolution */
+/*** pwm_bitshift(pwm)
+ * convert the given 8-bit or 16-bit pwm value to the target resolution 
+ */
 unsigned int pwm_bitshift(unsigned int pwm)
 {
   
@@ -215,8 +217,8 @@ unsigned int pwm_bitshift(unsigned int pwm)
   return pwm<<bit_shift;
   #endif
 }
-/* use this function to select pwm input resolution
- *  
+/* set_pwm_param_bits()
+ *  use this function to select pwm input resolution
  */
 void set_pwm_param_bits(bool is_16bit)
 {

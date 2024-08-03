@@ -128,6 +128,9 @@ void recieve_command()
   #endif
   
   bpos++;
+
+  bool is_query = ( buf[bpos] == '?' );
+  
   
   switch (cmd)
   {
@@ -140,6 +143,10 @@ void recieve_command()
     break;
   case C_SET_RATE:   //R set relay rate
     {
+      if(is_query){
+        Serial.println(get_time_interval());
+        break;
+      }
       long int new_interval = atol(&buf[bpos]);
       
       if (new_interval > INTERVAL_MIN)
@@ -286,7 +293,11 @@ void recieve_command()
     Serial.println(config.lut);
     break;
   case C_SAVE_EEP:
-    update_eeprom();
+    {
+      byte save_cal = atoi(&buf[bpos]);
+      if(save_cal) update_eeprom_cal();
+      else update_eeprom();
+    }  
     break;
   case C_LOAD_EEP:
     load_eeprom();
@@ -307,10 +318,21 @@ void recieve_command()
     }
     break;
   case C_CALIBRATE_TEST:
-    #ifdef DEBUG_CMD_EXTRA
-    Serial.println(F("K command recieved"));
-    #endif
-    start_test(TT_CALIBRATE);
+    {
+      #ifdef DEBUG_CMD_EXTRA
+      Serial.println(F("K command recieved"));
+      #endif
+      byte cal_mode = atoi(&buf[bpos]);
+      switch(cal_mode)
+      {
+        default:
+          start_test(TT_CALIBRATE);
+          break;
+        case 1:
+          start_test(TT_CAL_DAC);
+          break;
+      }
+    }
     break;
   case C_MEASURE_TEST:
     start_test(TT_MEASURE);

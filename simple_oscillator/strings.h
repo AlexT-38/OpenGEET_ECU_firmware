@@ -43,6 +43,10 @@ const char S_DONE[] PROGMEM = "Done";
 const char S_CSV_HEADER[] PROGMEM = "IDX, BITS, PWM, IN, OUT, IN(v), OUT(v), IN(tol%), OUT(tol%), OUT(rng), RATIO, TARG, LOSS(%)";
 
 
+const char PROGMEM S_800MV[]      = "800mV";
+const char PROGMEM S_80MV[]       = "80mV" ;
+const char PROGMEM S_DAC_HEADER[] = "DAC: ADC, mV";
+
 
 const char PROGMEM S_STOP_ALL[] = "STOP_ALL";            //S sets PWM to 0 and disables LFO
 const char PROGMEM S_SET_INTERVAL[] = "SET_INTERVAL <0...4.3M>ms";    //set LFO total interval

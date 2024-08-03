@@ -208,53 +208,56 @@ void setup() {
 
 void loop() {
   #ifdef DEBUG_TRAP
-  static int count;
-  if(count==0)
   {
-    Serial.println();
-    Serial.println(F("Loop"));
+    static int count;
+    if(count==0)
+    {
+      Serial.println();
+      Serial.println(F("Loop"));
+    }
+    count++;
   }
-  count++;
   #endif
 
   #ifdef DEBUG_ISR
-  if(last_ramp_value != ramp_value)
   {
-    last_ramp_value = ramp_value;
-    Serial.println(F("---"));
-    Serial.print(F("Ramp: "));
-    Serial.println(last_ramp_value);
-    Serial.print(F("OCR1A: "));
-    Serial.println(OCR1A);
-    Serial.print(F("ICR1: "));
-    Serial.println(ICR1);
-    Serial.println(F("---"));
-  }
-  if(isr_time_start && isr_time_stop )
-  {
-    cli();
-    unsigned long isr_interval_time_copy = isr_interval_time;
-    unsigned long isr_interval_time_last_copy = isr_interval_time_last;
-    unsigned int isr_time_start_copy = isr_time_start;
-    unsigned int isr_time_stop_copy = isr_time_stop;
-    isr_time_start = 0;
-    isr_time_stop = 0;
-    sei();
-
-    unsigned long isr_interval = isr_interval_time_copy - isr_interval_time_last_copy;
-    Serial.print(F("ISR Interval: "));
-    Serial.println(isr_interval);
-
-    unsigned int isr_duration = isr_time_stop_copy - isr_time_start_copy;
-    Serial.print(F("ISR Duration: "));
-    Serial.println(isr_duration);
+    if(last_ramp_value != ramp_value)
+    {
+      last_ramp_value = ramp_value;
+      Serial.println(F("---"));
+      Serial.print(F("Ramp: "));
+      Serial.println(last_ramp_value);
+      Serial.print(F("OCR1A: "));
+      Serial.println(OCR1A);
+      Serial.print(F("ICR1: "));
+      Serial.println(ICR1);
+      Serial.println(F("---"));
+    }
+    if(isr_time_start && isr_time_stop )
+    {
+      cli();
+      unsigned long isr_interval_time_copy = isr_interval_time;
+      unsigned long isr_interval_time_last_copy = isr_interval_time_last;
+      unsigned int isr_time_start_copy = isr_time_start;
+      unsigned int isr_time_stop_copy = isr_time_stop;
+      isr_time_start = 0;
+      isr_time_stop = 0;
+      sei();
+  
+      unsigned long isr_interval = isr_interval_time_copy - isr_interval_time_last_copy;
+      Serial.print(F("ISR Interval: "));
+      Serial.println(isr_interval);
+  
+      unsigned int isr_duration = isr_time_stop_copy - isr_time_start_copy;
+      Serial.print(F("ISR Duration: "));
+      Serial.println(isr_duration);
+    }
   }
   #endif
 
+  /* process LFO */
   long int time_now = millis();
-
   long int time_remaining = time_now - osc_time_stamp;
-
   if(time_remaining >= 0)
   {
     osc_time_stamp = time_now + config.interval + (time_remaining%config.interval);
@@ -270,7 +273,7 @@ void loop() {
     {
       digitalWrite(ARD_LED,osc_state);
     }
-    if(config.oscillate)
+    if(config.oscillate && !test_is_running())
     {
       if(osc_state)
         set_target(config.pwm_osc);
@@ -282,8 +285,11 @@ void loop() {
   //to reduce latency in the LFO, other tasks will be performed in sequence here
   static byte func_slot = false;
 
+  /* run test */
   //check to see if a test is running, if so only run the eeprom update
   if(run_test()) func_slot = false;
+
+  /* run secondary processes */
   //Serial.print(F("func slot: "));
   //Serial.println(func_slot);
   if(func_slot)
@@ -322,4 +328,9 @@ void set_time_interval(long int new_interval)
   osc_time_stamp -= config.interval;
   osc_time_stamp += new_interval;
   config.interval = new_interval;
+}
+
+long int get_time_interval()
+{
+  return config.interval;
 }
