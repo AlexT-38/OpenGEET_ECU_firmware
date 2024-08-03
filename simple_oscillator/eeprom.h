@@ -13,6 +13,8 @@
 #define EEP_VERSION 4
 #define EEP_DEFAULT_CRC 0x5A
 
+
+
 typedef struct configuration
 {
   byte pwm_prescale;    //TCCR1B 0:3
@@ -29,13 +31,17 @@ typedef struct configuration
   byte lut:1;           //enables look up table on pwm values prior to negation and writing to OCR1A
   
   long int interval;    //half cycle time interval for LFO
+  
+  byte padding[11];     //round up from 13 to 24 bytes
 }CONFIG;
 
 struct eeprom
 {
-    byte     eep_version;
-    byte     eep_crc;
-    CONFIG   config;
+    byte          eep_version;
+    byte          eep_crc;
+    CONFIG        config;
+    byte          eep_cal_crc;
+    CALIBRATION   calibration;
 };
 
 /* offsetof doesn not accept array indices, so getting the offset for an array member
@@ -46,10 +52,10 @@ struct eeprom
 #define EEP_SIZEOF(member)        sizeof(((struct eeprom *)0)->member)
 #define EEP_SIZEOF_ARR(member)    sizeof(((struct eeprom *)0)->member[0])
 #define EEP_ADDR(member)          offsetof(struct eeprom, member)
-#define EEP_GET(member,dst)       EEPROM.get(EEP_ADDR(member), dst);
-#define EEP_GET_N(member,n,dst)   EEPROM.get(EEP_ADDR(member)+(EEP_SIZEOF_ARR(member)*n), dst);
-#define EEP_PUT(member,src)       EEPROM.put(EEP_ADDR(member), src);
-#define EEP_PUT_N(member,n,src)   EEPROM.put(EEP_ADDR(member)+(EEP_SIZEOF_ARR(member)*n), src);
+#define EEP_GET(member,dst)       EEPROM.get(EEP_ADDR(member), dst)
+#define EEP_GET_N(member,n,dst)   EEPROM.get(EEP_ADDR(member)+(EEP_SIZEOF_ARR(member)*n), dst)
+#define EEP_PUT(member,src)       EEPROM.put(EEP_ADDR(member), src)
+#define EEP_PUT_N(member,n,src)   EEPROM.put(EEP_ADDR(member)+(EEP_SIZEOF_ARR(member)*n), src)
 
 
 

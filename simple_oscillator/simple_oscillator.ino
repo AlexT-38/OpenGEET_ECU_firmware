@@ -13,6 +13,11 @@
  * Configuration stored in EEPROM
  * Override command to instantly set PWM to any value and disable modulation
  * 
+ * Additional function: Calibrating the comparator resistor networks
+ *  DAC to bias the FETs
+ *  Amp to match the DAC voltage range to the ADC.
+ *  Selectable gain, +/- 800mV or +/-90mV
+ *  Comparator monitor inputs
  * 
  * Test and Dev notes:
  * 
@@ -28,6 +33,9 @@
  * this loss in efficiency must be due to switching losses
  * 
  * at 977Hz, results were erratic and extremely inefficient.
+ * *this seems to be due to the comparator resistor networks not being balanced
+ *  the imbalance meant the comparators were not switching off when they should have
+ *  after balancing, the efficiency at 922Hz is terrible, but it is not erratic.
  * 
  * therefore it would be desirable to run PWM at full speed
  * and vary the number of bits to optimise efficiency
@@ -52,7 +60,7 @@
  * step 4: plot the data in a spreadsheet
  * DONE
  * step 5: create a table that selects the best bit depth for a given pwm
- * Not needed, 10 and 11bits are best and too close to be worth switching on the go
+ * N/A, 10 and 11bits are best and too close to be worth switching on the go
  * step 6: update the boost LUT to use the highest number of bits in the above table 
  *         and scale down as needed
  * In progress.
@@ -102,10 +110,11 @@
 //#define DEBUG_COMMAND_TIME
 
 #include <EEPROM.h>
+#include "test.h"
 #include "eeprom.h"
 #include "strings.h"
 #include "commands.h"
-#include "test.h"
+
 
 
 

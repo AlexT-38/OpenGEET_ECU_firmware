@@ -446,7 +446,7 @@ void set_pwm_prescale(byte prescale)
     reg &= ~0b111;
     reg |= prescale;
     TCCR1B = reg;
-    byte scale[] = {0,1,8,64,256,1024};
+    unsigned int scale[] = {0,1,8,64,256,1024};
     unsigned int clk[] = {0, 16000, 2000, 250, 63, 16};
     unsigned int frq[] = {0, 62500, 7813, 977, 244, 61};
     /* move this to commands, so that only a command will illicit a response

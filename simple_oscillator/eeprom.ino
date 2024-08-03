@@ -14,6 +14,7 @@ struct eeprom
 
 int eeprom_timestamp_ms;
 byte flag_update_eeprom = false;
+byte flag_update_eeprom_cal = false;
 
 
 
@@ -37,18 +38,28 @@ void config_update()
  */
 char load_eeprom()
 {
+  byte crc = EEP_DEFAULT_CRC; 
+  byte eep_crc;
+  
   #ifdef DEBUG_EEPROM_SYSTEM
   Serial.println(F("load_eep"));
   #endif
+  CALIBRATION calib_t;
+  EEP_GET(calibration, calib_t);
+  EEP_GET(eep_cal_crc,eep_crc);
+  if(eep_crc == crc)
+  {
+    calibration = calib_t;
+    //export_calib(&Serial); ::TODO
+  }
   
   CONFIG config_t;
   
   EEP_GET(config,config_t);
   
-  byte crc = EEP_DEFAULT_CRC; 
+  crc = EEP_DEFAULT_CRC; 
   //crc = get_crc(crc,servo_cal_t,sizeof(servo_cal_t));
   //crc = get_crc(crc,flags_config_t,sizeof(flags_config_t));
-  byte eep_crc;
   EEP_GET(eep_crc,eep_crc);
   if(eep_crc == crc)
   {
@@ -80,7 +91,11 @@ void save_eeprom()
   //eep_crc = get_crc(eep_crc,config,sizeof(config));
   EEP_PUT(config,config);
   EEP_PUT(eep_crc,eep_crc);
-  
+}
+
+void save_eeprom_cal()
+{
+  EEP_PUT(calibration,calibration);
 }
 
 /* check for the update flag to be set, write eeprom only once 1 second has passed since the last write */
@@ -94,7 +109,7 @@ void check_eeprom_update()
   if (elapsed_time > EEPROM_TIMER_MAX_ELAPSED || elapsed_time < 0) eeprom_timestamp_ms = time_now - EEPROM_WRITE_INTERVAL_ms;
 
   // check for the update flag and update when ready
-  if(flag_update_eeprom)
+  if(flag_update_eeprom || flag_update_eeprom_cal)
   {
     #ifdef DEBUG_EEPROM_SYSTEM
     Serial.print(F("check_eep: "));
@@ -109,8 +124,14 @@ void check_eeprom_update()
     if( elapsed_time >  EEPROM_WRITE_INTERVAL_ms)
     {
       eeprom_timestamp_ms = time_now;
-      flag_update_eeprom = false;
-      save_eeprom();
+      if(flag_update_eeprom){
+        flag_update_eeprom = false;
+        save_eeprom();  
+      }
+      if(flag_update_eeprom_cal){
+        flag_update_eeprom_cal= false;
+        save_eeprom_cal();
+      }
     }
   #ifdef DEBUG_EEPROM_SYSTEM
   else  {  Serial.println(F("waiting")); }

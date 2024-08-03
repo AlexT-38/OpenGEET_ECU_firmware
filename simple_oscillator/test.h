@@ -1,10 +1,30 @@
-#define PIN_SAMPLE_GAIN_1 5   //lowest value resistor
-#define PIN_SAMPLE_GAIN_2 4
-#define PIN_SAMPLE_GAIN_3 3
-#define PIN_SAMPLE_GAIN_4 2   //highest value resistor
+#define PIN_SAMPLE_GAIN_1  5   //lowest value resistor (regardless of net name)
+#define PIN_SAMPLE_GAIN_2  4
+#define PIN_SAMPLE_GAIN_3  3
+#define PIN_SAMPLE_GAIN_4  2   //highest value resistor
 
-#define TEST_CH_INPUT            A0
-#define TEST_CH_OUTPUT           A1
+#define PIN_SOURCE_GAIN_1  A5   //lowest value resistor
+#define PIN_SOURCE_GAIN_2  A4   //highest value resistor
+
+#define TEST_CH_INPUT      A0   //boost sweep test, connect to Vsupply
+#define TEST_CH_OUTPUT     A1   //boost sweep test, connect to Vbus
+
+#define TEST_CH_DAC        A2   //comp thresh tests, connect to Vphase
+
+#define PIN_INPUT_1        8      //comp low
+#define PIN_INPUT_2        7      //comp hi
+#define PIN_INPUT_3        6      //comp hi @ -20V
+
+#define PIN_DAC_GAIN       A7
+
+
+
+#define TEST_RANGE_800mV   LOW
+#define TEST_RANGE_80mV    HIGH
+
+#define NO_OF_CALIBRATION_POINTS 3
+
+    
 
 typedef enum test_type
 {
@@ -26,3 +46,24 @@ typedef enum test_stage
 //  TS_DONE,           //final report, test stats elapsed time etc.
   NO_OF_TEST_STAGES
 } TEST_STAGE;
+
+typedef struct calibration_points
+{
+  float mV[NO_OF_CALIBRATION_POINTS];
+  int LSB[NO_OF_CALIBRATION_POINTS];
+} CALIBRATION_POINTS;
+
+typedef struct calibration
+{
+  byte points;
+  CALIBRATION_POINTS dac_cal[2]; //calibration points for DAC, high and low ranges
+  CALIBRATION_POINTS adc_cal[2]; //calibration points for ADC, high and low ranges
+} CALIBRATION;
+
+CALIBRATION calibration;
+
+typedef struct sample
+{
+  unsigned int in, out;
+  unsigned int out_min, out_max;
+}SAMPLE;

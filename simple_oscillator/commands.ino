@@ -80,7 +80,7 @@ void recieve_command()
   char * bpos_ptr = &buf[0];
 
   //read a line from the buffer
-  byte bend = Serial.readBytesUntil('/n', buf, CMD_BUF_SIZE);
+  byte bend = Serial.readBytesUntil('\n', buf, CMD_BUF_SIZE);
   #ifdef DEBUG_CMD_EXTRA
   Serial.print(buf);
   Serial.println();
