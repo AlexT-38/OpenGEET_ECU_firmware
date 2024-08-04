@@ -10,7 +10,7 @@ struct eeprom
 #define EEPROM_TIMER_MAX_ELAPSED  0x4000
 
 
-//#define DEBUG_EEPROM_SYSTEM
+#define DEBUG_EEPROM_SYSTEM
 
 int eeprom_timestamp_ms;
 byte flag_update_eeprom = false;
@@ -29,7 +29,7 @@ void config_update()
 {
   set_pwm_invert(config.pwm_negate, config.pwm_invert);
   set_pwm_prescale(config.pwm_prescale);
-  set_pwm_bits(config.pwm_bits);
+  write_pwm_bits(config.pwm_bits);
   update_pwm(config.pwm);
 }
 
@@ -50,8 +50,8 @@ char load_eeprom()
   if(eep_crc == crc)
   {
     calibration = calib_t;
-    //export_calib(&Serial); ::TODO
   }
+  export_dac_cal(&Serial, &calibration);
   
   CONFIG config_t;
   
@@ -95,7 +95,10 @@ void save_eeprom()
 
 void save_eeprom_cal()
 {
+  byte eep_cal_crc = EEP_DEFAULT_CRC; 
+  //eep_cal_crc = get_crc(eep_cal_crc,calibration,sizeof(calibration));
   EEP_PUT(calibration,calibration);
+  EEP_PUT(eep_cal_crc,eep_cal_crc);
 }
 
 /* check for the update flag to be set, write eeprom only once 1 second has passed since the last write */

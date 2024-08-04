@@ -289,9 +289,11 @@ byte run_measure_test()
       break;
     case TS_SAMPLE:
       test_sample();
+      dac_read_sample();
       break;
     case TS_REPORT:
       test_report();
+      dac_report();
       break;
     default:
       test_stop();
@@ -892,7 +894,7 @@ void init_sample_pins()
   pinMode(PIN_SOURCE_GAIN_1,OUTPUT);
   pinMode(PIN_SOURCE_GAIN_2,OUTPUT);
 
-  digitalWrite(PIN_DAC_GAIN, TEST_RANGE_800mV);
+  digitalWrite(PIN_DAC_GAIN, TEST_RANGE_80mV);
   pinMode(PIN_DAC_GAIN, OUTPUT);
 
   pinMode(PIN_INPUT_1, INPUT);

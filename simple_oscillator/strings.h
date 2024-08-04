@@ -72,6 +72,8 @@ const char PROGMEM S_TEST_FULL_SWEEP[] = "TEST_FULL_SWEEP";
 const char PROGMEM S_TEST_CALIBRATE[] = "TEST_CALIBRATE";
 const char PROGMEM S_TEST_MEASURE[] = "TEST_MEASURE";
 
+const char PROGMEM S_SET_DAC[] = "SET_DAC <0...65536>";
+
 const char PROGMEM S_STOP[] = "STOP";
 const char PROGMEM S_START[] = "START";
 const char PROGMEM S_LFO_OUT_ENABLE[] = "LFO OUT ENABLE";
@@ -101,6 +103,7 @@ const char * const command_str[] PROGMEM = { //this should prabably be an indexe
   S_TEST_FULL_SWEEP,
   S_TEST_CALIBRATE,
   S_TEST_MEASURE,
+  S_SET_DAC,
   S_HELP,                   
 };
   

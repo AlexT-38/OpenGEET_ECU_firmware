@@ -18,8 +18,8 @@
 #define PIN_DAC_GAIN       A3
 
 
-#define TEST_RANGE_800mV   LOW
-#define TEST_RANGE_80mV    HIGH
+#define TEST_RANGE_800mV   HIGH
+#define TEST_RANGE_80mV    LOW
 
 
 #define NO_OF_CALIBRATION_POINTS 3

@@ -9,7 +9,7 @@
 
 
 /* table of letters representing commands, starting with A */
-const COMMAND commands_by_letter[] = {C_PRINT_STATE, C_SET_PWM_BITS, C_SET_PRESCALE, C_HELP,           //A,B,C,D
+const COMMAND commands_by_letter[] = {C_PRINT_STATE, C_SET_PWM_BITS, C_SET_PRESCALE, C_SET_DAC,           //A,B,C,D
                                       C_LOAD_EEP, C_FORCE_PWM, C_FORCE_PWM_W, C_HELP,               //E,F,G,H
                                       C_SET_PWM_INVERT, C_HELP, C_CALIBRATE_TEST, C_SET_PWM_LIMIT,  //I,J,K,L
                                       C_MEASURE_TEST, C_HELP, C_OSCILLATE, C_SET_PWM,            //M,N,O,P
@@ -17,7 +17,7 @@ const COMMAND commands_by_letter[] = {C_PRINT_STATE, C_SET_PWM_BITS, C_SET_PRESC
                                       C_HELP, C_SET_PWM_RAMP, C_SAVE_EEP,                   //U,V,W
                                       C_RESET_CONFIG, C_HELP, C_PRINT_CONFIG };   //X,Y,Z
                           
-const char command_letters[] = {'S','R','P','F','G','C','I','V','B','O','T','L','W','E','X','Z','A','Q','K','M','H'}; //this ought to be an indexed intialiser
+const char command_letters[] = {'S','R','P','F','G','C','I','V','B','O','T','L','W','E','X','Z','A','Q','K','M','D','H'}; //this ought to be an indexed intialiser
 
 void clear_serial()
 {
@@ -133,7 +133,7 @@ void recieve_command()
   bpos++;
 
   bool is_query = ( buf[bpos] == '?' );
-  
+  if(is_query) bpos++;
   
   switch (cmd)
   {
@@ -325,6 +325,11 @@ void recieve_command()
       #ifdef DEBUG_CMD_EXTRA
       Serial.println(F("K command recieved"));
       #endif
+      if(is_query)
+      {
+        export_dac_cal(&Serial, &calibration);
+        break;
+      }
       byte cal_mode = atoi(&buf[bpos]);
       switch(cal_mode)
       {
@@ -343,6 +348,13 @@ void recieve_command()
   case C_MEASURE_TEST:
     start_test(TT_MEASURE);
     break;
+  case C_SET_DAC:
+    {
+      unsigned int dac = atol(&buf[bpos]);
+      set_dac(dac);
+      Serial.print(F("New DAC value: "));
+      Serial.println(get_dac_value());
+    }
   case NO_OF_COMMANDS:
     break;
   default:

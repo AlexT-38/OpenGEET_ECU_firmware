@@ -25,6 +25,7 @@ typedef enum
   C_RUN_TEST,               //Q sweep through a range of pwm values and frequencies, measure some voltages
   C_CALIBRATE_TEST,          //K test the electrical set up for the above test
   C_MEASURE_TEST,            //M take a single sample with current settings and report
+  C_SET_DAC,                //D sets the pwm using DAC configuration
   C_HELP,                   //H prints available commands
   NO_OF_COMMANDS
 }COMMAND;

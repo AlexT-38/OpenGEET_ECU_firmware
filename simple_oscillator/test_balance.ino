@@ -30,22 +30,111 @@
  * to +,0,- FSD (and maybe 50% points also) and the ADC read. 
  * The DAC should be monitored with a DMM, and the resulting values 
  * should be entered via serial comms. 
- * The DAC and ADC are calibrated independantly.
+ * The DAC and ADC have individual calibrations from the same 16 bit pwm value.
+ * 
+ * Note that the calibration is only valid for a single invert/negate setting.
+ * 
+ * 
+ * DAC Calibration process:
+ * 1) connect the following pairs of pins on the test headers
+ *    J9 or J10 : pin 7 & 10
+ * 2) connect a good DMM set to Vdc to J9/10 pin7 and ground (J8-3, J9/10-3/8)
  */
-#define DEBUG_DAC_CAL
+//#define DEBUG_DAC_CAL
+//#define DEBUG_DAC_MAP
+
 
 
 #define DAC_BITS 12
 #define DAC_STEP (1<<(16-DAC_BITS))
 
-#define DAC_GAIN_CHANGE_TIME_ms   50
-#define DAC_VALUE_CHANGE_TIME_us  15
+//number of ADC LSB's to offset from end of range, in 16bit
+#define DAC_CAL_END_OFFSET (8 * (1<<16-10))
 
-byte dac_range = TEST_RANGE_800mV;
+#define DAC_GAIN_CHANGE_TIME_ms   50
+#define DAC_VALUE_CHANGE_TIME_us  500
+
+byte dac_range = TEST_RANGE_80mV;
 
 unsigned int dac_sample;  //value read from the adc
 unsigned int dac_value;   //value set with pwm
-float dac_voltage;        //value entered via serial
+float dac_voltage;        //value entered via serial, or interpolated from cal data
+float dac_sample_voltage; //interpolated from dac sample
+
+unsigned int get_dac_value()
+{
+  return dac_value;
+}
+/*** dac_interpolate(value, *ref, *cal, points)
+ * returns a float interpolated from *cal and *ref using value
+ */
+float dac_interpolate(unsigned int value, unsigned int *ref, float  *cal, byte points)
+{
+  //reference values should be ascending, but we can account for otherwise
+  bool invert = false;
+  byte top = points-1;
+  if(ref[0] > ref[top]) invert = true;
+
+  #ifdef DEBUG_DAC_MAP
+  Serial.print(F("dac_interpolate: "));
+  Serial.println(value);
+  #endif
+
+  //find the index of the 1st ref value larger than value
+  byte n;
+  for (n = 0; n < points; n++)
+  {
+    byte idx = invert ? top-n : n;
+    //break out of the loop once we reach a ref value greater than the target value
+    if ( value < ref[idx] ) break; 
+  }
+  // account for values greater than top value and smaller than bot value (extrapolate)
+  if ( n == 0) n = 1;
+  if ( n == points) n = top;
+  byte m = n-1;
+
+  //account for inversion to get correct array indices
+  n = invert ? top-n : n;
+  m = invert ? top-m : m;
+
+  //interpolate from the ref and cal data using the above indices
+  float result = dac_cal_map((float)value, (float)ref[m], (float)ref[n], cal[m], cal[n]);
+
+  #ifdef DEBUG_DAC_MAP
+  Serial.print(m);
+  Serial.print(FS(S_ARROW));
+  Serial.print(n);
+  Serial.print(FS(S_COLON));
+  Serial.print(ref[m]);
+  Serial.print(FS(S_ARROW));
+  Serial.print(ref[n]);
+  Serial.print(FS(S_COLON));
+  Serial.print(cal[m]);
+  Serial.print(FS(S_ARROW));
+  Serial.println(cal[n]);
+  Serial.print(F("Result: "));
+  Serial.println(result);
+  #endif
+
+  
+  return result;
+}
+float dac_cal_map(float x, float in_min, float in_max, float out_min, float out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+void dac_calculate_voltages()
+{
+  if(dac_range == TEST_RANGE_80mV)
+  {
+    dac_voltage        = dac_interpolate(dac_value, &calibration.range[1].dac[0], &calibration.range[1].mV[0], calibration.points);
+    dac_sample_voltage = dac_interpolate(dac_sample, &calibration.range[1].adc[0], &calibration.range[1].mV[0], calibration.points);
+  }
+  else
+  {
+    dac_voltage        = dac_interpolate(dac_value, &calibration.range[0].dac[0], &calibration.range[0].mV[0], calibration.points);
+    dac_sample_voltage = dac_interpolate(dac_sample, &calibration.range[0].adc[0], &calibration.range[0].mV[0], calibration.points);
+  }
+}
 
 void dac_read_sample()
 {
@@ -79,9 +168,15 @@ void dac_read_sample()
 }
 void set_dac(unsigned int new_dac_value)
 {
+  //truncate to resolution
+  new_dac_value >>= (16-DAC_BITS);
+  new_dac_value <<= (16-DAC_BITS);
+  
   #ifdef DEBUG_DAC_CAL
   Serial.print(F("set_dac ")); Serial.println(new_dac_value);
   #endif
+
+  set_pwm_bits(DAC_BITS);
   force_pwm_w(new_dac_value);
   if(new_dac_value != dac_value)
   {
@@ -106,6 +201,18 @@ void set_dac_gain(byte range)
     delay(DAC_GAIN_CHANGE_TIME_ms);
     dac_range = range;
   }
+}
+
+void dac_report()
+{
+  //export_dac_cal_row(&Serial, get_pwm_w(), dac_sample, 0);
+  dac_calculate_voltages();
+  Serial.print(dac_value);
+  Serial.print(FS(S_COLON));
+  Serial.println(dac_voltage);
+  Serial.print(dac_sample);
+  Serial.print(FS(S_COLON));
+  Serial.println(dac_sample_voltage);
 }
 
 void export_dac_cal_row(Stream *dst, unsigned int dac, unsigned int adc, float mV)
@@ -188,7 +295,7 @@ void cal_dac_setup()
   
   unsigned int cal_range = test_setup_idx / NO_OF_CALIBRATION_POINTS;
   unsigned int new_dac_value = test_setup_idx % NO_OF_CALIBRATION_POINTS;
-  new_dac_value = (DAC_STEP*2) + (new_dac_value * ((UINT16_MAX - DAC_STEP*4) / NO_OF_CALIBRATION_POINTS));
+  new_dac_value = DAC_CAL_END_OFFSET + (new_dac_value * ((UINT16_MAX - DAC_CAL_END_OFFSET*2) / (NO_OF_CALIBRATION_POINTS-1)));
 
   //change the gain range if test_idx is greater than number of points
   if(cal_range) {
@@ -210,7 +317,7 @@ void cal_stop()
 void cal_dac_sample()
 {
   bool is_correct = true;
-  dac_read_sample();
+  
   do
   {
     Serial.println(F("Enter measured DAC voltage"));
@@ -227,6 +334,8 @@ void cal_dac_sample()
     if(user_input == 'n') { is_correct = false; }
     if(user_input == 'c') { cal_stop(); return; }
   }while(!is_correct);
+
+  dac_read_sample();
 
   unsigned int cal_range = test_setup_idx / NO_OF_CALIBRATION_POINTS;
   unsigned int cal_row = test_setup_idx % NO_OF_CALIBRATION_POINTS;
@@ -255,7 +364,7 @@ void cal_dac_report()
   unsigned int cal_range = test_setup_idx / NO_OF_CALIBRATION_POINTS;
   export_dac_cal_set(&Serial, &calibration.range[cal_range], NO_OF_CALIBRATION_POINTS);
 
-  Serial.print(FS(S_BAR));
+  Serial.println(FS(S_BAR));
   
   test_setup_idx++;
 

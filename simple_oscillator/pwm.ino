@@ -7,7 +7,17 @@ static byte in_isr = false;
 static char bit_shift = 0;
 static byte pwm_param_is_16bit = false;
 
+unsigned int get_pwm_w()
+{
+  return OCR1A << (16-config.pwm_bits);
+}
 
+unsigned int get_pwm()
+{
+  if(config.pwm_bits >= 8)
+    return OCR1A >> (config.pwm_bits-8);
+  return OCR1A << (8-config.pwm_bits);
+}
 /*** set_pwm()
  * set the target pwm, without limits or look up tables
  * the ISR will ramp to this value
@@ -364,13 +374,21 @@ ISR(TIMER2_OVF_vect)
 
 void set_pwm_bits(byte bits)
 {
+  //limit bit range
+  if(bits < PWM_BITS_MIN) bits = PWM_BITS_MIN;
+  else if(bits > PWM_BITS_MAX) bits = PWM_BITS_MAX;
+
+  //do nothing if bits already set correctly
+  if(config.pwm_bits == bits) return;
+  write_pwm_bits(bits);
+}
+void write_pwm_bits(byte bits)
+{
   #ifdef DEBUG_TRAP
   Serial.println(F("set_bits start"));
   #endif
   
-  //limit bit range
-  if(bits < PWM_BITS_MIN) bits = PWM_BITS_MIN;
-  else if(bits > PWM_BITS_MAX) bits = PWM_BITS_MAX;
+
   
   //new top value
   unsigned int top = bit(bits)-1;
