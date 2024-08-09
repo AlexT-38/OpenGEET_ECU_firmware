@@ -160,8 +160,11 @@ void start_test(TEST_TYPE test_no)
   test_type = test_no;
   switch(test_no)
   {
-    case TT_VERIFY_DAC_CAL:
-      start_dac_verify();
+    case TT_VERIFY_DAC_CAL_UP:
+      start_dac_verify(true);
+      break;
+    case TT_VERIFY_DAC_CAL_DN:
+      start_dac_verify(false);
       break;
     case TT_CAL_DAC:
       start_dac_cal();
@@ -218,7 +221,8 @@ byte run_test()
   {
     case TT_NONE:
       break;
-    case TT_VERIFY_DAC_CAL:
+    case TT_VERIFY_DAC_CAL_DN:
+    case TT_VERIFY_DAC_CAL_UP:
       going = run_dac_verify();
       break;
     case TT_CAL_DAC:
@@ -299,6 +303,7 @@ byte run_measure_test()
       break;
     case TS_REPORT:
       test_report();
+      dac_calculate_voltages();
       dac_report();
       break;
     default:

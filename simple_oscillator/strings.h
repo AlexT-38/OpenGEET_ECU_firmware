@@ -41,12 +41,14 @@ const char S_BAR[] PROGMEM = "------------------------";
 const char S_DONE[] PROGMEM = "Done";
 
 const char S_CSV_HEADER[] PROGMEM = "IDX, BITS, PWM, IN, OUT, IN(v), OUT(v), IN(tol%), OUT(tol%), OUT(rng), RATIO, TARG, LOSS(%)";
-const char PROGMEM S_DAC_CAL_VERIFY_CSV_HEADER[] = "DAC LSB, DAC mV, ADC LSB, ACD mV, ADC Tol mV";
+const char PROGMEM S_DAC_CAL_VERIFY_CSV_HEADER[] = "DAC LSB, DAC mV, ADC LSB, ACD mV, ADC Tol mV, Cl, Ch, Ch-";
 
 
 const char PROGMEM S_800MV[]      = "800mV";
 const char PROGMEM S_80MV[]       = "80mV" ;
 const char PROGMEM S_DAC_HEADER[] = "DAC: ADC, mV";
+
+const char PROGMEM S_CALIBRATION_LIST[] = "Calibration Menu:\n0) i/o voltage read test\n1) calibrate dac/adc\n2) toggle dac/adc range\n3) dac sweep up lsb\n4) dac sweep down lsb\n";
 
 
 const char PROGMEM S_STOP_ALL[] = "STOP_ALL";            //S sets PWM to 0 and disables LFO

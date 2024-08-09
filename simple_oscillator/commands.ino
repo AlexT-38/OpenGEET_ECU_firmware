@@ -309,7 +309,10 @@ void recieve_command()
     reset_config();
     break;
   case C_PRINT_CONFIG:
-    export_config(&Serial, &config);
+    if(!is_query)
+      export_config(&Serial, &config);
+    else
+      export_dac_cal(&Serial, &calibration);
     break;
   case C_PRINT_STATE:
     print_state(&Serial);
@@ -327,7 +330,7 @@ void recieve_command()
       #endif
       if(is_query)
       {
-        export_dac_cal(&Serial, &calibration);
+        Serial.println(FS(S_CALIBRATION_LIST));
         break;
       }
       byte cal_mode = atoi(&buf[bpos]);
@@ -343,7 +346,10 @@ void recieve_command()
           tog_dac_gain();
           break;
         case 3:
-          start_test(TT_VERIFY_DAC_CAL);
+          start_test(TT_VERIFY_DAC_CAL_UP);
+          break;
+        case 4:
+          start_test(TT_VERIFY_DAC_CAL_DN);
           break;
       }
     }

@@ -39,6 +39,36 @@
  * 1) connect the following pairs of pins on the test headers
  *    J9 or J10 : pin 7 & 10
  * 2) connect a good DMM set to Vdc to J9/10 pin7 and ground (J8-3, J9/10-3/8)
+ * 3) run k1
+ * 4) enter values read from the DMM when requested
+ * 
+ * DAC Verification:
+ * 1) use the same hardware setup as above
+ * 2) clear the terminal and run k3, copy the results to the analysis spreadsheet
+ * 3) clear and run k4, copy the results to the analysis spreadsheet
+ * 4) run k2 to toggle the range and repeat steps (2) and (3)
+ * 
+ * 
+ * Comp threshold test:
+ * 1) take a board with the FET driver chip removed or disabled 
+ *     (this can be implemented as part of the test harness by looping GND to SD on the UIT connector,
+ *      or by shorting pins 8&9, 12&14  Board top, corner opposite PHASE  top row left is 14, L;:;::;;   )
+ * 2) connect the test harness to the UIT, and then to the 0V or -V test headers
+ * 3) ensure range is 800mV with command k2
+ * 4) run k3 and check the threshold results, 
+ *      these should be switch-on states at around 450mV, ignore switch-offs
+ * 5) run k4 and check the threshold results
+ * 6) use k2 to switch to 80mV range
+ * 7) run k3 and check the threshold results, 
+ *      these should be switch-off states at around 0.0mV, switch-ons shouldn't occur
+ * 8) it may be nescessary to switch ranges again to trip the comparator into the on state
+ * 9) run k4 and check the threshold results
+ * 10) enter the results into the divider adjustment calculator spreadsheet,
+ *       use both the DAC and ADC values and check if the resulting shunt resistors are the same,
+ * 11) if not, use the d command to manually set the comp state 
+ * 12) check the comp state with the m2 command (TODO: implement m2 command)
+ *     
+ * 
  */
 //#define DEBUG_DAC_CAL
 //#define DEBUG_DAC_CAL_VERIFY
@@ -56,8 +86,8 @@
 #define DAC_CAL_START_OFFSET (4544)
 
 #define DAC_GAIN_CHANGE_TIME_ms   50
-#define DAC_VALUE_CHANGE_TIME_us  500
-#define DAC_VALUE_CHANGE_TIME_ms  100
+#define DAC_VALUE_CHANGE_TIME_us  500 //time per unit dac change
+#define DAC_VALUE_CHANGE_TIME_ms  100 //fixed time
 
 byte dac_range = TEST_RANGE_80mV;
 
@@ -66,6 +96,14 @@ unsigned int dac_value;   //value set with pwm
 float dac_voltage;        //value entered via serial, or interpolated from cal data
 float dac_sample_voltage; //interpolated from dac sample
 float dac_adc_tol;
+
+bool comp_input[3];
+bool comp_input_old[3];
+bool comp_changed[3];
+float comp_threshold[3];
+float comp_threshold_sample[3];
+bool dac_verify_up;
+
 void dac_get_adc_tol_mV()
 {
   unsigned int a = dac_sample + ADC_TOL;
@@ -85,13 +123,32 @@ void dac_get_adc_tol_mV()
   dac_adc_tol = abs(a_mV - b_mV);
   
 }
-void start_dac_verify()
+void start_dac_verify(bool up)
 {
   Serial.println(F("Starting DAC verify"));
   Serial.println(FS(S_DAC_CAL_VERIFY_CSV_HEADER));
+  //temporarily pull up these pins so that if they are not connected, they will hopefully read consistantly
+  digitalWrite(PIN_INPUT_1, HIGH);
+  digitalWrite(PIN_INPUT_2, HIGH);
+  digitalWrite(PIN_INPUT_1, LOW);
+  digitalWrite(PIN_INPUT_2, LOW);
+
   set_pwm_bits(DAC_BITS);
-  set_dac(0);
-  test_setup_idx = DAC_CAL_START_OFFSET;
+  dac_verify_up = up;
+  if(up){
+    test_setup_idx = DAC_CAL_START_OFFSET;
+    set_dac(0);
+  }
+  else{
+    test_setup_idx = DAC_CAL_END_OFFSET;
+    set_dac(UINT16_MAX);
+  }
+  
+  dac_read_sample();
+  comp_changed[0] = false;
+  comp_changed[1] = false;
+  comp_changed[2] = false;
+  
   test_stage = TS_SETUP;
 }
 bool run_dac_verify()
@@ -141,8 +198,18 @@ void dac_verify_sample(){
   #endif
   dac_read_sample();
   dac_calculate_voltages();
+  for(byte n = 0; n < 3; n++)
+  {
+    if(comp_input[n] != comp_input_old[n])
+    {
+      comp_changed[n] = true;
+      comp_threshold[n] = dac_voltage;
+      comp_threshold_sample[n] = dac_sample_voltage;
+    }
+  }
+  
   float dac_adc_err = abs(dac_sample_voltage - dac_voltage);
-  if(dac_adc_err < dac_adc_tol)
+  if(dac_adc_err < dac_adc_tol || abs(dac_voltage) > 600.0  )
     test_stage = TS_REPORT;
   else if (++dac_verify_count > DAC_VERIFY_READ_COUNT_MAX)
   {
@@ -160,16 +227,36 @@ void dac_verify_report(){
   test_stage = TS_NEXT;
 }
 void dac_verify_next(){
-  test_setup_idx += DAC_STEP;
+  test_setup_idx += dac_verify_up?DAC_STEP:-DAC_STEP;
   #ifdef DEBUG_DAC_CAL_VERIFY
   Serial.print(F("DAC Next: "));
   Serial.println(test_setup_idx);
   #endif
-  if(test_setup_idx > (DAC_CAL_END_OFFSET)){
+  if( ((test_setup_idx > (DAC_CAL_END_OFFSET)) && dac_verify_up) || 
+      ((test_setup_idx < (DAC_CAL_START_OFFSET)) && !dac_verify_up) )
+  {
     test_stage = TS_IDLE;
+    print_comp_thresholds();
     print_test_time();
   }
   else test_stage = TS_SETUP;
+}
+
+void print_comp_thresholds()
+{
+  Serial.println(F("\nComp Thresholds:"));
+  for(byte n = 0; n < 3; n++)
+  {
+    if(comp_changed[n])
+    {
+      Serial.print(n);
+      Serial.print(FS(S_COMMA));
+      Serial.print(comp_threshold[n]);
+      Serial.print(FS(S_COMMA));
+      Serial.println(comp_threshold_sample[n]);
+    }
+  }
+  Serial.println(FS(S_BAR));
 }
 
 unsigned int get_dac_value()
@@ -260,9 +347,16 @@ byte dac_read_sample()
   unsigned int adc_max = 0;
   unsigned int adc_spread = adc_min;
   byte attempts = 0;
+
+  comp_input_old[0] = comp_input[0];
+  comp_input_old[1] = comp_input[1];
+  comp_input_old[2] = comp_input[2];
   
   while (attempts < TEST_SPREAD_RETRY_MAX && adc_spread > TEST_SAMPLE_TOLERANCE_lsb)
   {
+    comp_input[0] = digitalRead(PIN_INPUT_1);
+    comp_input[1] = digitalRead(PIN_INPUT_2);
+    comp_input[2] = digitalRead(PIN_INPUT_3);
     while(dac_sample_idx++ < TEST_SAMPLES)
     {
       unsigned int new_sample = analogRead(TEST_CH_DAC);
@@ -325,7 +419,14 @@ void dac_report()
   Serial.print(FS(S_COLON));
   Serial.print(dac_sample_voltage);
   Serial.print(F(" +/- "));
-  Serial.print(dac_adc_tol);
+  Serial.println(dac_adc_tol);
+  Serial.print(F("Inputs: "));
+  Serial.print(FS(S_COMMA));
+  Serial.print(comp_input[0]);
+  Serial.print(FS(S_COMMA));
+  Serial.print(comp_input[1]);
+  Serial.print(FS(S_COMMA));
+  Serial.println(comp_input[2]);
 }
 void dac_report_csv()
 {
@@ -339,7 +440,14 @@ void dac_report_csv()
   Serial.print(FS(S_COMMA));
   Serial.print(dac_sample_voltage);
   Serial.print(FS(S_COMMA));
-  Serial.println(dac_adc_tol);
+  Serial.print(dac_adc_tol);
+  Serial.print(FS(S_COMMA));
+  Serial.print(comp_input[0]);
+  Serial.print(FS(S_COMMA));
+  Serial.print(comp_input[1]);
+  Serial.print(FS(S_COMMA));
+  Serial.println(comp_input[2]);
+  
 }
 
 void export_dac_cal_row(Stream *dst, unsigned int dac, unsigned int adc, float mV)
@@ -508,4 +616,5 @@ void cal_dac_complete()
   calibration.points = NO_OF_CALIBRATION_POINTS;
   cal_stop();
 }
+
  
