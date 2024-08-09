@@ -41,6 +41,7 @@
  * 2) connect a good DMM set to Vdc to J9/10 pin7 and ground (J8-3, J9/10-3/8)
  */
 //#define DEBUG_DAC_CAL
+//#define DEBUG_DAC_CAL_VERIFY
 //#define DEBUG_DAC_MAP
 
 
@@ -48,11 +49,15 @@
 #define DAC_BITS 12
 #define DAC_STEP (1<<(16-DAC_BITS))
 
+#define DAC_VERIFY_READ_COUNT_MAX 128
+
 //number of ADC LSB's to offset from end of range, in 16bit
-#define DAC_CAL_END_OFFSET (8 * (1<<16-10))
+#define DAC_CAL_END_OFFSET (UINT16_MAX - (8 * (1<<16-10)))
+#define DAC_CAL_START_OFFSET (4544)
 
 #define DAC_GAIN_CHANGE_TIME_ms   50
 #define DAC_VALUE_CHANGE_TIME_us  500
+#define DAC_VALUE_CHANGE_TIME_ms  100
 
 byte dac_range = TEST_RANGE_80mV;
 
@@ -60,6 +65,112 @@ unsigned int dac_sample;  //value read from the adc
 unsigned int dac_value;   //value set with pwm
 float dac_voltage;        //value entered via serial, or interpolated from cal data
 float dac_sample_voltage; //interpolated from dac sample
+float dac_adc_tol;
+void dac_get_adc_tol_mV()
+{
+  unsigned int a = dac_sample + ADC_TOL;
+  unsigned int b = dac_sample - ADC_TOL;
+  float a_mV, b_mV;
+  if(dac_range == TEST_RANGE_80mV)
+  {
+    a_mV = dac_interpolate(a, &calibration.range[1].adc[0], &calibration.range[1].mV[0], calibration.points);
+    b_mV = dac_interpolate(b, &calibration.range[1].adc[0], &calibration.range[1].mV[0], calibration.points);
+  }
+  else
+  {
+    a_mV = dac_interpolate(a, &calibration.range[0].adc[0], &calibration.range[0].mV[0], calibration.points);
+    b_mV = dac_interpolate(b, &calibration.range[0].adc[0], &calibration.range[0].mV[0], calibration.points);
+  }
+
+  dac_adc_tol = abs(a_mV - b_mV);
+  
+}
+void start_dac_verify()
+{
+  Serial.println(F("Starting DAC verify"));
+  Serial.println(FS(S_DAC_CAL_VERIFY_CSV_HEADER));
+  set_pwm_bits(DAC_BITS);
+  set_dac(0);
+  test_setup_idx = DAC_CAL_START_OFFSET;
+  test_stage = TS_SETUP;
+}
+bool run_dac_verify()
+{
+  switch(test_stage)
+  {
+    case TS_IDLE:
+      break;
+    case TS_SETUP:
+      dac_verify_setup();
+      break;
+    case TS_SAMPLE:
+      dac_verify_sample();
+      break;
+    case TS_REPORT:
+      dac_verify_report();
+      break;
+    case TS_NEXT:
+      dac_verify_next();
+      break;
+    default:
+      #ifdef DEBUG_TEST
+      Serial.println(F("Undefined test state: resetting"));
+      #endif
+      test_reset();
+      break;
+  }
+  return (test_stage != TS_IDLE);
+}
+static unsigned int dac_verify_count = 0; 
+void dac_verify_setup(){
+  set_dac(test_setup_idx);
+  test_stage = TS_SAMPLE;
+  #ifdef DEBUG_DAC_CAL_VERIFY
+    Serial.print(F("DAC Verify Setup: "));
+    Serial.println(test_setup_idx);
+  #endif
+  dac_verify_count = 0;
+}
+
+void dac_verify_sample(){
+  #ifdef DEBUG_DAC_CAL_VERIFY
+  if(dac_verify_count == 0)
+    Serial.println(F("DAC Read Sample"));
+//  else
+//    Serial.println(dac_verify_count);
+  #endif
+  dac_read_sample();
+  dac_calculate_voltages();
+  float dac_adc_err = abs(dac_sample_voltage - dac_voltage);
+  if(dac_adc_err < dac_adc_tol)
+    test_stage = TS_REPORT;
+  else if (++dac_verify_count > DAC_VERIFY_READ_COUNT_MAX)
+  {
+    #ifdef DEBUG_DAC_CAL_VERIFY
+    Serial.println(F("ADC not within tol"));
+    #endif
+    test_stage = TS_REPORT;
+  }
+}
+void dac_verify_report(){
+  #ifdef DEBUG_DAC_CAL_VERIFY
+  Serial.println(F("DAC Report"));
+  #endif
+  dac_report_csv();
+  test_stage = TS_NEXT;
+}
+void dac_verify_next(){
+  test_setup_idx += DAC_STEP;
+  #ifdef DEBUG_DAC_CAL_VERIFY
+  Serial.print(F("DAC Next: "));
+  Serial.println(test_setup_idx);
+  #endif
+  if(test_setup_idx > (DAC_CAL_END_OFFSET)){
+    test_stage = TS_IDLE;
+    print_test_time();
+  }
+  else test_stage = TS_SETUP;
+}
 
 unsigned int get_dac_value()
 {
@@ -134,9 +245,10 @@ void dac_calculate_voltages()
     dac_voltage        = dac_interpolate(dac_value, &calibration.range[0].dac[0], &calibration.range[0].mV[0], calibration.points);
     dac_sample_voltage = dac_interpolate(dac_sample, &calibration.range[0].adc[0], &calibration.range[0].mV[0], calibration.points);
   }
+  dac_get_adc_tol_mV();
 }
 
-void dac_read_sample()
+byte dac_read_sample()
 {
   #ifdef DEBUG_DAC_CAL
   Serial.println(F("dac_read_sample"));
@@ -165,6 +277,7 @@ void dac_read_sample()
     Serial.println(attempts);
     #endif
   }
+  return attempts;
 }
 void set_dac(unsigned int new_dac_value)
 {
@@ -181,7 +294,7 @@ void set_dac(unsigned int new_dac_value)
   if(new_dac_value != dac_value)
   {
     unsigned int change = (dac_value > new_dac_value) ? (dac_value - new_dac_value) : (new_dac_value - dac_value);
-    delayMicroseconds((unsigned long)change * DAC_VALUE_CHANGE_TIME_us);
+    delayMicroseconds(((unsigned long)change * DAC_VALUE_CHANGE_TIME_us) + (1000*DAC_VALUE_CHANGE_TIME_ms));
     dac_value = new_dac_value;
   }
 }
@@ -205,14 +318,28 @@ void set_dac_gain(byte range)
 
 void dac_report()
 {
-  //export_dac_cal_row(&Serial, get_pwm_w(), dac_sample, 0);
-  dac_calculate_voltages();
   Serial.print(dac_value);
   Serial.print(FS(S_COLON));
   Serial.println(dac_voltage);
   Serial.print(dac_sample);
   Serial.print(FS(S_COLON));
-  Serial.println(dac_sample_voltage);
+  Serial.print(dac_sample_voltage);
+  Serial.print(F(" +/- "));
+  Serial.print(dac_adc_tol);
+}
+void dac_report_csv()
+{
+  //export_dac_cal_row(&Serial, get_pwm_w(), dac_sample, 0);
+  
+  Serial.print(dac_value);
+  Serial.print(FS(S_COMMA));
+  Serial.print(dac_voltage);
+  Serial.print(FS(S_COMMA));
+  Serial.print(dac_sample);
+  Serial.print(FS(S_COMMA));
+  Serial.print(dac_sample_voltage);
+  Serial.print(FS(S_COMMA));
+  Serial.println(dac_adc_tol);
 }
 
 void export_dac_cal_row(Stream *dst, unsigned int dac, unsigned int adc, float mV)
@@ -295,7 +422,7 @@ void cal_dac_setup()
   
   unsigned int cal_range = test_setup_idx / NO_OF_CALIBRATION_POINTS;
   unsigned int new_dac_value = test_setup_idx % NO_OF_CALIBRATION_POINTS;
-  new_dac_value = DAC_CAL_END_OFFSET + (new_dac_value * ((UINT16_MAX - DAC_CAL_END_OFFSET*2) / (NO_OF_CALIBRATION_POINTS-1)));
+  new_dac_value = DAC_CAL_START_OFFSET + (new_dac_value * ((DAC_CAL_END_OFFSET - DAC_CAL_START_OFFSET) / (NO_OF_CALIBRATION_POINTS-1)));
 
   //change the gain range if test_idx is greater than number of points
   if(cal_range) {

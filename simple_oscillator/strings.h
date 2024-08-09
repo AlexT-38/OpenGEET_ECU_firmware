@@ -41,6 +41,7 @@ const char S_BAR[] PROGMEM = "------------------------";
 const char S_DONE[] PROGMEM = "Done";
 
 const char S_CSV_HEADER[] PROGMEM = "IDX, BITS, PWM, IN, OUT, IN(v), OUT(v), IN(tol%), OUT(tol%), OUT(rng), RATIO, TARG, LOSS(%)";
+const char PROGMEM S_DAC_CAL_VERIFY_CSV_HEADER[] = "DAC LSB, DAC mV, ADC LSB, ACD mV, ADC Tol mV";
 
 
 const char PROGMEM S_800MV[]      = "800mV";

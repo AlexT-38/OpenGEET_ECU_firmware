@@ -342,6 +342,9 @@ void recieve_command()
         case 2:
           tog_dac_gain();
           break;
+        case 3:
+          start_test(TT_VERIFY_DAC_CAL);
+          break;
       }
     }
     break;

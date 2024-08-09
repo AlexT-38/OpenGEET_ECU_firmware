@@ -27,6 +27,8 @@
 #define TEST_SAMPLES             16    //number of samples to take in total
 #define TEST_SAMPLE_TOLERANCE_lsb 8   //total min max variance allowable
 #define TEST_SPREAD_RETRY_MAX     128
+
+#define ADC_TOL   (TEST_SAMPLES*2)
     
 
 typedef enum test_type
@@ -36,6 +38,7 @@ typedef enum test_type
   TT_FULL_SWEEP,          //full sweep through all bit ranges and from 0 to max pwm with decremental step ups, starting at 21
   TT_MEASURE,             //performs a single measurement
   TT_CAL_DAC,             //calibrates the DAC and its monitor ADC channel
+  TT_VERIFY_DAC_CAL,      //sweep through some dac values and read the ADC
   TT_COMPARATOR_LO,       //tests the UUT's upper and lower comparator thresholds at 0v, using J9 Test Connector
   TT_COMPARATOR_HI,       //tests the UUT's upper comparator thresholds at -20V
   NO_OF_TEST_TYPES

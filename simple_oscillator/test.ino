@@ -160,6 +160,9 @@ void start_test(TEST_TYPE test_no)
   test_type = test_no;
   switch(test_no)
   {
+    case TT_VERIFY_DAC_CAL:
+      start_dac_verify();
+      break;
     case TT_CAL_DAC:
       start_dac_cal();
       break;
@@ -214,6 +217,9 @@ byte run_test()
   switch(test_type)
   {
     case TT_NONE:
+      break;
+    case TT_VERIFY_DAC_CAL:
+      going = run_dac_verify();
       break;
     case TT_CAL_DAC:
       going = run_dac_cal();
