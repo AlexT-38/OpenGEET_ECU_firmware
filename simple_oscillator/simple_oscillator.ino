@@ -92,7 +92,7 @@
 #define CLR_ISR_LED()   PORTD &= ~bit(7)
 #define TOG_ISR_LED()   PORTD ^= bit(7)
 
-#define ARD_ENABLE  6
+//#define ARD_ENABLE  6 //clashes with INPUT_3, and isn't needed (no connection to SD on the UIT)
 
 #define INTERVAL_MIN  20
 //defaults
@@ -160,8 +160,8 @@ void setup() {
   digitalWrite(ARD_LED,LOW);
   pinMode(ARD_PWM,OUTPUT);
   digitalWrite(ARD_PWM,LOW);
-  pinMode(ARD_ENABLE,OUTPUT);
-  digitalWrite(ARD_ENABLE,LOW);
+  //pinMode(ARD_ENABLE,OUTPUT);
+  //digitalWrite(ARD_ENABLE,LOW);
 
   //setup PWM (TMR1)
   //WGM = 0b101 Fast PWM, 8-bit
@@ -201,7 +201,7 @@ void setup() {
   Serial.println(FS(S_DATE));
   Serial.println(FS(S_TIME));
 
-  digitalWrite(ARD_ENABLE,HIGH);
+  //digitalWrite(ARD_ENABLE,HIGH);
   
 }
 

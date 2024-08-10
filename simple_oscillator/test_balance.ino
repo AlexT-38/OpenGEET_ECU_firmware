@@ -89,6 +89,8 @@
 #define DAC_VALUE_CHANGE_TIME_us  500 //time per unit dac change
 #define DAC_VALUE_CHANGE_TIME_ms  100 //fixed time
 
+#define DAC_SATURATION_mV     575.0     //FET diode reverse bias diode drop voltage at 100mA
+
 byte dac_range = TEST_RANGE_80mV;
 
 unsigned int dac_sample;  //value read from the adc
@@ -209,7 +211,7 @@ void dac_verify_sample(){
   }
   
   float dac_adc_err = abs(dac_sample_voltage - dac_voltage);
-  if(dac_adc_err < dac_adc_tol || abs(dac_voltage) > 600.0  )
+  if(dac_adc_err < dac_adc_tol || abs(dac_voltage) > DAC_SATURATION_mV  )
     test_stage = TS_REPORT;
   else if (++dac_verify_count > DAC_VERIFY_READ_COUNT_MAX)
   {
