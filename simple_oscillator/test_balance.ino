@@ -81,15 +81,19 @@
 
 #define DAC_VERIFY_READ_COUNT_MAX 128
 
-//number of ADC LSB's to offset from end of range, in 16bit
-#define DAC_CAL_END_OFFSET (UINT16_MAX - (8 * (1<<16-10)))
-#define DAC_CAL_START_OFFSET (4544)
+//start and end calibration DAC values TODO: remove magic numbers, make the middle most cal value always INT16_MAX.
+#define DAC_CAL_END_OFFSET (UINT16_MAX - (8 * (1<<16-10))) //why is this referencing ADC bits?
+#define DAC_CAL_START_OFFSET (4544) //opamp -ve saturation voltage.
+
+//start and end DAC values for DAC verification, commands k3 and k4
+#define DAC_VER_END_OFFSET (UINT16_MAX - DAC_STEP)
+#define DAC_VER_START_OFFSET (DAC_STEP)
 
 #define DAC_GAIN_CHANGE_TIME_ms   50
 #define DAC_VALUE_CHANGE_TIME_us  500 //time per unit dac change
 #define DAC_VALUE_CHANGE_TIME_ms  100 //fixed time
 
-#define DAC_SATURATION_mV     575.0     //FET diode reverse bias diode drop voltage at 100mA
+#define DAC_SATURATION_mV     550.0     //minimum FET diode reverse bias diode drop voltage at 100mA
 
 byte dac_range = TEST_RANGE_80mV;
 
@@ -138,11 +142,11 @@ void start_dac_verify(bool up)
   set_pwm_bits(DAC_BITS);
   dac_verify_up = up;
   if(up){
-    test_setup_idx = DAC_CAL_START_OFFSET;
+    test_setup_idx = DAC_VER_START_OFFSET;
     set_dac(0);
   }
   else{
-    test_setup_idx = DAC_CAL_END_OFFSET;
+    test_setup_idx = DAC_VER_END_OFFSET;
     set_dac(UINT16_MAX);
   }
   
@@ -210,8 +214,10 @@ void dac_verify_sample(){
     }
   }
   
-  float dac_adc_err = abs(dac_sample_voltage - dac_voltage);
-  if(dac_adc_err < dac_adc_tol || abs(dac_voltage) > DAC_SATURATION_mV  )
+  float dac_adc_err = dac_sample_voltage - dac_voltage;
+  if( abs(dac_adc_err) < dac_adc_tol || 
+      (dac_sample_voltage > DAC_SATURATION_mV && dac_voltage > dac_sample_voltage) ||
+      (dac_sample_voltage < -DAC_SATURATION_mV && dac_voltage < dac_sample_voltage)  )
     test_stage = TS_REPORT;
   else if (++dac_verify_count > DAC_VERIFY_READ_COUNT_MAX)
   {
@@ -234,8 +240,8 @@ void dac_verify_next(){
   Serial.print(F("DAC Next: "));
   Serial.println(test_setup_idx);
   #endif
-  if( ((test_setup_idx > (DAC_CAL_END_OFFSET)) && dac_verify_up) || 
-      ((test_setup_idx < (DAC_CAL_START_OFFSET)) && !dac_verify_up) )
+  if( ((test_setup_idx > (DAC_VER_END_OFFSET)) && dac_verify_up) || 
+      ((test_setup_idx < (DAC_VER_START_OFFSET)) && !dac_verify_up) )
   {
     test_stage = TS_IDLE;
     print_comp_thresholds();
@@ -265,6 +271,7 @@ unsigned int get_dac_value()
 {
   return dac_value;
 }
+//TODO: dac_interpolate retuns DAC value for given float mV value
 /*** dac_interpolate(value, *ref, *cal, points)
  * returns a float interpolated from *cal and *ref using value
  */

@@ -61,7 +61,7 @@ const char PROGMEM S_HELP[] = "HELP";                    //H prints available co
 const char PROGMEM  S_SET_PRESCALE[] = "SET_PRESCALE <1...5>";           //C set clock rate for PWM
 const char PROGMEM  S_SET_PWM_LIMIT[] = "SET_PWM_LIMIT [<0...-254>|<1...255>]";          //L set minimum (-ve) and maximum (+ve) pwm values
 const char PROGMEM  S_SET_PWM_INVERT[] = "SET_PWM_INVERT <in> <out>";         //I set PWM inversion bit0:in (255-pwm) bit1:out (hi/lo)
-const char PROGMEM  S_SET_PWM_RAMP[] = "SET_PWM_RAMP <0...65536>";         //I set PWM inversion bit0:in (255-pwm) bit1:out (hi/lo)
+const char PROGMEM  S_SET_PWM_RAMP[] = "SET_PWM_RAMP <0...65535>";         //I set PWM inversion bit0:in (255-pwm) bit1:out (hi/lo)
 const char PROGMEM  S_SET_PWM_BITS[] = "SET_PWM_BITS";         //B reduce PWM bits from 8 to 7 above 192
 const char PROGMEM  S_OSCILLATE[] = "OSCILLATE";         //O send LFO to pwm
 const char PROGMEM S_USE_LUT[] = "USE LUT";
@@ -75,7 +75,7 @@ const char PROGMEM S_TEST_FULL_SWEEP[] = "TEST_FULL_SWEEP";
 const char PROGMEM S_TEST_CALIBRATE[] = "TEST_CALIBRATE";
 const char PROGMEM S_TEST_MEASURE[] = "TEST_MEASURE";
 
-const char PROGMEM S_SET_DAC[] = "SET_DAC <0...65536>";
+const char PROGMEM S_SET_DAC[] = "SET_DAC <0...65535>";
 
 const char PROGMEM S_STOP[] = "STOP";
 const char PROGMEM S_START[] = "START";
