@@ -20,6 +20,14 @@ and adding timestamps for each, preferably reading the sample interval from the 
 so that groups of parameters that always have the same sample times only need the one timestamp channel
 """
 
+"""
+when plotting "09-08-2023/23080401.JSN"
+'avg from count' suffers timestamp offset of approx 12 seconds
+from timestamp 137/137.5 or thereabouts
+when plotting in detail mode.
+need to look into that.
+"""
+
 
 import numpy as np
 import matplotlib as mpl
@@ -30,11 +38,12 @@ import json
 
     
 
-
-
+# log_file encapsulates all logged data and parses log files
+# takes each record and collates the data for each parameter
 class log_file:
         
     def __init__(self, path):
+        # open the specified file and attempt to parse data
         with open(path) as file:
             print("reading file:", path)
             self.path = path.lower()
@@ -43,22 +52,22 @@ class log_file:
             elif self.path.endswith(".json") or self.path.endswith(".jsn"):
                 self.parse_v4(file)
                 
-    verbose = False
-    echo = True
-    detailed_rpm = True
-    detailed_pid = True
-    rpm_pid_no_ms = True
-    rpm_pid_native = True
+    verbose = False         #print extra info about parse process
+    echo = True             #echo input lines for v3 log files
+    detailed_rpm = True     #plot detailed rpm data... plot tacho ticks?
+    detailed_pid = True     #plot detailed pid data...?
+    rpm_pid_no_ms = True    #change the way pid is plotted?
+    rpm_pid_native = True   #change the way pid is plotted?
 
 
-    record_version = None
-    date = None
-    time = None
+    record_version = None   #record version as per record
+    date = None             #record start date as per record
+    time = None             #record start time as per record
     
-    RECORD_INTERVAL = 0.5
+    RECORD_INTERVAL = 0.5   #record interval as per record (default vaule set here)
     RECORD_INTERVAL_ms = 500
-    EGT_FRACTION = 0.25
-    
+    EGT_FRACTION = 0.25     #egt value scale - why isn't this taken from sensor config?
+#collated data fields....
 #average values for each record
     USR_avg = []#[np.array([])]
     MAP_avg = []#[np.array([])]
@@ -83,6 +92,9 @@ class log_file:
     RPM_intervals_ms = np.array([])
 #rpm intervals integrated from start of record
     RPM_tick_times_ms = np.array([])
+    RPM_tick_time_record_s = np.array([]) #timestamps of the record associated with each tick
+    RPM_tick_time_record = np.array([]) #record index associated with each tick
+    RPM_tick_time_record_offset = np.array([]) #tick offset of the record associated with each tick
 #rpm calculated from the above tick intervals
     RPM_ticks = np.array([])
     
@@ -144,7 +156,7 @@ class log_file:
                 if sensor['units'] == 'us':
                     self.RPM_tick_scale = self.RPM_tick_scale/1000
         
-        
+        #extend the length of an array to accept new data
         def update_length(src, trg):
             length = len(src)
             avail = len(trg)
@@ -156,7 +168,7 @@ class log_file:
                 trg.extend([np.array([])]*diff)
             return length
                 
-        #append indexed arrays            
+        #append indexed arrays (record, source field in record, target field)
         def append_multi(rec, src, trg):
             try:
                 src = rec[src]
@@ -165,16 +177,16 @@ class log_file:
             except KeyError as e:
                 if self.verbose : print(e)
                 pass
-        #append single arrays
+        #append single arrays (record, source field in record, target field)
         def append_single(rec, src, trg):
             try:
                 src = rec[src]
-                setattr( self, trg, np.append(getattr(self,trg), np.array(src[n])) )
+                setattr( self, trg, np.append(getattr(self,trg), np.array(src)) )
             except AttributeError as e:
                 if self.verbose : print(e)
                 pass
         
-        def append_dict(): #todo
+        def append_dict(): #todo - I guess this is for PID records
             pass
         
         
@@ -182,10 +194,10 @@ class log_file:
         timestamp = 0
         pid_records = 0
         pid_samples = 0
-        for r in records:
+        for r in records:                   # LOOP THROUGH EVERY RECORD
             if self.verbose: print()
             time_s = r['timestamp']/1000
-            #record timestamp
+            #record timestamp               # TIMESTAMP
             if len(self.AVG_t)>0:
                 timestamp = time_s - t0
                 if self.verbose: print("t:",timestamp)
@@ -197,29 +209,29 @@ class log_file:
                 self.AVG_t = np.array([0])
             
             
-            #user inputs
+            #get user inputs                    # GET USER INPUTS
             append_multi(r,'usr',self.USR)
             #analog sample times
 
-            #10Hz analog time axis
+            #generate timestamps for user inputs
             values = np.linspace(self.AVG_t[-1],self.AVG_t[-1]+self.RECORD_INTERVAL, len(r['usr'][0]),endpoint=False)
-            self.ANA_t = np.append(self.ANA_t, values)   
+            self.ANA_t = np.append(self.ANA_t, values)   #this step should probably be a function add_timestamps(src, rec, trg) : values = np.linspace(self.AVG_t[-1],self.AVG_t[-1]+self.RECORD_INTERVAL, len(rec[src][0]),endpoint=False) \n trg = np.append(trg, values)
             
-            #user inputs
+            #get Manifold Air Presure sensors   # GET MAPS
             append_multi(r,'map',self.MAP)
             
-            #map sensor time axis, if different
+            #map sensor time axis, if different - why if different?
             if len(r['usr'][0]) != len(r['map'][0]):
                 values = np.linspace(self.AVG_t[-1],self.AVG_t[-1]+self.RECORD_INTERVAL, len(r['map'][0]),endpoint=False)
-                self.MAP_t = np.append(self.MAP_t, values)   
+                self.MAP_t = np.append(self.MAP_t, values) #we still need to do this if same though, no?   just generate the time stamps - checking for them being the same has not benefit
 
-            #thermistors
+            #thermistors - not implemented yet  # GET THERMISTORS
             append_multi(r,'tmp',self.TMP)
             
-            #thermocouples
+            #thermocouples                      # GET THERMOCOUPLES
             append_multi(r,'egt', self.EGT)
             
-            #thermocouple time axis per sensor
+            #thermocouple time axis per sensor      -again, make this a funciton, consider creating a class of {[DATA],[TIMESTAMP]} or np.array([N, V]) with N=0 being timestamps, put all these adding functions in there too.
             for n in range(update_length(r['egt'], self.EGT_t)):
                 values = np.linspace(self.AVG_t[-1],self.AVG_t[-1]+self.RECORD_INTERVAL, len(r['egt'][n]),endpoint=False)
                 self.EGT_t[n] = np.append(self.EGT_t[n], values)
@@ -238,7 +250,7 @@ class log_file:
             #record averages
             avg = r['avg']
             
-            #each category we are to collect
+            #each category we are to collect - this is constant wrt LOOP, why is it here?
             avgs_src = ['usr','map' ,'tmp' ,'egt' ,'srv','rpm','trq','pow']
             avgs_dst = [x.upper() + '_avg' for x in avgs_src]
             
@@ -260,7 +272,7 @@ class log_file:
                     else:
                         setattr(self, avgs_dst[n], np.append(dst, src))
                 except KeyError as e:
-                    if self.verbose: print(e)
+                    if self.verbose: print(e) #when an element is not in the record
                 except AttributeError as e:
                     print ('Error!',e)
             
@@ -315,99 +327,137 @@ class log_file:
                 #make sure there are elements
                 if self.verbose: print("pid records:", pid_records)        
                 if self.verbose: print("pid samples:", pid_samples)
-            except KeyError as e:
+            except KeyError as e: #no PID date this sample
                 ###print("no key", e)
                 pass
             
             ###process rpm (copied from v3)
-            
-            values = np.array(r['spd']) * self.RPM_tick_scale
-            tick_offset = r['spd_t0'] * self.RPM_tick_scale
-            
+            if len(self.RPM_intervals_ms) > 0:
+              pass
+            #what units are these in? ms or s? tick_scale is 0.016, so should be ms?
+            values = np.array(r['spd']) * self.RPM_tick_scale #these are the interval values for each tacho tick
+            tick_offset = r['spd_t0'] * self.RPM_tick_scale #this is the offset of the first tick from the record start, if a tick is recorded
+            #tick offset appears to be the same each time before rotation detected.
             self.RPM_offset = np.append(self.RPM_offset, tick_offset)
             
-            #check if this is the first recorded tick
-            if len(self.RPM_intervals_ms) == 0:
-                #in which case, ignore this tick
-                values= values [1:]
-                first_tick = True
-                if self.verbose: print("first tick")
-            #also ignore any values less than 1
-            if len(values[values<=0]) > 0:
-                print("some ticks ignored:", np.argwhere(values<=0), ":", values[values<=0])
-                values = values[values>0]
-            
-            self.RPM_intervals_ms = np.append(self.RPM_intervals_ms, values)
-            if self.verbose: print("RPM intervals (ms):", self.RPM_intervals_ms[-len(values):])
-            
-            
             self.RPM_no = np.append(self.RPM_no, len(values))
-            
-            #this mostly works...
-                
-            #instead of accumilating times from the start of logging,
-            #we will use the 1st tick offset from the current record's timestamp
-            # using AVG_t starting at 0ms, rather than TIME_t, which does not start at 0
-            # if a tick offset hasnt been read out, default to the old method
-            if tick_offset >=0 and tick_offset < self.RECORD_INTERVAL_ms:
-                #if this is the first tick in the log file,the first ick is ignored
-                #so we must add the tick offset to the next tick (which is the time since the first uncounted tick)
-                if first_tick:
-                    first_tick =  False;
-                    values[0] = values[0]+(self.AVG_t[-1]*1000) + tick_offset
-                else:
-                    values[0] = (self.AVG_t[-1]*1000) + tick_offset
-                #cumalative sum to get the timestamps relative to the last tick
-                
-            else:
-                if tick_offset > 0:
-                    print("tick offset is greater than record interval",self.AVG_t[-1])
-                else:
-                    print("tick offset is negative")
-                #this is an error, but we can recover
-                
-                #add the previous tick time, if there was one
-                if len(self.RPM_tick_times_ms) > 0:
-                    values[0] = values[0] + self.RPM_tick_times_ms[-1]
-                else:
-                    print("also no previous times recorded")
-                    #just use the record timestamp
-                    values[0] = (self.AVG_t[-1]*1000)
-                    
-            #add up all the intervals to get the timestamps for each tick
-            values = np.cumsum(values)
-                
-            
-
-            #append the ticks times
-            self.RPM_tick_times_ms = np.append(self.RPM_tick_times_ms, values)
-            if self.verbose: print("RPM tick times (s):", self.RPM_tick_times_ms[-len(values):])
-            #check for non monotonicity
-            if len(self.RPM_tick_times_ms) > len(values):
-                tick_idx_stop = len(self.RPM_tick_times_ms)
-                tick_idx_start = tick_idx_stop - (len(values)+1)
-                tick_idx = range(tick_idx_start, tick_idx_stop)
-                
-                for n in range(tick_idx_start,tick_idx_stop) :
-                    if self.RPM_tick_times_ms[n] < self.RPM_tick_times_ms[n-1]:
-                        last_tick = self.RPM_tick_times_ms[n-1]
-                        this_tick = self.RPM_tick_times_ms[n]
-                        plt.plot(tick_idx, self.RPM_tick_times_ms[tick_idx_start:tick_idx_stop])
-                        plt.plot(n, this_tick)
-                        plt.plot(n-1, last_tick)
-                        plt.show()
-                        plt.plot(self.RPM_tick_times_ms)
-                        plt.show()
-                        plt.plot(self.RPM_intervals_ms)
-                        plt.show()
-                        plt.plot(self.AVG_t)
-                        plt.show()
-                        plt.plot(self.RPM_offset)
-                        plt.show()
-                        print("ticks times non monotonic at", n, ":", this_tick, "vs", last_tick)
-            
-            
-            
+            if len(values > 0):
+              #check if this is the first recorded tick
+              if len(self.RPM_intervals_ms) == 0: # !? this will run even if no ticks recorded
+                  #in which case, ignore this tick #   but why? first tick interval is valid, or else it doesnt get recorded
+                  #values= values [1:]            # also, these arent ticks, these are intervals.
+                  first_tick = True
+                  if self.verbose: print("first tick") 
+              #also ignore any values less than 1 #not sure why there would be, as the src is uint, but good to catch data errors
+              if len(values[values<=0]) > 0:
+                  print("some ticks ignored:", np.argwhere(values<=0), ":", values[values<=0])
+                  values = values[values>0]
+              
+              self.RPM_intervals_ms = np.append(self.RPM_intervals_ms, values)
+              if self.verbose: print("RPM intervals (ms):", self.RPM_intervals_ms[-len(values):])
+              
+              
+              
+              
+              #this mostly works... except that it doesnt yet.
+              #initial_interval = 0
+              initial_interval = values[0] #back up that initial interval value
+              timenow_ms = timestamp *1000
+              timenext_ms = timenow_ms+self.RECORD_INTERVAL_ms
+              
+              #instead of accumilating times from the start of logging,
+              #we will use the 1st tick offset from the current record's timestamp
+              # using AVG_t starting at 0ms, rather than TIME_t, which does not start at 0
+              # if a tick offset hasnt been read out, default to the old method
+              try:
+                  if tick_offset >=0 and tick_offset < self.RECORD_INTERVAL_ms:
+                      #if this is the first tick in the log file,the first ick is ignored
+                      #so we must add the tick offset to the next tick (which is the time since the first uncounted tick)
+                      #NOPE, thats wrong. we treat each interval as valid
+                      # and the offset is to the tick at the end of that interval.
+                      # if the offset to the last interval in this record is longer than record length,
+                      # then we know the offset is to the start of the first interval and 
+                      # we then just subtract that interval from all the offsets
+                      if first_tick:
+                          #values[0] = values[0]+(self.AVG_t[-1]*1000) + tick_offset
+                          first_tick =  False;
+                      #else:
+                      
+                      #convert the
+                      values[0] = timenow_ms + tick_offset
+                      #cumalative sum to get the timestamps relative to the last tick
+                      
+                  else:
+                      if tick_offset > 0:
+                          print("tick offset is greater than record interval",self.AVG_t[-1],tick_offset,self.RECORD_INTERVAL_ms)
+                      else:
+                          print("tick offset is negative")
+                      #this is an error, but we can recover (by guessing)
+                      
+                      #add the previous tick time, if there was one
+                      if len(self.RPM_tick_times_ms) > 0:
+                          new_val0 = values[0] + self.RPM_tick_times_ms[-1]
+                          #and if the timestamp would fall within the current record
+                          
+                          if new_val0 >= timenow_ms and new_val0 < timenext_ms:
+                            values[0] = new_val0
+                          else:
+                            values[0] = values[0]+timenow_ms #if not, then assume the interval started at the beggingng of the record
+                      else:
+                          print("also no previous times recorded")
+                          #just use the record timestamp
+                          #we'll assume under these conditions that thefirst interval is
+                          #relative to the start of the record.
+                          values[0] = values[0]+timenow_ms
+              except IndexError as e:
+                  print(e)        
+              #add up all the intervals to get the timestamps for each tick
+              values = np.cumsum(values)
+              #check that the last value falls within the timeframe
+              if values[-1] > timenext_ms:
+                  print("last tick time is after end of record; shifting ticks to start of record")
+                  print(timenow_ms,timenext_ms)
+                  print(values[0],values[-1])
+                  print(initial_interval)
+                  values -= initial_interval
+                  if values[-1] > timenext_ms:
+                      print("last tick time is still after end of record\n")
+                  #we could also check for previous record's ticks?
+              #to help debug this, we'll record the timestamp of the record for each of these timestamps
+              self.RPM_tick_time_record_s = np.append(self.RPM_tick_time_record_s,[self.AVG_t[-1]]*len(values))
+              self.RPM_tick_time_record = np.append(self.RPM_tick_time_record,[len(self.RPM_offset)-1]*len(values))
+              self.RPM_tick_time_record_offset = np.append(self.RPM_tick_time_record_offset,[self.RPM_offset[-1]]*len(values))
+              
+  
+              #append the ticks times
+              self.RPM_tick_times_ms = np.append(self.RPM_tick_times_ms, values)
+              if self.verbose: print("RPM tick times (s):", self.RPM_tick_times_ms[-len(values):])
+              #check for non monotonicity
+              if len(self.RPM_tick_times_ms) > len(values):
+                  tick_idx_stop = len(self.RPM_tick_times_ms)
+                  tick_idx_start = tick_idx_stop - (len(values)+1)
+                  tick_idx = range(tick_idx_start, tick_idx_stop)
+                  
+                  for n in range(tick_idx_start,tick_idx_stop) :
+                      if self.RPM_tick_times_ms[n] < self.RPM_tick_times_ms[n-1]:
+                          last_tick = self.RPM_tick_times_ms[n-1]
+                          this_tick = self.RPM_tick_times_ms[n]
+                          plt.plot(tick_idx, self.RPM_tick_times_ms[tick_idx_start:tick_idx_stop])
+                          plt.plot(n, this_tick)
+                          plt.plot(n-1, last_tick)
+                          plt.show()
+                          plt.plot(self.RPM_tick_times_ms)
+                          plt.show()
+                          plt.plot(self.RPM_intervals_ms)
+                          plt.show()
+                          plt.plot(self.AVG_t)
+                          plt.show()
+                          plt.plot(self.RPM_offset)
+                          plt.show()
+                          print("ticks times non monotonic at", n, ":", this_tick, "vs", last_tick)
+              
+              
+              
             ##end record r
             
         rpm_pid = self.PID[0]
@@ -433,7 +483,8 @@ class log_file:
         
         for n in range(len(self.EGT)):
             self.EGT[n] = self.EGT[n] * self.EGT_FRACTION
-            
+        for n in range(len(self.EGT_avg)):
+            self.EGT_avg[n] = self.EGT_avg[n] * self.EGT_FRACTION    
     
         #end parse v4
     
@@ -603,7 +654,7 @@ class log_file:
                 #parse TRQ sensors
                 if param == "TRQ":
                     #there is only one torque sensor
-                    #presently it is tied in with analog samples
+                    #presently it is tied in with analog samples (? in what way?)
                     if read_avg:
                         #append to averages
                         self.TRQ_avg = np.append(self.TRQ_avg, values)
@@ -768,8 +819,8 @@ class log_file:
             for (m,n) in enumerate(data):
                 draw_plot(n,times[m],f'{base_name} {m}')
         
-        draw_plots(self.USR,self.ANA_t,'USR')
-        draw_plots(self.USR_avg,self.AVG_t,'USR avg.')
+        draw_plots(self.USR[0:1],self.ANA_t,'USR') #masking off uninteresting channels
+        draw_plots(self.USR_avg[0:1],self.AVG_t,'USR avg.')
         show_plot('User Input (LSB, max 1023)',labels)
         
         if self.MAP_t.size > 0:
@@ -779,10 +830,10 @@ class log_file:
         draw_plots(self.MAP,time_axis,'MAP')
         draw_plots(self.MAP_avg,self.AVG_t,'MAP avg.')
         show_plot('MAP (mbar)', labels)
-        
-        draw_plots(self.TMP,self.ANA_t,'TMP')
-        draw_plots(self.TMP_avg,self.AVG_t,'TMP avg.')   
-        show_plot('Thermistor (°C)', labels)
+        if len(self.TMP) > 1:
+          draw_plots(self.TMP,self.ANA_t,'TMP')
+          draw_plots(self.TMP_avg,self.AVG_t,'TMP avg.')   
+          show_plot('Thermistor (°C)', labels)
         
         draw_plots_t(self.EGT,self.EGT_t,'EGT')
         draw_plots(self.EGT_avg,self.AVG_t,'EGT avg.') 
@@ -900,7 +951,7 @@ if __name__ == "__main__":
     #default plot res
     mpl.rcParams['figure.figsize'] = [8.0, 6.0]
     mpl.rcParams['figure.dpi'] = 300
-    mpl.rcParams['lines.linewidth'] = 0.25
+    mpl.rcParams['lines.linewidth'] = 0.75
     
     #log file path
     log_file_folder = "../../controller logs/"#
@@ -912,7 +963,8 @@ if __name__ == "__main__":
     #log_file_name = "29-06-2023/23062905.JSN"
     #log_file_name = "08-07-2023/23070800.JSN"
     #log_file_name = "09-07-2023/23070900.JSN"
-    log_file_name = "02-08-2023/23080200.JSN"
+    #log_file_name = "02-08-2023/23080200.JSN"
+    log_file_name = "09-08-2023/23080401.JSN"
     
     log_file_path = log_file_folder + log_file_name
     
