@@ -130,7 +130,7 @@ class log_file:
 
     
     
-
+    #TODO - add class representing a data channel, replace data fields with data channels
     def parse_v4(self, file):
         print("parse_v4")
         print("file len:", file.readable())
@@ -207,6 +207,9 @@ class log_file:
                 t0 = time_s
                 if self.verbose: print("t0:",t0)
                 self.AVG_t = np.array([0])
+                
+            if len(self.AVG_t) > 2 and self.AVG_t[-2]+(self.RECORD_INTERVAL*1.01) < self.AVG_t[-1]:
+                print("record timstamp incremented by more than record interval", self.AVG_t[-2], self.AVG_t[-1])
             
             
             #get user inputs                    # GET USER INPUTS
@@ -488,7 +491,7 @@ class log_file:
     
         #end parse v4
     
-    
+    #TODO - ditch v3 support
     def parse_v3(self, file):
         print("parse_v3")
         print("file len:", file.readable())
@@ -791,8 +794,10 @@ class log_file:
         print("Done")
         
         
-    
-    def plot_data(self):
+    #todo, make this generic - select data to plot, vertical axis/range, time range
+    #consider making it independant of plot method, ie returns the data to be plotted
+    #then send data to matplotlib or some other plotter, eg pygame
+    def plot_data(self, detail_start_s=0, detail_stop_s=0): 
         #global labels
         #global RPM_calc, RPM_ticks
         
@@ -887,25 +892,33 @@ class log_file:
                     print(e)
                     self.detailed_pid = False
                 
-            if self.detailed_rpm:
-                #create a sparse data set from tick times using a 1 ms time axis
-                #total number of miliseconds from rpm tick time scale
-                duration_ms = np.ceil(self.RPM_tick_times_ms[-1]).astype(np.int32) + 1
-                #empty tick array
-                ticks = np.zeros(duration_ms)
-                #time axis for tick array
+            if self.detailed_rpm:     #TODO: move this to parsing.
+                #time axis with 1m resoultion
+                ticks_t = np.array([])
+                #generate times from the range of AVG_t
+                duration_ms = np.round(self.AVG_t[-1]*1000 + self.RECORD_INTERVAL_ms)
                 ticks_t = np.arange(duration_ms)/1000
-                #populate the tick array with ticks whose vales match the rpm given by the tick time
+                #update the max time stamp
+                time_max = max(time_max, np.ceil(ticks_t[-1]).astype(np.int32))
+                
+                #now we can create the spare array for tick data
+                ticks = np.zeros_like(ticks_t)
+                #and populate the indices corresponding to a tick with the rpm for that tick
+                #      dest   indices                                            source values
                 np.put(ticks, np.round(self.RPM_tick_times_ms).astype(np.int32), RPM_ticks)
-                #get the maximum time
-                time_max = max(time_max, np.ceil(duration_ms/1000).astype(np.int32))
+  
                 title += "RPM "
             
             step = 2 #time slice each detailed plot will show
             
             try:
+                #process stop time
+                if detail_stop_s <= 0: detail_stop_s = time_max + detail_stop_s
+                elif detail_stop_s < step: detail_stop_s += step
+                
                 #go through each time slice
-                for start in range (0, time_max - step, step):
+                
+                for start in range (detail_start_s, detail_stop_s - step, step):
                     stop = start+step
                     
                     #do pid plotting
@@ -926,19 +939,24 @@ class log_file:
                                 
                     #do rpm plotting
                     if self.detailed_rpm:
-                        if start is not None: start_rpm = int(start/self.RECORD_INTERVAL)
-                        else: start_rpm = None
-                        if stop is not None: stop_rpm = int(stop/self.RECORD_INTERVAL)+1
-                        else: stop_rpm = None
+                      #this bit is assuming AVG_t is contiguous. FIXME
+                        if start is not None: 
+                          #rpm_start_idx = int(start/self.RECORD_INTERVAL)
+                          rpm_start_idx = np.argmin(np.abs(self.AVG_t - start))
+                        else: rpm_start_idx = None
+                        if stop is not None: 
+                          #rpm_stop_idx = int(stop/self.RECORD_INTERVAL)+1
+                          rpm_stop_idx = np.argmin(np.abs(self.AVG_t - stop))+1
+                        else: rpm_stop_idx = None
                         
-                        draw_plot(RPM_calc[start_rpm:stop_rpm], self.AVG_t[start_rpm:stop_rpm],'avg. from count')
+                        draw_plot(RPM_calc[rpm_start_idx:rpm_stop_idx], self.AVG_t[rpm_start_idx:rpm_stop_idx],'avg. from count')
                         
-                        if start is not None: start_tick = int(start*1000)
-                        else: start_tick = None
-                        if stop is not None: stop_tick = int(stop*1000)
-                        else: stop_tick = None
+                        if start is not None: tick_start_idx = int(start*1000)
+                        else: tick_start_idx = None
+                        if stop is not None: tick_stop_idx = int(stop*1000)
+                        else: tick_stop_idx = None
                         
-                        draw_plot(ticks[start_tick:stop_tick], ticks_t[start_tick:stop_tick],'avg. from ticks','y')
+                        draw_plot(ticks[tick_start_idx:tick_stop_idx], ticks_t[tick_start_idx:tick_stop_idx],'avg. from ticks','y')
                     
                     plt.ylim(y_min, y_max)                            
                     show_plot(title, labels)
@@ -970,6 +988,6 @@ if __name__ == "__main__":
     
     log = log_file(log_file_path)
 
-    log.plot_data()
+    log.plot_data(detail_start_s=60,detail_stop_s=413)
     
     

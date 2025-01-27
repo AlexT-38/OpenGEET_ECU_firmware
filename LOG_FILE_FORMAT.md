@@ -63,6 +63,12 @@ Array of RECORD :
 		Tick intervals added to record only if OVF count is less than 2. An overflow should occur before reaching last value, so the interval should always be less than INT16_MAX under these conditions.
 		Otherwise, no tick is recorded (but tick offset is the time of this first unrecorded tick).
 		It would probably be better to record the tick as an interval of zero, but this might screw up average RPM calculations. Ideally the offset value should be 0 when there are no ticks. Then the offset is only a value when there's at least one tick. Problem is that we'd not know how many ticks. Could be n or n+1. We'd need some extra field to record an initial tick's presence. So for now, we keep as is - initial ticks after OVF are ignored.
+		OK, but... the data we collect is interval since last tick. If a tick exists within the last ovf interval (65k*16us = 1048.56ms, or just slightly more than 2 records) then the offset is to the second tick of the recorded interval, but longer than that, the offset is to the  first tick. THIS IS AN ERROR. To work around this with the existing data, we need to check if a tick was recorded in that timeframe.
+		If the tick interval is greater than the offset, that would mean the interval is based on an older tick. Not, that doesnt hold true. If a hidden first tick occurs at the start of a record and the recorded interval is to a tick at the end of the record, that would still be higher.
+		We're back to needing to know when the last tick interval was.
+		Nope, i just dont see a way. We can only assum that all intervals are valid and that the timestamp is for the second tick of the first interval.
+		If the offset is for the first tick of an interval, the ticks will be recorded shifted thru time by the interval, so if any intervals have an derived offset greater than the record interval, then we know we need to subrtract that 1st interval from all the offsets.
+		The only way I can see around this is to record the number of ticks events per record, and compare that to the number of interval records. If ticks == intervals+1, we know the first interval started at the offset time. We can also force offset to be zero when no ticks are measured.
 	avg: Dictionary of average values for each sensor (including those without a 'rate'), servo and the coefficients of each PID 
 	pid: Array of PID parameter reports:
 		trg : Target value
