@@ -47,10 +47,9 @@ class log_file:
         with open(path) as file:
             print("reading file:", path)
             self.path = path.lower()
-            if self.path.endswith(".txt"):
-                self.parse_v3(file)
-            elif self.path.endswith(".json") or self.path.endswith(".jsn"):
-                self.parse_v4(file)
+            if self.path.endswith(".json") or self.path.endswith(".jsn"):
+                self.parse_json(file)
+            else: raise Exception("File format not supported.")
                 
     verbose = False         #print extra info about parse process
     echo = True             #echo input lines for v3 log files
@@ -128,19 +127,29 @@ class log_file:
 
     PID_k = [{}]
 
-    
+    def parse_json(self, file):
+        print("parsing json file")
+        print("file size:", os.fstat(file.fileno()).st_size)
+        log = json.load(file)
+        try:
+            header = log['header']
+        except KeyError:
+            raise Exception("Cannot parse file: No header found.")
+        self.record_version = header['version']
+        if self.record_version == 4:
+            self.parse_v4(log)
+        else:
+            raise Exception(f"Cannot parse file: Version not supported, {self.record_version}")
+        
     
     #TODO - add class representing a data channel, replace data fields with data channels
-    def parse_v4(self, file):
+    def parse_v4(self, log):
         print("parse_v4")
-        print("file len:", file.readable())
-        log = json.load(file)
+        
 
         header = log['header']
         records = log['records']
-        self.record_version = header['version']
-        if self.record_version != 4:
-            raise ValueError("wrong record version")
+
         self.firmware = header['firmware']
         self.date = header['date']
         self.time = header['time']
@@ -491,307 +500,7 @@ class log_file:
     
         #end parse v4
     
-    #TODO - ditch v3 support
-    def parse_v3(self, file):
-        print("parse_v3")
-        print("file len:", file.readable())
-        
-        read_avg = True
-        index = 0
-        no_of_ana_samples = 0
-        no_of_egt_samples = 0
-        no_of_srv_samples = 0
-        
-        line_no = 0
-        record_no = 0
-        
-        
-        tick_offset = 0
-        first_tick = True
     
-        
-        for line in file:
-            line = line.strip()
-            
-            if self.echo : print(f"{line_no}, {record_no}: {line}")
-            line_no = line_no+1
-            
-            #blank lines
-            if len(line) == 0:
-                continue
-            
-            #record marker
-            if line == "----------":
-                if read_avg == True:
-                    #start of record
-                    #add the inferred record timestamp
-                    if len(self.AVG_t)>0:
-                        timestamp = self.AVG_t[-1] + self.RECORD_INTERVAL
-                        self.AVG_t = np.append(self.AVG_t, timestamp)
-                        record_no = record_no+1
-                    else:
-                        self.AVG_t = np.array([0])
-                    #reset the tick offset
-                    tick_offset = -1
-                    
-                else: 
-                    read_avg = True
-                continue
-            
-            #split line int 'PAR:VAL'
-            line_split = line.split(": ")
-            
-            #an unsplit string is probably the start date and time
-            if len(line_split) < 2:
-                #probably the opening date stamp            
-                line_split = line.split(',')
-                if len(line_split) == 2:
-                    if self.date is None and len(line_split[0])>0:
-                        self.date = line_split[0]
-                        print("File start date: ", self.date)
-                    if self.time is None and len(line_split[1])>0:
-                        self.time = line_split[1]
-                        print("File start time: ", self.time)
-                continue
-                
-            if len(line_split) == 2:
-                #grab the parameter name
-                param = line_split[0]
-                #grab the value string
-                value = line_split[1]
-                
-                
-                #log file version
-                if self.record_version is None and param == "Record Ver.":
-                    self.record_version = int(value)
-                    print("Record Version:", self.record_version)
-                    continue
-                
-                
-                #anything else at this point is a param:value pair
-                
-                #convert the values to arrays of floats
-                values = np.fromstring(value.strip(), dtype=float, sep=',').astype(np.float32)
-                
-                #timestamp (present, but not currently used)
-                if param == "Timestamp":
-                    self.TIME_t = np.append(self.TIME_t, values)
-                    continue
-                
-                #parse number of analog samples per record
-                if param == "ANA no.":
-                    no_of_ana_samples = int(values[0])
-                    #we are now parsing samples, not averages
-                    read_avg = False #this is dumb, but there are errors in the record format, and this is how I'm getting around it.
-                    #generate timestamps for the samples
-                    values = np.linspace(self.AVG_t[-1],self.AVG_t[-1]+self.RECORD_INTERVAL, no_of_ana_samples,endpoint=False)
-                    self.ANA_t = np.append(self.ANA_t, values)
-                    if self.verbose: print("ana samp times:", self.ANA_t[-no_of_ana_samples:])
-                    continue
-    
-                #parse user inputs
-                if param.endswith("USR"):
-                    #user parameter no.
-                    index = int(param[0])
-                  
-                    if read_avg:
-                        #expand the number of channels if index exceed current max
-                        if index >= len(self.USR_avg):
-                            self.USR_avg.append(np.array([]))
-                        #append to averages
-                        self.USR_avg[index] = np.append(self.USR_avg[index], values)
-                        if self.verbose: print(f"USR avg {index}:", self.USR_avg[index][-1])
-                    else:
-                        #expand the number of channels if index exceed current max
-                        if index >= len(self.USR):
-                            self.USR.append(np.array([]))
-                        #append to samples
-                        self.USR[index] = np.append(self.USR[index], values)
-                        if self.verbose: print(f"USR {index}:", self.USR[index][-no_of_ana_samples:])
-                    continue
-                            
-                #parse MAP sensors
-                if param.endswith("MAP"):
-                    #map sensor no.
-                    index = int(param[0])
-                   
-                    if read_avg:
-                        #expand the number of channels if index exceed current max
-                        if index >= len(self.MAP_avg):
-                            self.MAP_avg.append(np.array([]))
-                        #append to averages
-                        self.MAP_avg[index] = np.append(self.MAP_avg[index], values)
-                        if self.verbose: print(f"MAP avg {index}:", self.MAP_avg[index][-1])
-                    else:
-                        #expand the number of channels if index exceed current max
-                        if index >= len(self.MAP):
-                            self.MAP.append(np.array([]))
-                        #append to samples
-                        self.MAP[index] = np.append(self.MAP[index], values)
-                        if self.verbose: print(f"MAP {index}:", self.MAP[index][-no_of_ana_samples:])
-                    continue
-                
-                #parse TMP sensors
-                if param.endswith("TMP"):
-                    #thermistor no.
-                    index = int(param[0])
-                    
-                    
-                   
-                    if read_avg:
-                        #expand the number of channels if index exceed current max
-                        if index >= len(self.TMP_avg):
-                            self.TMP_avg.append(np.array([]))
-                        #append to averages
-                        self.TMP_avg[index] = np.append(self.TMP_avg[index], values)
-                        if self.verbose: print(f"TMP avg {index}:", self.TMP_avg[index][-1])
-                    else:
-                        #expand the number of channels if index exceed current max
-                        if index >= len(self.TMP):
-                            self.TMP.append(np.array([]))
-                        #append to samples
-                        self.TMP[index] = np.append(self.TMP[index], values)
-                        if self.verbose: print(f"TMP {index}:", self.TMP[index][-no_of_ana_samples:])
-                    continue
-                
-                #parse TRQ sensors
-                if param == "TRQ":
-                    #there is only one torque sensor
-                    #presently it is tied in with analog samples (? in what way?)
-                    if read_avg:
-                        #append to averages
-                        self.TRQ_avg = np.append(self.TRQ_avg, values)
-                        if self.verbose: print("TRQ avg:", self.TRQ_avg[-1])
-                    else:
-                        #append to samples
-                        self.TRQ = np.append(self.TRQ, values)
-                        if self.verbose: print("TRQ:", self.TRQ[-no_of_ana_samples:])
-                    continue
-                
-                #parse EGT sensors
-                if param.endswith("EGT"):
-                    #egt no.
-                    index = int(param[0])
-                    
-                                    #expand the number of channels if index exceed current max
-                    if index >= len(self.EGT):
-                        self.EGT.append(np.array([]))
-                        self.EGT_t.append(np.array([]))
-                        
-                    #get the correct scale
-                    values = values * self.EGT_FRACTION
-                   
-                    #append to samples
-                    self.EGT[index] = np.append(self.EGT[index], values)
-                    
-                    if self.verbose: print(f"EGT {index}:", self.EGT[-no_of_egt_samples:])
-                    
-                    #generate time stamps for egt readings
-                    no_of_egt_samples = len(values)
-                    if no_of_egt_samples > 0:
-                        self.EGT_t[index] = np.append(self.EGT_t[index], np.linspace(self.AVG_t[-1],self.AVG_t[-1]+self.RECORD_INTERVAL, no_of_egt_samples, endpoint=False))
-                        if self.verbose: print(f"EGT_t {index}:", self.EGT_t[-no_of_egt_samples:])
-                    continue
-                
-                if param.endswith("EGT avg"):
-                    #egt no.
-                    index = int(param[0])
-                    
-                    
-                    #expand the number of channels if index exceed current max
-                    if index >= len(self.EGT_avg):
-                        self.EGT_avg.append(np.array([]))
-                        
-                    #get the correct scale
-                    values = values * self.EGT_FRACTION
-                    
-                    #append to averages
-                    self.EGT_avg[index] = np.append(self.EGT_avg[index], values)
-                    
-                    if self.verbose: print(f"EGT avg {index}:", self.EGT_avg[-1])
-                    continue
-                
-                
-                #rpm counter pre calculated average
-                if param == "RPM avg":
-                    self.RPM_avg = np.append(self.RPM_avg, values)
-                    if self.verbose: print("RPM avg:", self.RPM_avg[-1])
-                    continue
-                #rpm counter tick count
-                if param == "RPM no.":
-                    self.RPM_no = np.append(self.RPM_no, values)
-                    if self.verbose: print("RPM no.:", self.RPM_no[-1])
-                    continue
-                #rpm counter tick offset
-                if param == "RPM tick offset (ms)":
-                    tick_offset = values[0]
-                    if self.verbose: print("RPM tick offset (ms):", self.RPM_no[-1])
-                    continue
-                #rpm counter tick intervals
-                if param == "RPM times (ms)":
-                    if len(values) == 0:
-                        continue
-                    
-                    #check if this is the first recorded tick
-                    if len(self.RPM_intervals_ms) == 0:
-                        #in which case, ignore this tick
-                        values= values [1:]
-                        first_tick = True
-                        print("first tick")
-                    #also ignore any values less than 1
-                    if len(values[values<=0]) > 0:
-                        print("some ticks ignored:", np.argwhere(values<=0), ":", values[values<=0])
-                        values = values[values>0]
-                        
-                    self.RPM_intervals_ms = np.append(self.RPM_intervals_ms, values)
-                    if self.verbose: print("RPM intervals (ms):", self.RPM_intervals_ms[-len(values):])
-                    
-                    #this mostly works...
-                        
-                    #instead of accumilating times from the start of logging,
-                    #we will use the 1st tick offset from the current record's timestamp
-                    # using AVG_t starting at 0ms, rather than TIME_t, which does not start at 0
-                    # if a tick offset hasnt been read out, default to the old method
-                    if tick_offset >=0:
-                        #if this is the first tick in the log file,the first ick is ignored
-                        #so we must add the tick offset to the next tick (which is the time since the first uncounted tick)
-                        if first_tick:
-                            first_tick =  False;
-                            values[0] = values[0]+(self.AVG_t[-1]*1000) + tick_offset
-                        else:
-                            values[0] = (self.AVG_t[-1]*1000) + tick_offset
-                        #cumalative sum to get the timestamps relative to the last tick
-                        
-                    else:
-                        
-                        print("tick times, but no tick offset")
-                        #this is an error, but we can recover
-                        
-                        #add the previous tick time, if there was one
-                        if len(self.RPM_tick_times_ms) > 0:
-                            values[0] = values[0] + self.RPM_tick_times_ms[-1]
-                        else:
-                            print("also no previous times recorded")
-                            #just use the record timestamp
-                            values[0] = (self.AVG_t[-1]*1000)
-                            
-                    #add up all the intervals to get the timestamps for each tick
-                    values = np.cumsum(values)
-                        
-                    
-    
-                    #append the ticks times
-                    self.RPM_tick_times_ms = np.append(self.RPM_tick_times_ms, values)
-                    if self.verbose: print("RPM tick times (s):", self.RPM_tick_times_ms[-len(values):])
-                    continue
-                
-                #calculated average power
-                if param == "POW":
-                    self.POW_avg = np.append(self.POW_avg, values)
-                    if self.verbose: print("POW:", self.POW_avg[-1])
-                    continue
-        #end of file
-        print("Done")
         
         
     #todo, make this generic - select data to plot, vertical axis/range, time range
