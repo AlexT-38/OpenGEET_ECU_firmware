@@ -38,9 +38,9 @@ import json
 
     
 
-# log_file encapsulates all logged data and parses log files
+# LogFile encapsulates all logged data and parses log files
 # takes each record and collates the data for each parameter
-class log_file:
+class LogFile:
         
     def __init__(self, path):
         # open the specified file and attempt to parse data
@@ -52,7 +52,7 @@ class log_file:
             else: raise Exception("File format not supported.")
                 
     verbose = False         #print extra info about parse process
-    echo = True             #echo input lines for v3 log files
+    
     detailed_rpm = True     #plot detailed rpm data... plot tacho ticks?
     detailed_pid = True     #plot detailed pid data...?
     rpm_pid_no_ms = True    #change the way pid is plotted?
@@ -66,7 +66,152 @@ class log_file:
     RECORD_INTERVAL = 0.5   #record interval as per record (default vaule set here)
     RECORD_INTERVAL_ms = 500
     EGT_FRACTION = 0.25     #egt value scale - why isn't this taken from sensor config?
+    
+    
+    class DataChannel:
+        def from_sensor(sensor):
+            try:                num = sensor['num']
+            except KeyError:  num = 1
+            try:                names = sensor['names']
+            except KeyError:  names = []
+            try:                scale = pow(2,sensor['scale'])
+            except KeyError:  scale = 1.0
+            try:                units = sensor['units']
+            except KeyError:  units = 'LSB'
+            
+            channel = LogFile.DataChannel(sensor['name'],num,names,scale,units) 
+            channel_avg = LogFile.DataChannel(sensor['name']+'_avg',num,names,scale,units) 
+            
+            try: 
+                channel.min = sensor['min']
+                channel_avg.min = sensor['min']
+            except KeyError: pass
+            try: 
+                channel.max = sensor['max']
+                channel_avg.max = sensor['max']
+            except KeyError: pass
+        
+        
+            try: channel.rate = sensor['rate']
+            except KeyError: pass
+            try: channel.rate_units = sensor['rate_units']
+            except KeyError: pass
+        
+            return channel, channel_avg
+        
+        def from_servos(servos):
+            channel = LogFile.DataChannel('srv',servos['num'],servos['names'])
+            channel_avg = LogFile.DataChannel('srv_avg',servos['num'],servos['names'])
+            
+            channel.rate = servos['rate']
+            channel.rate_units = servos['rate_units']
+            channel.min = servos['min']
+            channel_avg.min = servos['min']
+            channel.max = servos['max']
+            channel_avg.max = servos['max']
+            
+            return channel, channel_avg
+        
+        def from_pids(pids):
+            scale = pow(2,-pids['k_frac'])
+            #this is a little more complex, as we want different scale factors to apply to (k)p/i/d vs in/trg/err/out
+            #for now, we'll apply the scale factor only to kp/ki/kd
+            #its also more complicated because there are multiple pids, each with multiple subchannels
+            #i don't see how to make this work smoothly when reading out data (Work, yes. smooth, no)
+            channels = []
+            for n,pid in enumerate(pids['configs']):
+                channel = LogFile.DataChannel('pid_'+str(n),7,['trg','act','err','out','p','i','d'])
+                channel.pid = {'name':pid['name'], 'src':pid['src'], 'dst':pid['dst'],}
+                
+                channel_avg = LogFile.DataChannel('pid_'+str(n)+'_avg',3,['kp','ki','kd'],scale)
+                channel_avg.pid = channel.pid
+                channels += [channel,channel_avg]
+            return channels
+                
+            
+            
+            
+            #TODO: if we allow scale to be an array, we can apply different scales to each channel.
+        def __init__(self, name, sub_channels=1, sub_channel_names=[],scale=1,units='LSB'):
+            if sub_channels < 1: raise ValueError("sub_channels cannot be negative")
+            self.data = np.array([sub_channels+1,0])
+            self.name = name
+            self.channel_names = [str(scn) for scn in sub_channel_names] + ['']*(sub_channels - len(sub_channel_names))
+            self.scale = scale
+            self.units = units
+            
+        def __len__(self) -> int:
+            return self.data.shape[1]
+        
+        def get_time_last(self):
+            return self.data[0,-1]
+        def get_time_start(self):
+            return self.data[0,0]
+        def get_time_span(self):
+            return self.data[0,-1]-self.data[0,0]
+        def get_subchannels(self):
+            return self.data.shape[0]-1
+        
+        #append the given data at the specified start time and timespan
+        def append(self, new_data, timestart, timespan):
+            if len(self)>1 and timestart < self.get_time_last():
+                raise ValueError(f"input timestamp is before last recorded timestamp, {timestart}<{self.get_time_last()}")
+            #make sure the input is a numpy array
+            data = np.array(new_data)
+            #check the shape of the data
+            if data.ndim > 2: raise ValueError(f"input data has more than two dimensions: {data.ndim}")
+            if data.ndim < 2:
+                data = data.reshape([1,-1])
+            if data.shape[0]+1 != self.data.shape[0]:
+                raise ValueError(f"input data has {data.shape[0]} sub channels but DataChannel has {self.data.shape[0]}")
+            #apply scale factor
+            data = data * self.scale
+            #create time axis data
+            timestop = timestart + timespan
+            time = np.linspace(timestart, timestop, data.shape[1])
+            #append the data to the time axis
+            data = np.append(time, data,axis=0)
+            #append the completed input data to the internal data
+            self.data = np.append(self.data, data, axis=1)
+            
+        # returns a time slice of data over the specified timespan
+        # channel mask selects which sub channels to fetch. can be indices or strings
+        def get_slice(self, timestart, timespan, channel_mask=[]):
+            timestop = timestart + timespan
+            idx_start = np.argmin(np.abs(self.data[0] - timestart))
+            idx_stop = np.argmin(np.abs(self.data[0] - timestop))
+            if idx_stop == idx_start and idx_stop < len(self): idx_stop += 1
+            sliced = self.data[:,idx_start:idx_stop]
+            #apply mask
+            if len(channel_mask)>0:
+                #check if mask specified by names
+                if type(channel_mask[0]) == str:
+                    mask = []   #convert names to indices
+                    for n, string in enumerate(channel_mask):
+                        try: mask.append(self.channel_names.index(string))
+                        except ValueError: pass #name is not in list
+                    channel_mask = mask
+                if len(channel_mask)>0: #incrment the indices to account for and include time axis
+                    sliced = sliced.take(np.array([-1]+channel_mask)+1, axis=0)
+            return sliced
+        
+        def get_slices(self, timestart, timespan, channel_mask=[]):
+            slices = self.get_slice(timestart, timespan, channel_mask)
+            return (slices[1:,:], slices[0,:])
+    #end of DataChannel declaration
+    
 #collated data fields....
+    channels = {} #add channel objects here
+    def add_channel(self, channel):
+        if type(channel) != self.DataChannel:
+            raise TypeError("LogFile.add_channel can only add LogFile.DataChannel type, not '{type(channel)}'")
+        if channel.name in self.channels.keys():
+            raise IndexError("a channel called '{channel.name}' has already been added")
+        self.channels[channel.name] = channel
+    
+    def add_channels(self, channels):
+        for channel in channels: self.add_channel(channel)
+        
 #average values for each record
     USR_avg = []#[np.array([])]
     MAP_avg = []#[np.array([])]
@@ -154,16 +299,25 @@ class log_file:
         self.date = header['date']
         self.time = header['time']
         
-        self.RECORD_INTERVAL_ms = header['rate_ms']
+        self.RECORD_INTERVAL_ms = header['rate_ms']         #it would probably be sensible to restrict all time units to s, or ms
         self.RECORD_INTERVAL    = header['rate_ms']/1000
         
         for sensor in header['sensors']:
+            self.add_channels( self.DataChannel.from_sensor(sensor) )
+            
+            #old stuff
             if sensor['name'] == 'spd':
                 #get the scale for rpm counter ticks
                 self.RPM_tick_scale = pow(2,sensor['scale'])
                 #convert us to ms
                 if sensor['units'] == 'us':
                     self.RPM_tick_scale = self.RPM_tick_scale/1000
+                    
+        servos = header['servos']
+        self.add_channels(self.DataChannel.from_servos(servos))
+        
+        pids = header['pid']
+        self.add_channels(self.DataChannel.from_pids(pids))
         
         #extend the length of an array to accept new data
         def update_length(src, trg):
@@ -695,7 +849,7 @@ if __name__ == "__main__":
     
     log_file_path = log_file_folder + log_file_name
     
-    log = log_file(log_file_path)
+    log = LogFile(log_file_path)
 
     log.plot_data(detail_start_s=60,detail_stop_s=413)
     
