@@ -91,13 +91,17 @@ class LogFile:
                 channel_avg.max = sensor['max']
             except KeyError: pass
         
-        
+            channels = [channel,channel_avg]
+            
             try: channel.rate = sensor['rate']
-            except KeyError: pass
+            except KeyError: 
+                #if there's no rate, this is a once per record channel
+                #and its values are reported under 'avg'
+                channels = [channel_avg]
             try: channel.rate_units = sensor['rate_units']
             except KeyError: pass
         
-            return channel, channel_avg
+            return channels
         
         def from_servos(servos):
             channel = LogFile.DataChannel('srv',servos['num'],servos['names'])
@@ -133,15 +137,28 @@ class LogFile:
             
             #TODO: if we allow scale to be an array, we can apply different scales to each channel.
         def __init__(self, name, sub_channels=1, sub_channel_names=[],scale=1,units='LSB'):
-            if sub_channels < 1: raise ValueError("sub_channels cannot be negative")
-            self.data = np.array([sub_channels+1,0])
+            if sub_channels < 1: raise ValueError("sub_channels cannot be nless than 1; {sub_channels}")
+            self.data = np.ndarray([sub_channels+1,0])
             self.name = name
             self.channel_names = [str(scn) for scn in sub_channel_names] + ['']*(sub_channels - len(sub_channel_names))
             self.scale = scale
             self.units = units
+            if units in ['s','ms','us','ns']: #ideally in future versions, 'type' will be declared in the header
+                if sub_channels > 1:
+                    raise ValueError("interval data can only have one sub channel, not {sub_channels}")
+                self.type = 'interval'
+                self.t0 = -1    #it'd be better not to assume 'xxx_t0' follows or preceeds 'xxx'. set this to -1 after appending data
+                self.idx_start_last = 0
+            else:
+                self.type = 'sample'
+            self.timestart_last = 0
+            self.timestop_last = 0
+            
             
         def __len__(self) -> int:
-            return self.data.shape[1]
+            try :return self.data.shape[1]
+            except IndexError: return 0
+            
         
         def get_time_last(self):
             return self.data[0,-1]
@@ -152,27 +169,86 @@ class LogFile:
         def get_subchannels(self):
             return self.data.shape[0]-1
         
+        def set_t0(self, t0, n=0):
+            #we need to know the timestamp of the last data set
+            if self.type == 'interval':
+                if self.t0 == -1:
+                    #apply t0 to last data if there was any
+                    if len(self) > self.idx_start_last:
+                        time = self.apply_t0(self.data[0,self.idx_start_last:-1])
+                        self.data[0,self.idx_start_last:-1] = time
+                else: #otherwise stash for next data
+                    self.t0 = t0
+        
+        #converts intervals to timestamps using timestart_last and t0
+        #we'll keep this simple till we test
+        
+        def apply_t0(self, time):
+            if self.t0 != -1:
+                #apply t0 to this data
+                timestart = self.timestart_last + self.t0
+                if timestart > self.timestop_last:
+                    timespan = self.timestop_last - self.timestart_last
+                    print('t0 is greater than timespan: {self.t0} vs {}') #raise ValueError
+                    time[0] = self.timestart_last
+                else: 
+                    time[0] = timestart
+                time = time.cumsum()
+                self.t0 = -1
+            return time
+                
+        #convert time usints to seconds
+        def apply_tscale(self, time):
+            if self.units == 'ms':
+                time = time/1e3
+            elif self.units == 'us':
+                time = time/1e6
+            elif self.units == 'ns':
+                time = time/1e9
+            elif self.units == 'min':
+                time = time*60
+            return time
+        
         #append the given data at the specified start time and timespan
         def append(self, new_data, timestart, timespan):
             if len(self)>1 and timestart < self.get_time_last():
-                raise ValueError(f"input timestamp is before last recorded timestamp, {timestart}<{self.get_time_last()}")
+                print(f"{self.name}.append: input timestamp is before last recorded timestamp, {timestart} < {self.get_time_last()}")#raise ValueError
             #make sure the input is a numpy array
             data = np.array(new_data)
+            
             #check the shape of the data
-            if data.ndim > 2: raise ValueError(f"input data has more than two dimensions: {data.ndim}")
+            if data.ndim > 2: raise ValueError(f"{self.name}.append: input data has more than two dimensions: {data.ndim}")
             if data.ndim < 2:
-                data = data.reshape([1,-1])
+                if hasattr(self,'rate'): data = data.reshape([1,-1]) #if rate is specified, 1d data is a time series
+                else:                    data = data.reshape([-1,1]) #otherwise, 1d data is sub channels
             if data.shape[0]+1 != self.data.shape[0]:
-                raise ValueError(f"input data has {data.shape[0]} sub channels but DataChannel has {self.data.shape[0]}")
+                raise ValueError(f"{self.name}.append: input data has {data.shape[0]} sub channels but DataChannel has {self.data.shape[0]-1}")
+            #skip empty data
+            if data.shape[1] == 0:
+                print(f"{self.name}.append: no data to add at time {timestart}")
+                return
             #apply scale factor
             data = data * self.scale
             #create time axis data
+            #record the timestamps
             timestop = timestart + timespan
-            time = np.linspace(timestart, timestop, data.shape[1])
+            self.timestart_last = timestart
+            self.timestop_last = timestop
+            #create linear time axis for sampled data
+            if self.type == 'sample':
+                time = np.linspace(timestart, timestop, data.shape[1])
+            #create cumalative sum for time interval data
+            elif self.type == 'interval':
+                self.idx_start_last = len(self)
+                #generate timestamps
+                time = self.apply_tscale(data.copy())
+                time = self.apply_t0(time)
+                
             #append the data to the time axis
-            data = np.append(time, data,axis=0)
+            data = np.append([time], data,axis=0)
             #append the completed input data to the internal data
             self.data = np.append(self.data, data, axis=1)
+
             
         # returns a time slice of data over the specified timespan
         # channel mask selects which sub channels to fetch. can be indices or strings
@@ -197,7 +273,7 @@ class LogFile:
         
         def get_slices(self, timestart, timespan, channel_mask=[]):
             slices = self.get_slice(timestart, timespan, channel_mask)
-            return (slices[1:,:], slices[0,:])
+            return np.split(slices, slices.shape[0])
     #end of DataChannel declaration
     
 #collated data fields....
@@ -374,6 +450,29 @@ class LogFile:
             if len(self.AVG_t) > 2 and self.AVG_t[-2]+(self.RECORD_INTERVAL*1.01) < self.AVG_t[-1]:
                 print("record timstamp incremented by more than record interval", self.AVG_t[-2], self.AVG_t[-1])
             
+            for key in r.keys():
+                #handle record timestamps
+                if key == 'timestamp':
+                    pass
+                #handle average values (single value per record)
+                elif key == 'avg':
+                    avg = r[key]
+                    for key in avg.keys():
+                        chn = key+'_avg'
+                        self.channels[chn].append(avg[key], time_s, self.RECORD_INTERVAL)
+                #handle pid values (array of dicts)
+                elif key == 'pid':
+                    pids = r[key]
+                    for n,pid in enumerate(pids):
+                        chn= 'pid_'+str(n)
+                        self.channels[chn].append(list(pid.values()), time_s, self.RECORD_INTERVAL)
+                #handle time offsets for interval data
+                elif key.endswith('_t0'):
+                    key = key[:-3]
+                    self.channels[key].set_t0(r[key])
+                #handle regular sampled data (multiple values and sub channels per record)
+                else:
+                    self.channels[key].append(r[key], time_s, self.RECORD_INTERVAL)
             
             #get user inputs                    # GET USER INPUTS
             append_multi(r,'usr',self.USR)
