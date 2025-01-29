@@ -42,7 +42,8 @@ import json
 # takes each record and collates the data for each parameter
 class LogFile:
         
-    def __init__(self, path):
+    def __init__(self, path, old_method=False):
+        self.old_method = old_method
         # open the specified file and attempt to parse data
         with open(path) as file:
             print("reading file:", path)
@@ -53,19 +54,14 @@ class LogFile:
                 
     verbose = False         #print extra info about parse process
     
-    detailed_rpm = True     #plot detailed rpm data... plot tacho ticks?
-    detailed_pid = True     #plot detailed pid data...?
-    rpm_pid_no_ms = True    #change the way pid is plotted?
-    rpm_pid_native = True   #change the way pid is plotted?
-
-
+    
     record_version = None   #record version as per record
     date = None             #record start date as per record
     time = None             #record start time as per record
     
     RECORD_INTERVAL = 0.5   #record interval as per record (default vaule set here)
     RECORD_INTERVAL_ms = 500
-    EGT_FRACTION = 0.25     #egt value scale - why isn't this taken from sensor config?
+    
     
     
     class DataChannel:
@@ -140,7 +136,7 @@ class LogFile:
             if sub_channels < 1: raise ValueError("sub_channels cannot be nless than 1; {sub_channels}")
             self.data = np.ndarray([sub_channels+1,0])
             self.name = name
-            self.channel_names = [str(scn) for scn in sub_channel_names] + ['']*(sub_channels - len(sub_channel_names))
+            self.channel_names = [str(scn) for scn in sub_channel_names] + [str(n) for n in range(len(sub_channel_names),sub_channels)]
             self.scale = scale
             self.units = units
             if units in ['s','ms','us','ns']: #ideally in future versions, 'type' will be declared in the header
@@ -172,11 +168,13 @@ class LogFile:
         def set_t0(self, t0, n=0):
             #we need to know the timestamp of the last data set
             if self.type == 'interval':
+                t0 = self.apply_tscale(t0)
                 if self.t0 == -1:
                     #apply t0 to last data if there was any
                     if len(self) > self.idx_start_last:
-                        time = self.apply_t0(self.data[0,self.idx_start_last:-1])
-                        self.data[0,self.idx_start_last:-1] = time
+                        self.t0 = t0
+                        time = self.apply_t0(self.data[0,self.idx_start_last:])
+                        self.data[0,self.idx_start_last:] = time
                 else: #otherwise stash for next data
                     self.t0 = t0
         
@@ -189,7 +187,7 @@ class LogFile:
                 timestart = self.timestart_last + self.t0
                 if timestart > self.timestop_last:
                     timespan = self.timestop_last - self.timestart_last
-                    print('t0 is greater than timespan: {self.t0} vs {}') #raise ValueError
+                    print(f't0 is greater than timespan: {self.t0} vs {timespan}') #raise ValueError
                     time[0] = self.timestart_last
                 else: 
                     time[0] = timestart
@@ -214,6 +212,7 @@ class LogFile:
             if len(self)>1 and timestart < self.get_time_last():
                 print(f"{self.name}.append: input timestamp is before last recorded timestamp, {timestart} < {self.get_time_last()}")#raise ValueError
             #make sure the input is a numpy array
+            #TODO: ideally chaeck if the data is a dictionary, then match keys to sub channel names
             data = np.array(new_data)
             
             #check the shape of the data
@@ -226,6 +225,8 @@ class LogFile:
             #skip empty data
             if data.shape[1] == 0:
                 print(f"{self.name}.append: no data to add at time {timestart}")
+                if self.type == 'interval':
+                    self.idx_start_last = len(self) #makesure this is updated even if no data, otherwise set_t0 will be applied to old data
                 return
             #apply scale factor
             data = data * self.scale
@@ -236,7 +237,7 @@ class LogFile:
             self.timestop_last = timestop
             #create linear time axis for sampled data
             if self.type == 'sample':
-                time = np.linspace(timestart, timestop, data.shape[1])
+                time = np.linspace(timestart, timestop, data.shape[1],endpoint=False).reshape([1,-1])
             #create cumalative sum for time interval data
             elif self.type == 'interval':
                 self.idx_start_last = len(self)
@@ -245,15 +246,19 @@ class LogFile:
                 time = self.apply_t0(time)
                 
             #append the data to the time axis
-            data = np.append([time], data,axis=0)
+            try:
+                data = np.append(time, data,axis=0)
+            except ValueError:
+                raise
             #append the completed input data to the internal data
             self.data = np.append(self.data, data, axis=1)
 
             
         # returns a time slice of data over the specified timespan
         # channel mask selects which sub channels to fetch. can be indices or strings
-        def get_slice(self, timestart, timespan, channel_mask=[]):
-            timestop = timestart + timespan
+        def get_slice(self, timestart, timestop, channel_mask=[]):
+            timespan = timestop - timestart
+            #TODO fixme argmin fails if data is ampty. Also, will return values outside of the specified range
             idx_start = np.argmin(np.abs(self.data[0] - timestart))
             idx_stop = np.argmin(np.abs(self.data[0] - timestop))
             if idx_stop == idx_start and idx_stop < len(self): idx_stop += 1
@@ -271,8 +276,8 @@ class LogFile:
                     sliced = sliced.take(np.array([-1]+channel_mask)+1, axis=0)
             return sliced
         
-        def get_slices(self, timestart, timespan, channel_mask=[]):
-            slices = self.get_slice(timestart, timespan, channel_mask)
+        def get_slices(self, timestart, timestop, channel_mask=[]):
+            slices = self.get_slice(timestart, timestop, channel_mask)
             return np.split(slices, slices.shape[0])
     #end of DataChannel declaration
     
@@ -287,66 +292,74 @@ class LogFile:
     
     def add_channels(self, channels):
         for channel in channels: self.add_channel(channel)
+    
+    def add_old_attributes(self):
+        self.detailed_rpm = True     #plot detailed rpm data... plot tacho ticks?
+        self.detailed_pid = True     #plot detailed pid data...?
+        self.rpm_pid_no_ms = True    #change the way pid is plotted?
+        self.rpm_pid_native = True   #change the way pid is plotted?
+
+        self.EGT_FRACTION = 0.25     #egt value scale - why isn't this taken from sensor config?
+
+    #average values for each record
+        self.USR_avg = []#[np.array([])]
+        self.MAP_avg = []#[np.array([])]
+        self.TMP_avg = []#[np.array([])]
+        self.EGT_avg = []#[np.array([])]
+        self.SRV_avg = []#[np.array([])]
+        self.RPM_avg = np.array([])
+        self.TRQ_avg = np.array([])
+        self.POW_avg = np.array([])
+    #number of rpm counter ticks each record
+        self.RPM_no = np.array([]) 
+    #rpm calculated from the above tick count
+        self.RPM_calc = np.array([])
+    
+    #time stamps for each record
+        self.AVG_t = np.array([])
+    
+    #timestamps from each record
+        self.TIME_t = np.array([])
+    
+    #rpm interval times
+        self.RPM_intervals_ms = np.array([])
+    #rpm intervals integrated from start of record
+        self.RPM_tick_times_ms = np.array([])
+        self.RPM_tick_time_record_s = np.array([]) #timestamps of the record associated with each tick
+        self.RPM_tick_time_record = np.array([]) #record index associated with each tick
+        self.RPM_tick_time_record_offset = np.array([]) #tick offset of the record associated with each tick
+    #rpm calculated from the above tick intervals
+        self.RPM_ticks = np.array([])
         
-#average values for each record
-    USR_avg = []#[np.array([])]
-    MAP_avg = []#[np.array([])]
-    TMP_avg = []#[np.array([])]
-    EGT_avg = []#[np.array([])]
-    SRV_avg = []#[np.array([])]
-    RPM_avg = np.array([])
-    TRQ_avg = np.array([])
-    POW_avg = np.array([])
-#number of rpm counter ticks each record
-    RPM_no = np.array([]) 
-#rpm calculated from the above tick count
-    RPM_calc = np.array([])
-
-#time stamps for each record
-    AVG_t = np.array([])
-
-#timestamps from each record
-    TIME_t = np.array([])
-
-#rpm interval times
-    RPM_intervals_ms = np.array([])
-#rpm intervals integrated from start of record
-    RPM_tick_times_ms = np.array([])
-    RPM_tick_time_record_s = np.array([]) #timestamps of the record associated with each tick
-    RPM_tick_time_record = np.array([]) #record index associated with each tick
-    RPM_tick_time_record_offset = np.array([]) #tick offset of the record associated with each tick
-#rpm calculated from the above tick intervals
-    RPM_ticks = np.array([])
+        self.RPM_offset = np.array([])
+        
+        self.RPM_tick_scale = 0
     
-    RPM_offset = np.array([])
+    #analog samples
+        self.USR = []#[np.array([])]
+        self.MAP = []#[np.array([])]
+        self.TMP = []#[np.array([])]
+    #load cell samples
+        self.TRQ = np.array([])
+    #timestamps for analog samples
+        self.ANA_t = np.array([])
+        self.MAP_t = np.array([])
     
-    RPM_tick_scale = 0
-
-#analog samples
-    USR = []#[np.array([])]
-    MAP = []#[np.array([])]
-    TMP = []#[np.array([])]
-#load cell samples
-    TRQ = np.array([])
-#timestamps for analog samples
-    ANA_t = np.array([])
-    MAP_t = np.array([])
-
-#egt samples
-    EGT = []#[np.array([])]
-#timestamps for egt samples
-#as each egt is a seperate chip that may fail independantly, each channel needs its own timestamps
-    EGT_t = []#[np.array([])]
-
-#servo/pid samples - not apparently implemented
-    SRV = []#[np.array([])]
-#timestamps for servo samples
-    SRV_t = np.array([])
-
-    PID = [{}]
-    PID_t = [np.array([])]
-
-    PID_k = [{}]
+    #egt samples
+        self.EGT = []#[np.array([])]
+    #timestamps for egt samples
+    #as each egt is a seperate chip that may fail independantly, each channel needs its own timestamps
+        self.EGT_t = []#[np.array([])]
+    
+    #servo/pid samples - not apparently implemented
+        self.SRV = []#[np.array([])]
+    #timestamps for servo samples
+        self.SRV_t = np.array([])
+    
+        self.PID = [{}]
+        self.PID_t = [np.array([])]
+    
+        self.PID_k = [{}]
 
     def parse_json(self, file):
         print("parsing json file")
@@ -358,16 +371,17 @@ class LogFile:
             raise Exception("Cannot parse file: No header found.")
         self.record_version = header['version']
         if self.record_version == 4:
-            self.parse_v4(log)
+            if self.old_method:
+                self.parse_v4_old(log)
+            else:
+                self.parse_v4(log)
         else:
             raise Exception(f"Cannot parse file: Version not supported, {self.record_version}")
         
     
-    #TODO - add class representing a data channel, replace data fields with data channels
     def parse_v4(self, log):
-        print("parse_v4")
+        import copy
         
-
         header = log['header']
         records = log['records']
 
@@ -395,6 +409,83 @@ class LogFile:
         pids = header['pid']
         self.add_channels(self.DataChannel.from_pids(pids))
         
+        t0 = 0
+        timestamp = 0
+        no_of_records = 0
+        timestamp_last = 0
+        
+        for r in records:                   # LOOP THROUGH EVERY RECORD
+            if self.verbose: print()
+            time_s = r['timestamp']/1000
+            #record timestamp               # TIMESTAMP
+            if no_of_records:
+                timestamp_last = timestamp
+                timestamp = time_s - t0
+                if self.verbose: print("t:",timestamp)
+            else:
+                #first timestamp, set as t0
+                t0 = time_s
+                if self.verbose: print("t0:",t0)
+            no_of_records += 1    
+            
+            rr=copy.deepcopy(r)
+            
+            for key in rr.keys():
+                #handle record timestamps
+                if key == 'timestamp':
+                    pass
+                #handle average values (single value per record)
+                elif key == 'avg':
+                    avg = rr[key]
+                    for key in avg.keys():
+                        if key == 'pid': #pids need extra handling
+                            for n,pid in enumerate (avg[key]):
+                                chn = key+'_'+str(n)+'_avg'
+                                self.channels[chn].append(list(pid.values()), timestamp, self.RECORD_INTERVAL)
+                        else:
+                            chn = key+'_avg'
+                            self.channels[chn].append(avg[key], timestamp, self.RECORD_INTERVAL)
+                #handle pid values (array of dicts)
+                elif key == 'pid':
+                    pids = rr[key]
+                    for n,pid in enumerate(pids):
+                        chn= 'pid_'+str(n)
+                        self.channels[chn].append(list(pid.values()), timestamp, self.RECORD_INTERVAL)
+                #handle time offsets for interval data
+                elif key.endswith('_t0'):
+                    chn_t0 = rr[key]
+                    key = key[:-3]
+                    self.channels[key].set_t0(chn_t0)
+                #handle regular sampled data (multiple values and sub channels per record)
+                else:
+                    self.channels[key].append(rr[key], timestamp, self.RECORD_INTERVAL)
+        
+
+        
+    def parse_v4_old(self, log):
+        print("parse_v4 old")
+        
+        self.add_old_attributes()
+        
+
+        header = log['header']
+        records = log['records']
+
+        self.firmware = header['firmware']
+        self.date = header['date']
+        self.time = header['time']
+        
+        self.RECORD_INTERVAL_ms = header['rate_ms']         #it would probably be sensible to restrict all time units to s, or ms
+        self.RECORD_INTERVAL    = header['rate_ms']/1000
+        
+        for sensor in header['sensors']:
+            if sensor['name'] == 'spd':
+                #get the scale for rpm counter ticks
+                self.RPM_tick_scale = pow(2,sensor['scale'])
+                #convert us to ms
+                if sensor['units'] == 'us':
+                    self.RPM_tick_scale = self.RPM_tick_scale/1000
+
         #extend the length of an array to accept new data
         def update_length(src, trg):
             length = len(src)
@@ -449,30 +540,7 @@ class LogFile:
                 
             if len(self.AVG_t) > 2 and self.AVG_t[-2]+(self.RECORD_INTERVAL*1.01) < self.AVG_t[-1]:
                 print("record timstamp incremented by more than record interval", self.AVG_t[-2], self.AVG_t[-1])
-            
-            for key in r.keys():
-                #handle record timestamps
-                if key == 'timestamp':
-                    pass
-                #handle average values (single value per record)
-                elif key == 'avg':
-                    avg = r[key]
-                    for key in avg.keys():
-                        chn = key+'_avg'
-                        self.channels[chn].append(avg[key], time_s, self.RECORD_INTERVAL)
-                #handle pid values (array of dicts)
-                elif key == 'pid':
-                    pids = r[key]
-                    for n,pid in enumerate(pids):
-                        chn= 'pid_'+str(n)
-                        self.channels[chn].append(list(pid.values()), time_s, self.RECORD_INTERVAL)
-                #handle time offsets for interval data
-                elif key.endswith('_t0'):
-                    key = key[:-3]
-                    self.channels[key].set_t0(r[key])
-                #handle regular sampled data (multiple values and sub channels per record)
-                else:
-                    self.channels[key].append(r[key], time_s, self.RECORD_INTERVAL)
+                
             
             #get user inputs                    # GET USER INPUTS
             append_multi(r,'usr',self.USR)
@@ -518,6 +586,7 @@ class LogFile:
             #each category we are to collect - this is constant wrt LOOP, why is it here?
             avgs_src = ['usr','map' ,'tmp' ,'egt' ,'srv','rpm','trq','pow']
             avgs_dst = [x.upper() + '_avg' for x in avgs_src]
+            
             
             #go through each name in the list and append the values within
             for n in range(len(avgs_src)):
@@ -595,6 +664,7 @@ class LogFile:
             except KeyError as e: #no PID date this sample
                 ###print("no key", e)
                 pass
+            
             
             ###process rpm (copied from v3)
             if len(self.RPM_intervals_ms) > 0:
@@ -675,7 +745,7 @@ class LogFile:
                           #relative to the start of the record.
                           values[0] = values[0]+timenow_ms
               except IndexError as e:
-                  print(e)        
+                  print("ErOrR :",e)        
               #add up all the intervals to get the timestamps for each tick
               values = np.cumsum(values)
               #check that the last value falls within the timeframe
@@ -751,64 +821,164 @@ class LogFile:
         for n in range(len(self.EGT_avg)):
             self.EGT_avg[n] = self.EGT_avg[n] * self.EGT_FRACTION    
     
-        #end parse v4
+        #end parse v4 old
     
+    labels = []
     
+    def show_plot(self, title=None):
+        plt.title(title)
+        plt.legend(self.labels)
+        plt.show()
+        self.labels.clear()
+    
+    def draw_plot(self, data, time, name, colour=None):
+        ln = min(len(time),len(data))
+        if colour:  plt.plot(time[:ln], data[:ln], colour)
+        else:       plt.plot(time[:ln], data[:ln])
+        self.labels.append(name)
         
+    def draw_plots(self, data, time, base_name):
+        for (m,n) in enumerate(data):
+            self.draw_plot(n,time,f'{base_name} {m}')
+            
+    def draw_plots_t(self, data, times, base_name):
+        for (m,n) in enumerate(data):
+            self.draw_plot(n,times[m],f'{base_name} {m}')
+    
+    def plot_data(self, start_s=0, stop_s=0, step_s=0, window_s=0, key_mask=[], flags=[], y_max=None, y_min=None):
+        """
+        Plot the data from the new parsing method.
+        Generates a single or series of charts
+
+        Parameters
+        ----------
+        start_s : float, optional
+            Chart Start Time in seconds. The default is 0.
+        stop_s : float, optional
+            Chart Stop Time in seconds. The default is 0.
+        step_s : float, optional
+            If non zero, will plot multiple charts step seconds apart. The default is 0.
+        window_s : float, optional
+            If non zero and greater than step_s, sets the amount of time shown in a chart. The default is 0.
+        key_mask : list of strings, optional
+            A list of keys to use as a selection mask. The default is [].
+        flags : list of strings, optional
+            List of string flags for controlling what data is shown. The default is [].
+            Flags:
+                exclude|include - mask will exclude or include its keys
+                no_avg|avg_only - no/only channels with '_avg' suffix will be plotted
+                separate        - only paired channels plotted together
+                isolated        - all channels and sub channels plotted separately
+        y_max : float, optional
+            If not None, sets the upper limit of the y axis
+        y_min : float, optional
+            If not None, sets the lower limit of the y axis
+        """
+
+        #collect paired keys
+        paired_avg_keys = []    #keys of channels with avg channels
+        unpaired_keys = []      #keys of solo channels
+        unpaired_avg_keys = []  #keys of solo avg channels
+
+        keys = self.channels.keys()
+        for key in keys:
+            if key.endswith('_avg'):    #is an avg channel of a base channel
+                base_key = key[:-4]
+                if base_key in keys:
+                    if base_key not in paired_avg_keys:
+                        paired_avg_keys.append(base_key)
+                else:                   #is a solo avg channel
+                    unpaired_avg_keys.append(key)
+            elif key+'_avg' in keys:    #is a channel with an avg channel
+                if key not in paired_avg_keys:
+                    paired_avg_keys.append(key)
+            else:                       #is a solo channel
+                unpaired_keys.append(key)
+                
+        #inlcude or exclude channels in the key_mask
+        if 'exclude' in flags:
+            paired_avg_keys =   [item for item in paired_avg_keys if item not in key_mask]
+            unpaired_keys =     [item for item in unpaired_keys if item not in key_mask]
+            unpaired_avg_keys = [item for item in unpaired_avg_keys if item not in key_mask]
+        elif 'include' in flags:
+            paired_avg_keys =   [item for item in paired_avg_keys if item in key_mask]
+            unpaired_keys =     [item for item in unpaired_keys if item in key_mask]
+            unpaired_avg_keys = [item for item in unpaired_avg_keys if item in key_mask]
+        # remove _avg or non _avg channels
+        if 'no_avg' in flags:
+            unpaired_keys += paired_avg_keys
+            paired_avg_keys = []
+            unpaired_avg_keys = []
+        elif 'avg_only' in flags:
+            unpaired_avg_keys += [item+'_avg' for item in paired_avg_keys]
+            paired_avg_keys = []
+            unpaired_keys = []
+
+        separate = 'separate' in flags
+        isolated = 'isolated' in flags
+        if not separate and not isolated:
+            all_keys = unpaired_avg_keys + [item+'_avg' for item in paired_avg_keys] + paired_avg_keys + unpaired_keys
+        
+        if step_s == 0: step_s = stop_s
+        if window_s < step_s: window_s = step_s
+        for t_start_s in range (start_s, stop_s - window_s, step_s):
+            t_stop_s = t_start_s + window_s
+            
+            if separate:
+                for key in paired_avg_keys:
+                    pass #assess the need for this before implementing
+            elif isolated:
+                for key in paired_avg_keys:
+                    pass #assess the need for this before implementing
+            else:
+                #go through all keys, plot each slice, draw the chart
+                for key in all_keys:
+                    try:
+                        if key == 'rpm_avg':
+                            pass
+                        chn = self.channels[key]
+                        slices = chn.get_slices(t_start_s,t_stop_s)
+                        time = slices[0]
+                        slices = slices[1:]
+                        for n,slice_n in enumerate(slices):
+                            self.draw_plot(slice_n, time, key+' '+chn.channel_names[n])
+                    except Exception as e:
+                        raise
+                self.show_plot(" ".join(all_keys))
+                
+                        
         
     #todo, make this generic - select data to plot, vertical axis/range, time range
     #consider making it independant of plot method, ie returns the data to be plotted
     #then send data to matplotlib or some other plotter, eg pygame
-    def plot_data(self, detail_start_s=0, detail_stop_s=0): 
+    def plot_data_old(self, detail_start_s=0, detail_stop_s=0, step=2): 
         #global labels
         #global RPM_calc, RPM_ticks
         
-        labels = []
-        
-        def show_plot(title=None, labels=None):
-            plt.title(title)
-            plt.legend(labels)
-            plt.show()
-            labels.clear()
-        
-        
-        def draw_plot(data, time, name, colour=None):
-            ln = min(len(time),len(data))
-            if colour:  plt.plot(time[:ln], data[:ln], colour)
-            else:       plt.plot(time[:ln], data[:ln])
-            labels.append(name)
-            
-        def draw_plots(data, time, base_name):
-            for (m,n) in enumerate(data):
-                draw_plot(n,time,f'{base_name} {m}')
-                
-        def draw_plots_t(data, times, base_name):
-            for (m,n) in enumerate(data):
-                draw_plot(n,times[m],f'{base_name} {m}')
-        
-        draw_plots(self.USR[0:1],self.ANA_t,'USR') #masking off uninteresting channels
-        draw_plots(self.USR_avg[0:1],self.AVG_t,'USR avg.')
-        show_plot('User Input (LSB, max 1023)',labels)
+
+        self.draw_plots(self.USR[0:1],self.ANA_t,'USR') #masking off uninteresting channels
+        self.draw_plots(self.USR_avg[0:1],self.AVG_t,'USR avg.')
+        self.show_plot('User Input (LSB, max 1023)')
         
         if self.MAP_t.size > 0:
             time_axis = self.MAP_t
         else:
             time_axis = self.ANA_t
-        draw_plots(self.MAP,time_axis,'MAP')
-        draw_plots(self.MAP_avg,self.AVG_t,'MAP avg.')
-        show_plot('MAP (mbar)', labels)
+        self.draw_plots(self.MAP,time_axis,'MAP')
+        self.draw_plots(self.MAP_avg,self.AVG_t,'MAP avg.')
+        self.show_plot('MAP (mbar)')
         if len(self.TMP) > 1:
-          draw_plots(self.TMP,self.ANA_t,'TMP')
-          draw_plots(self.TMP_avg,self.AVG_t,'TMP avg.')   
-          show_plot('Thermistor (°C)', labels)
+            self.draw_plots(self.TMP,self.ANA_t,'TMP')
+            self.draw_plots(self.TMP_avg,self.AVG_t,'TMP avg.')   
+            self.show_plot('Thermistor (°C)')
         
-        draw_plots_t(self.EGT,self.EGT_t,'EGT')
-        draw_plots(self.EGT_avg,self.AVG_t,'EGT avg.') 
-        show_plot('EGT (°C)', labels)
+        self.draw_plots_t(self.EGT,self.EGT_t,'EGT')
+        self.draw_plots(self.EGT_avg,self.AVG_t,'EGT avg.') 
+        self.show_plot('EGT (°C)')
         
-        draw_plot(self.TRQ, self.ANA_t, 'TRQ')
-        draw_plot(self.TRQ_avg, self.AVG_t, 'TRQ avg.')
-        show_plot('Torque (mN.m)', labels)
+        self.draw_plot(self.TRQ, self.ANA_t, 'TRQ')
+        self.draw_plot(self.TRQ_avg, self.AVG_t, 'TRQ avg.')
+        self.show_plot('Torque (mN.m)')
         
         
         
@@ -816,22 +986,22 @@ class LogFile:
         RPM_ticks = 60000/self.RPM_intervals_ms
         
         
-        draw_plot(RPM_ticks, self.RPM_tick_times_ms/1000, 'avg. from tick times','y')
-        draw_plot(RPM_calc, self.AVG_t, 'avg. from count','g')
-        draw_plot(self.RPM_avg, self.AVG_t, 'reported avg.','b')
+        self.draw_plot(RPM_ticks, self.RPM_tick_times_ms/1000, 'avg. from tick times','y')
+        self.draw_plot(RPM_calc, self.AVG_t, 'avg. from count','g')
+        self.draw_plot(self.RPM_avg, self.AVG_t, 'reported avg.','b')
         
-        show_plot('Engine Speed (RPM)', labels)
+        self.show_plot('Engine Speed (RPM)')
         
         
-        draw_plot(self.POW_avg, self.AVG_t, 'brake power avg.')
-        show_plot('Power (W)', labels)
+        self.draw_plot(self.POW_avg, self.AVG_t, 'brake power avg.')
+        self.show_plot('Power (W)')
             
         
         for n,pid in enumerate(self.PID):
             #print("plotting pid,",pid)
             for key in pid:
-                draw_plot(pid[key], self.PID_t[n], key)
-            show_plot('PID', labels)
+                self.draw_plot(pid[key], self.PID_t[n], key)
+            self.show_plot('PID')
         
         
         if self.detailed_pid or self.detailed_rpm:
@@ -839,6 +1009,9 @@ class LogFile:
             y_max = 6000
             y_min = 0
             title = ""
+            
+            
+
             
             if self.detailed_pid:
                 try:
@@ -870,8 +1043,7 @@ class LogFile:
                 np.put(ticks, np.round(self.RPM_tick_times_ms).astype(np.int32), RPM_ticks)
   
                 title += "RPM "
-            
-            step = 2 #time slice each detailed plot will show
+
             
             try:
                 #process stop time
@@ -950,6 +1122,8 @@ if __name__ == "__main__":
     
     log = LogFile(log_file_path)
 
-    log.plot_data(detail_start_s=60,detail_stop_s=413)
-    
+    #log.plot_data_old(detail_start_s=60,detail_stop_s=413)
+    #log.plot_data() #this should plot all the data on a single chart. probably overloading
+    #log.plot_data(60,413) #this should plotall data in the time range on a single chart
+    log.plot_data(60,413,10) #this should plot all data in the time range on a series of 10 second charts
     
