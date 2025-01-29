@@ -258,11 +258,45 @@ class LogFile:
         # channel mask selects which sub channels to fetch. can be indices or strings
         def get_slice(self, timestart, timestop, channel_mask=[]):
             timespan = timestop - timestart
-            #TODO fixme argmin fails if data is ampty. Also, will return values outside of the specified range
-            idx_start = np.argmin(np.abs(self.data[0] - timestart))
-            idx_stop = np.argmin(np.abs(self.data[0] - timestop))
-            if idx_stop == idx_start and idx_stop < len(self): idx_stop += 1
-            sliced = self.data[:,idx_start:idx_stop]
+            #if there's no data, don't try to find nearest timestamps
+            if len(self) == 0:
+                sliced = self.data.copy()
+            else:
+                #find nearest timestamps
+                idx_start = np.argmin(np.abs(self.data[0] - timestart))
+                idx_stop = np.argmin(np.abs(self.data[0] - timestop))
+                #make sure data range is at least 1
+                if idx_stop == idx_start and idx_stop < len(self): idx_stop += 1
+                #check 
+                #check that we have a range and if data range is before or after requested range
+                if self.data[0,idx_start] < timestart and self.data[0,idx_stop] < timestart \
+                 or self.data[0,idx_start] > timestop and self.data[0,idx_stop] < timestop  \
+                 or idx_stop == idx_start:
+                    #make sliced data empty, but still correct shape on dim 0
+                    sliced = np.ndarray([self.data.shape[0],0])
+                else:
+                    #at this point we should definately have at least one datapoint
+                    sliced = self.data[:,idx_start:idx_stop].copy()
+                    #if we only have one datapoint, stretch it over the time range
+                    if sliced.shape[1] == 1:
+                        sliced = np.append(sliced,sliced,axis=1)
+                        sliced[0,0] = timestart
+                        sliced[0,1] = timestop
+                    else: #more than one datapoint
+                        #  trim data to specified range by lerping
+                        def trim_lerp(data, idx1, idx2, time):
+                            delta = data[0,idx2] - data[0,idx1] #time from point 0 to point 1
+                            offset= time - data[0,idx1]
+                            alpha = offset/delta
+                            deltaV = data[1:,idx2] - data[1:,idx1]
+                            data[1:,idx1] += deltaV*alpha
+                            data[0,idx1] = time
+                        #we should probably also make sure the start and end data times are outside the view range
+                        if sliced[0,0] < timestart:
+                            trim_lerp(sliced, 0, 1, timestart)
+                        if sliced[0,-1] > timestop:
+                            trim_lerp(sliced, -2, -1, timestart)
+             
             #apply mask
             if len(channel_mask)>0:
                 #check if mask specified by names
@@ -275,7 +309,7 @@ class LogFile:
                 if len(channel_mask)>0: #incrment the indices to account for and include time axis
                     sliced = sliced.take(np.array([-1]+channel_mask)+1, axis=0)
             return sliced
-        
+        #on reflection, I don't see how splitting a 2d array into a list of 1d arrays actually helps
         def get_slices(self, timestart, timestop, channel_mask=[]):
             slices = self.get_slice(timestart, timestop, channel_mask)
             return np.split(slices, slices.shape[0])
@@ -897,11 +931,17 @@ class LogFile:
                 
         #inlcude or exclude channels in the key_mask
         if 'exclude' in flags:
-            paired_avg_keys =   [item for item in paired_avg_keys if item not in key_mask]
+            for item in key_mask: #if mask item is _avg and base is in paired, move to unpaired
+                if item.endswith('_avg') and item[:-4] in paired_avg_keys and item[:-4] not in unpaired_keys:
+                    unpaired_keys += [item[:-4]]
+            paired_avg_keys =   [item for item in paired_avg_keys if item not in key_mask or item[:-4] in key_mask]
             unpaired_keys =     [item for item in unpaired_keys if item not in key_mask]
             unpaired_avg_keys = [item for item in unpaired_avg_keys if item not in key_mask]
         elif 'include' in flags:
-            paired_avg_keys =   [item for item in paired_avg_keys if item in key_mask]
+            for item in key_mask: #if mask item is _avg and base is in paired, move to unpaired
+                if item.endswith('_avg') and item[:-4] in paired_avg_keys and item not in unpaired_avg_keys:
+                    unpaired_avg_keys += [item]
+            paired_avg_keys =   [item for item in paired_avg_keys if item in key_mask or item[:-4] in key_mask]
             unpaired_keys =     [item for item in unpaired_keys if item in key_mask]
             unpaired_avg_keys = [item for item in unpaired_avg_keys if item in key_mask]
         # remove _avg or non _avg channels
@@ -938,10 +978,10 @@ class LogFile:
                             pass
                         chn = self.channels[key]
                         slices = chn.get_slices(t_start_s,t_stop_s)
-                        time = slices[0]
+                        time = slices[0].squeeze()
                         slices = slices[1:]
                         for n,slice_n in enumerate(slices):
-                            self.draw_plot(slice_n, time, key+' '+chn.channel_names[n])
+                            self.draw_plot(slice_n.squeeze(), time, key+' '+chn.channel_names[n])
                     except Exception as e:
                         raise
                 self.show_plot(" ".join(all_keys))
@@ -1066,7 +1106,7 @@ class LogFile:
                         for key in pid_keys:
                             try:
                                 pid_slice = pid[key][pid_start_idx:pid_stop_idx]
-                                draw_plot(pid_slice, pid_t_slice, key)
+                                self.draw_plot(pid_slice, pid_t_slice, key)
                             except KeyError as e:
                                 print(e)                #print missing keys
                                 pid_keys.remove(key)    #remove key from key list
@@ -1083,17 +1123,17 @@ class LogFile:
                           rpm_stop_idx = np.argmin(np.abs(self.AVG_t - stop))+1
                         else: rpm_stop_idx = None
                         
-                        draw_plot(RPM_calc[rpm_start_idx:rpm_stop_idx], self.AVG_t[rpm_start_idx:rpm_stop_idx],'avg. from count')
+                        self.draw_plot(RPM_calc[rpm_start_idx:rpm_stop_idx], self.AVG_t[rpm_start_idx:rpm_stop_idx],'avg. from count')
                         
                         if start is not None: tick_start_idx = int(start*1000)
                         else: tick_start_idx = None
                         if stop is not None: tick_stop_idx = int(stop*1000)
                         else: tick_stop_idx = None
                         
-                        draw_plot(ticks[tick_start_idx:tick_stop_idx], ticks_t[tick_start_idx:tick_stop_idx],'avg. from ticks','y')
+                        self.draw_plot(ticks[tick_start_idx:tick_stop_idx], ticks_t[tick_start_idx:tick_stop_idx],'avg. from ticks','y')
                     
                     plt.ylim(y_min, y_max)                            
-                    show_plot(title, labels)
+                    self.show_plot(title)
             except IndexError as e:
                 print (e)
 
@@ -1125,5 +1165,6 @@ if __name__ == "__main__":
     #log.plot_data_old(detail_start_s=60,detail_stop_s=413)
     #log.plot_data() #this should plot all the data on a single chart. probably overloading
     #log.plot_data(60,413) #this should plotall data in the time range on a single chart
-    log.plot_data(60,413,10) #this should plot all data in the time range on a series of 10 second charts
+    #log.plot_data(60,413,10) #this should plot all data in the time range on a series of 10 second charts
+    log.plot_data(60,413,10,key_mask=['rpm_avg','map_avg','srv_avg'],flags=['include','avg_only'])
     
