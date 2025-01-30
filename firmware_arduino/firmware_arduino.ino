@@ -64,22 +64,60 @@
  *  5           O       Servo 2
  *  6           O       Servo 3
  *  7           O       CS: EGT 1
+ *  
  *  8           O       CS: Gameduino FT810
- *  9           O       CS: Gameduino SD Card / CLK: HX711 Load Cell
+ *  9           O       CS: Gameduino SD Card / CLK: HX711 Load Cell (Gameduino SD card not in use)
  *  10          O       CS: SD Card
  *  11          I       Unusable / MOSI
  *  12          I       Unusable / MISO
  *  13          I       Unusable / SCK
- *  14  A0      I       MAP 1
- *  15  A1      I       User Input 1
- *  16  A2      I       User Input 2
- *  17  A3      I       User Input 3
- *  21          O       SCL / RTC
+ *  
+ *  54  A0      I       User Input 0 / MAP 0   Reactor top pressure TBD - for the sake of adding an extra MAP sensor, might not be worth moving this about.
+ *  55  A1      I       User Input 1                                    - just wire the new sensor directly into A10/GND/5V using dupont wires. 
+ *  56  A2      I       User Input 2
+ *  57  A3      I       User Input 3
+ *  58  A4      I       Only usable if Datalogger shield has this pin disconnected from i2c sda pin near AREF pin
+ *  59  A5      I       Only usable if Datalogger shield has this pin disconnected from i2c dcl pin near AREF pin
+ *  60  A6      n/c     Obscured by Datalogger shield
+ *  61  A7      n/c     Usable, but access limited by proximity to to Datalogger shield
+ *  
+ *  62  A8      I       MAP 0   Reactor top pressure         Proposed analog input allocations
+ *  63  A9      n/c     MAP 1   Reactor bottom pressure
+ *  64  A10     I       MAP 2   Intake manifold pressure
+ *  65  A11     n/c     MAP 3   Exhaust top pressure
+ *  66  A12     n/c     MAP 4   Exhaust bottom pressure
+ *  67  A13     n/c     Thermister 0  Would thermisters even be useful?
+ *  68  A14     n/c     Thermister 1
+ *  69  A15     n/c     Thermister 2
+ *  
+ *  14          n/c     tx3       Replacing one or more sensors with a ATTINY or Arduino NANO could interface here
+ *  15          n/c     rx3
+ *  16          n/c     tx2
+ *  17          n/c     rx2
+ *  18          n/c     tx1
+ *  19          n/c     rx1
  *  20          I/O     SDA / RTC
+ *  21          O       SCL / RTC
+ *  
+ *  22,23       n/c     AD0...   If we need more RAM, we can attach it here
+ *  24,25       n/c
+ *  26,27       n/c
+ *  28,29       n/c     ...AD7
+ *  30,31       n/c     A15...
+ *  32,33       n/c
+ *  34,35       n/c
+ *  36,37       n/c     ...A8
+ *  38,39       n/c     T0, BLE
+ *  40,41       n/c     RD, WR
+ *  42,43       n/c              Leaving these pins open for general IO, eg:
+ *  44,45       n/c     CS: EGT2 
+ *  46,47       n/c     CS: EGT3
+ *  48,49       n/c     CS: EGT4
+ *  
  *  50          I       MISO: Display, EGT, SD Card
  *  51          O       MOSI: Display, EGT, SD Card  
  *  52          O       SCK:  Display, EGT, SD Card
- *  
+ *  53          n/c     SS
  */
 
 #include <EEPROM.h>
@@ -154,8 +192,8 @@
 
 
 // I/O counts by type
-#define NO_OF_USER_INPUTS         4     //physical knobs
-#define NO_OF_MAP_SENSORS         1     //pressure sensors
+#define NO_OF_USER_INPUTS         3     // physical knobs
+#define NO_OF_MAP_SENSORS         2     // pressure sensors
 #define NO_OF_TMP_SENSORS         0     // analog low temperature NTC / PTC sensors, manifold inlet temperatures etc
 #define NO_OF_EGT_SENSORS         1     // digital thermocouple sensors, MAX6675
 #define NO_OF_SERVOS              3

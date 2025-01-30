@@ -53,24 +53,24 @@
   /* old */
 //configuration
 
-#define ADC_CHANNELS              (ADC_CHN_TMP_END+1)        // number of ADC inputs to scan
+#define ADC_CHANNELS              (ADC_CHN_TMP_END+1)        // number of ADC inputs to scan ---- this isn't used
 
 // sensor channel mapping
-//user inputs will be mapped to analog channels starting from
-#define ADC_CHN_USR_START             0
-#define ADC_CHN_USR_END               (ADC_CHN_USR_START+NO_OF_USER_INPUTS)
+//user inputs will be mapped to analog channels starting from                  ---- is this assuming that usr/map/tmp are contiguous?
+#define ADC_CHN_USR_START             0                                     // ---- yes and no - only per speed it seems, and any physical pin can be mapped.
+#define ADC_CHN_USR_END               (ADC_CHN_USR_START+NO_OF_USER_INPUTS) // ---- this isn't used
 //MAP sensors will start from --map sensors now use fast sampling
 #define ADC_CHN_MAP_START             (0)
 #define ADC_CHN_MAP_END               (ADC_CHN_MAP_START+NO_OF_MAP_SENSORS)
 //TMP sensors will start from
-#define ADC_CHN_TMP_START             (ADC_CHN_MAP_END)     
-#define ADC_CHN_TMP_END               (ADC_CHN_TMP_START+NO_OF_TMP_SENSORS)
-
+#define ADC_CHN_TMP_START             (ADC_CHN_USR_END)//(ADC_CHN_MAP_END)  // ---- this isn't right, should be ADC_CHN_USR_END, as USR and TMP are slow
+#define ADC_CHN_TMP_END               (ADC_CHN_TMP_START+NO_OF_TMP_SENSORS) // ---- this is used for iterating over slow channels when getting calibrated readigns
+                                                                            // ---- thermistor inputs haven't been tested yet
 #define ADC_NO_SLOW                  (NO_OF_USER_INPUTS+NO_OF_TMP_SENSORS)
 #define ADC_NO_FAST                   (NO_OF_MAP_SENSORS)
 /* new ADC channel mapping */
-byte channels_slow[ADC_NO_SLOW] = {1,2,3};     //channels to sample at low rate
-byte channels_fast[ADC_NO_FAST] = {0};                               //channels to sample at high rate
+byte channels_slow[ADC_NO_SLOW] = {1,2,3};                //channels to sample at low rate (USR and TMP sensors)
+byte channels_fast[ADC_NO_FAST] = {0,10};                 //channels to sample at high rate (MAP sensors)
 byte adc_chn;                                             //channel index, increments each adc interrupt
 byte adc_smp;                                             //sample index, increments each adc interrupt when adc_chn overflows
 
@@ -312,7 +312,7 @@ void process_analog_inputs()
 }
 
 /* table of calibration values for MAP sensors */
-const MAP_CAL ADC_map_cal[NO_OF_MAP_SENSORS] = {{SENSOR_MAP_CAL_1BAR_MIN_mbar,SENSOR_MAP_CAL_1BAR_MAX_mbar}};
+const MAP_CAL ADC_map_cal[NO_OF_MAP_SENSORS] = {{SENSOR_MAP_CAL_MIN_mbar_0,SENSOR_MAP_CAL_MAX_mbar_0},{SENSOR_MAP_CAL_MIN_mbar_1,SENSOR_MAP_CAL_MAX_mbar_1}};
 
 /* applies the calibration for the given map snesor to the given value
  *  returns: calibrated value in mbar 
