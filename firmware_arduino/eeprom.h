@@ -13,14 +13,14 @@
 #define EEP_VERSION 7
 struct eeprom
 {
-    byte                touch_calibrated; //is set to 0x7C when calibrated. we can force recalibration by setting this byte to anything else
-    long int            touch_transform[6];  //GD library uses the start of eeprom to store touch calibration.
-    byte                eep_version;
-    byte                eep_crc;
-    SV_CAL              servo_cal[NO_OF_SERVOS];
-    FLAGS_CONFIG        flags_config;
-    PID_K               pid_k_rpm, pid_k_vac;
-    TORQUE_CAL          torque_cal;
+    byte                touch_calibrated;   // 1   //is set to 0x7C when calibrated. we can force recalibration by setting this byte to anything else
+    long int            touch_transform[6]; // 25  //GD library uses the start of eeprom to store touch calibration.
+    byte                eep_version;        // 26
+    byte                eep_crc;            // 27
+    SV_CAL              servo_cal[NO_OF_SERVOS]; // 39 (+12 with 3 servos)
+    FLAGS_CONFIG        flags_config;            // 40
+    PID_K               pid_k_rpm, pid_k_vac;    // 52 (+12 with 2 PIDs )
+    TORQUE_CAL          torque_cal;              // 58
 };
 /* offsetof doesn not accept array indices, so getting the offset for an array member
  *  requires manually adding the index x the member size.
