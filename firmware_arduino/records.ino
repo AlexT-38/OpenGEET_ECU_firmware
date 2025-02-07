@@ -345,27 +345,56 @@ void hash_data(DATA_STORAGE *data)
   data->hash = hash;
 }
 
-
-void log_io_info( StringBuffer&dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units)
+/* generate a channel info entry for a channel group in the record header */
+/*  name_pgm    : name of data channel,
+ *  type        : channel type enum,
+ *  number      : number of sub channels,
+ *  rate        : sample rate in ms, zero means one per record 
+ *  units       : units, none means LSB
+ *  description : string describing this data channel, optional
+ *  names       : names of the sub channels, optional - this needs some work to ensure the string is embedded as an array of strings. 
+ *                                                      As is it will be a string representation of an array, rather than an actual array of strings.
+ *  scale       : power of 2 scale factor, eg -2 means each LSB has a value of 0.25
+ *  
+ *  caller must close the object afterward
+ */
+void log_io_info( StringBuffer&dst, const __FlashStringHelper * name_pgm, CHANNEL_TYPE type, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * description,const __FlashStringHelper * names, , char scale)
 {
-    if(name_pgm)             json_append(dst, F("name"), name_pgm);
-    if(number > 1)           json_append(dst, F("num"), number);
-    if(rate)                 json_append(dst, F("rate"), rate);
-    if(rate_units)           json_append(dst, F("rate_units"), rate_units);
-    if(units)                json_append(dst, F("units"), units);
+    json_append_obj(dst, name_pgm);
+    
+      const __FlashStringHelper * type_string;
+      switch (type)
+      {
+        default:
+        case CHN_SAMPLE:         type_string = F("sample");        break;
+        case CHN_INTERVAL:       type_string = F("interval");      break;
+        case CHN_TIMESTAMP:      type_string = F("timestamp");     break;
+        case CHN_TOFFSET:        type_string = F("toffset");       break;
+        case CHN_COUNT:          type_string = F("count");       break;
+      }
+      json_append(dst, F("type"), type_string);
+      if(description)                 json_append(dst, F("description"), description);
+      if(number > 1)                  json_append(dst, F("num"), number);
+      if(names)                       json_append(dst, F("names"), names);
+      if(rate && type == CHN_SAMPLE)  json_append(dst, F("rate_ms"), rate);
+      if(units)                       json_append(dst, F("units"), units);
+      if(scale)    json_append(dst, F("scale"), scale);
 
 }
-void log_io_info( StringBuffer&dst, const __FlashStringHelper * name_pgm, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * rate_units,
-                  int low, int high, char scale)
+/* as above, but with additional parameters:
+ *  low     : lowest valid raw value
+ *  high    : highest valid raw value
+ *  
+ */
+void log_io_info( StringBuffer&dst, const __FlashStringHelper * name_pgm, CHANNEL_TYPE type, byte number, int rate, const __FlashStringHelper * units, const __FlashStringHelper * description,const __FlashStringHelper * names
+                  int low, int high)
 {
-  log_io_info(dst, name_pgm, number, rate, units, rate_units);
+  log_io_info(dst, name_pgm, type, number, rate, units, description, names);
   json_append(dst, F("min"), low);
   json_append(dst, F("max"), high);
-  if(scale)
-  {
-    json_append(dst, F("scale"), scale); //scale is power of 2 multiplier, ie negative for fractional values, eg -2 gives steps of 0.25 units
-  }
+  
 }
+
 /* write the log header */
 void start_log(StringBuffer&dst)
 {
@@ -380,7 +409,6 @@ void start_log(StringBuffer&dst)
     //basic record info
     json_append(dst, F("version"), JSON_RECORD_VERSION);
     json_append(dst, F("firmware"), FS(S_FIRMWARE_NAME));
-    json_append(dst, F("rate_ms"), UPDATE_INTERVAL_ms);
   
     DateTime t_now = DS1307_now();
     char str[11];
@@ -389,102 +417,165 @@ void start_log(StringBuffer&dst)
     time_to_string(t_now, str);
     json_append(dst, F("time"), str);
 
-    //info about the sensors being recorded
+/*  name_pgm    : name of data channel,
+ *  type        : channel type enum,
+ *  number      : number of sub channels,
+ *  rate        : sample rate in ms, zero means one per record, ignored for non SAMPLE types
+ *  units       : units, none means LSB
+ *  description : string describing this data channel, optional
+ *  names       : names of the sub channels, optional
+ *  scale       : power of 2 scale factor, eg -2 means each LSB has a value of 0.25
+ *  
+ *  low     : lowest valid raw value
+ *  high    : highest valid raw value
+ */
+    //info about the data channels being recorded
     
-    json_append_arr(dst, F("sensors"));
+    json_append_obj(dst, F("channel_groups"));
     
       // user inputs
       if(Data_Config.USR_no > 0)
       {
-        json_append_obj(dst);
-          log_io_info(dst, F("usr"), Data_Config.USR_no, ANALOG_SAMPLE_INTERVAL_ms, F("LSB"), F("ms"),   0, 1023, 0);
+        json_append_obj(dst, F("usr"));
+          if(flags_config.log_averages){
+            log_io_info(dst, F("avg"), CHN_SAMPLE, Data_Config.USR_no, 0, F("LSB"), F("User inputs, avg"), F("throttle, mixture, brake"),   0, 0, 1023);
+            json_append_close_object(dst);
+          }
+          log_io_info(dst, F("data"), CHN_SAMPLE, Data_Config.USR_no, ADC_UPDATE_INTERVAL_ms, F("LSB"), F("User inputs"), F("throttle, mixture, brake"),   0, 0, 1023);
+          json_append_close_object(dst);
         json_append_close_object(dst);
       }
       
       // pressure sensors
       if(Data_Config.MAP_no > 0)
       {
-        json_append_obj(dst);
-          log_io_info(dst, F("map"), Data_Config.MAP_no, ADC_SAMPLE_INTERVAL_ms, F("mbar"), F("ms"));
+        json_append_obj(dst, F("map"));
+          if(flags_config.log_averages){
+            log_io_info(dst, F("avg"), CHN_SAMPLE, Data_Config.MAP_no, 0, F("mbar"), F("abs pressure, avg"), F("intake, reactor top"), 0);
+            json_append_close_object(dst);
+          }
+          log_io_info(dst, F("data"), CHN_SAMPLE, Data_Config.MAP_no, ADC_SAMPLE_INTERVAL_ms, F("mbar"), F("abs pressure"), F("intake, reactor top"), 0);
+          json_append_close_object(dst);
         json_append_close_object(dst); //map
       }
 
       // thermocouple sensors
       if(Data_Config.EGT_no > 0)
       {
-        json_append_obj(dst);
-          log_io_info(dst, F("egt"), Data_Config.EGT_no, EGT_SAMPLE_INTERVAL_ms, F("°C"), F("ms"), 0, 1024, -2);
+        json_append_obj(dst, F("egt"));
+          if(flags_config.log_averages){
+            log_io_info(dst, F("avg"), CHN_SAMPLE, Data_Config.EGT_no, 0, F("°C"), F("exhaust gas temperature, avg"), NULL, -2, 0, 1024*4);
+            json_append_close_object(dst);
+          }
+          log_io_info(dst, F("data"), CHN_SAMPLE, Data_Config.EGT_no, EGT_SAMPLE_INTERVAL_ms, F("°C"), F("exhaust gas temperature"), NULL, -2, 0, 1024*4);
+          json_append_close_object(dst);
         json_append_close_object(dst); //egt
       }
 
       // thermistor sensors
       if(Data_Config.TMP_no > 0)
       {
-        json_append_obj(dst);
-          log_io_info(dst, F("tmp"), Data_Config.TMP_no, ANALOG_SAMPLE_INTERVAL_ms, F("°C"), F("ms"), 0, 256, -2);
+        json_append_obj(dst, F("tmp"));
+          if(flags_config.log_averages){
+            log_io_info(dst, F("avg"), CHN_SAMPLE, Data_Config.TMP_no, 0, F("°C"), F("other temperatures, avg"), NULL, -2, 0, 1024);
+            json_append_close_object(dst);
+          }
+          log_io_info(dst, F("data"), CHN_SAMPLE, Data_Config.TMP_no, ADC_UPDATE_INTERVAL_ms, F("°C"), F("other temperatures"), NULL, -2, 0, 1024);
+          json_append_close_object(dst);
         json_append_close_object(dst); //tmp
       }
 
       //torque sensor
-      json_append_obj(dst);
-        log_io_info(dst, F("trq"), 1, ANALOG_SAMPLE_INTERVAL_ms, F("mN.m"), F("ms"), -32000, 32000, 0);
+      json_append_obj(dst, F("trq"));
+        if(flags_config.log_averages){
+          log_io_info(dst, F("avg"), CHN_SAMPLE, 1, 0, F("mN.m"), F("dyno torque, avg"), NULL, 0, -32000, 32000);
+          json_append_close_object(dst);
+        }
+        log_io_info(dst, F("data"), CHN_SAMPLE, 1, ANALOG_SAMPLE_INTERVAL_ms, F("mN.m"), F("dyno torque"), NULL, 0, -32000, 32000);
+        json_append_close_object(dst);
       json_append_close_object(dst); //trq
       
-      //rotation time sensor
-      json_append_obj(dst);
-        log_io_info(dst, F("spd"), 1, 1, F("us"), F("pr"), RPM_MAX_tk, RPM_MIN_tk, 4);
+      //engine speed
+      json_append_obj(dst, F("spd"));
+        //rotation time sensor
+        log_io_info(dst, F("int"), CHN_INTERVAL, 1, 0, F("us"), F("tacho tick intervals"), NULL, 4, RPM_MAX_tk, RPM_MIN_tk);
+        json_append_close_object(dst);
+        log_io_info(dst, F("t0"), CHN_TOFFSET, 1, 0, F("us"), F("tacho tick offset"), NULL, 4);
+        json_append_close_object(dst);
+        //log_io_info(dst, F("count"), CHN_COUNT, 1, 0, NULL, F("tacho tick count"), NULL, 0);
+        //json_append_close_object(dst);
+        log_io_info(dst, F("rpm"), CHN_SAMPLE, 1, 0, F("rpm"), F("engine speed"), NULL, 0);
+        json_append_close_object(dst);
+        //log_io_info(dst, F("dyno"), CHN_SAMPLE, 1, 0, F("rpm"), F("dyno speed"), NULL, 0);
+        //json_append_close_object(dst);
       json_append_close_object(dst); //spd
 
-      //derived rpm
-      json_append_obj(dst);
-        log_io_info(dst, F("rpm"), 1, 0, F("rpm"), NULL); //rate of zero (or 1?) and no rate units -> avg per record
-      json_append_close_object(dst); //rpm
-
       //derived power
-      json_append_obj(dst);
-        log_io_info(dst, F("pow"), 1, 0, F("W"), NULL);
+      json_append_obj(dst, F("pow"));
+        log_io_info(dst, F("avg"), CHN_SAMPLE, 1, 0, F("W"), F("dyno power"), NULL, 0);
+        json_append_close_object(dst);
       json_append_close_object(dst); //pow
 
-    json_append_close_array(dst); ////////////////////////////////////////////////////// end of sensors
+    //json_append_close_array(dst); ////////////////////////////////////////////////////// end of sensors
     
-    json_append_obj(dst, F("servos"));
-      //common parameters
-      log_io_info(dst, NULL, Data_Config.SRV_no, PID_UPDATE_INTERVAL_ms, F("LSB"), F("ms"), 0, 1023, 0);
+      json_append_obj(dst, F("servos"));
+        //common parameters
+        log_io_info(dst, F("data"), CHN_SAMPLE, Data_Config.SRV_no, PID_UPDATE_INTERVAL_ms, F("LSB"), F("servo outputs"), F("throttle, mixture, brake"),0, 0, 1023);
+        json_append_close_object(dst);
+//        json_append_arr(dst, F("names"));
+//          json_add(dst, F("throttle"));
+//          json_wr_list(dst);
+//          json_add(dst, F("mixture"));
+//          json_wr_list(dst);
+//          json_add(dst, F("brake"));
+//        json_close_array(dst);
+      json_append_close_object(dst);
 
-      json_append_arr(dst, F("names"));
-        json_add(dst, F("throttle"));
-        json_wr_list(dst);
-        json_add(dst, F("mixture"));
-        json_wr_list(dst);
-        json_add(dst, F("brake"));
-      json_close_array(dst);
-    json_append_close_object(dst);
-
-    json_append_obj(dst, F("pid"));
-      log_io_info(dst, NULL, Data_Config.PID_no, PID_UPDATE_INTERVAL_ms, NULL, F("ms"));
-      json_append(dst, F("k_frac"), PID_FP_FRAC_BITS);
-      
-      json_append_arr(dst, F("configs"));
-        json_append_obj(dst);
-          json_append(dst, F("name"), F("rpm"));
-          json_append(dst, F("src"), F("spd"));
-          json_append(dst, F("dst"), F("throttle"));
-          json_append(dst, F("kp"), PIDs[PID_RPM].k.p);
-          json_append(dst, F("ki"), PIDs[PID_RPM].k.i);
-          json_append(dst, F("kd"), PIDs[PID_RPM].k.d);
-        json_append_close_object(dst); //pid_rpm
-        json_append_obj(dst);
-          json_append(dst, F("name"), F("vac"));
-          json_append(dst, F("src"), F("map"));
-          json_append(dst, F("idx"), 0);
-          json_append(dst, F("dst"), F("mixture"));
-          json_append(dst, F("kp"), PIDs[PID_VAC].k.p);
-          json_append(dst, F("ki"), PIDs[PID_VAC].k.i);
-          json_append(dst, F("kd"), PIDs[PID_VAC].k.d);
-        json_append_close_object(dst); //pid_rpm
-      json_append_close_array(dst); //configs
-      
-    json_append_close_object(dst); //pid
+    if(Data_Config.PID_no > 0)
+    {
+      json_append_obj(dst, F("pid_rpm"));
+        log_io_info(dst, F("ctrl"), CHN_SAMPLE, 4, PID_UPDATE_INTERVAL_ms, F("LSB"), NULL, F("target, actual, error, output"), 0);
+        json_append_close_object(dst);
+        log_io_info(dst, F("params"), CHN_SAMPLE, 3, PID_UPDATE_INTERVAL_ms, F("LSB"), NULL, F("p, i, d"), 0);
+        json_append_close_object(dst);
+        log_io_info(dst, F("coeffs"), CHN_SAMPLE, 3, PID_UPDATE_INTERVAL_ms, F("LSB"), NULL, F("kp, ki, kd"), -PID_FP_FRAC_BITS);
+        json_append_close_object(dst);
+        /*
+        json_append(dst, F("k_frac"), PID_FP_FRAC_BITS);
+        
+        json_append_arr(dst, F("configs"));
+          json_append_obj(dst);
+            json_append(dst, F("name"), F("rpm"));
+            json_append(dst, F("src"), F("spd"));
+            json_append(dst, F("dst"), F("throttle"));
+            json_append(dst, F("kp"), PIDs[PID_RPM].k.p);
+            json_append(dst, F("ki"), PIDs[PID_RPM].k.i);
+            json_append(dst, F("kd"), PIDs[PID_RPM].k.d);
+          json_append_close_object(dst); //pid_rpm
+          json_append_obj(dst);
+            json_append(dst, F("name"), F("vac"));
+            json_append(dst, F("src"), F("map"));
+            json_append(dst, F("idx"), 0);
+            json_append(dst, F("dst"), F("mixture"));
+            json_append(dst, F("kp"), PIDs[PID_VAC].k.p);
+            json_append(dst, F("ki"), PIDs[PID_VAC].k.i);
+            json_append(dst, F("kd"), PIDs[PID_VAC].k.d);
+          json_append_close_object(dst); //pid_rpm
+        json_append_close_array(dst); //configs
+        */
+      json_append_close_object(dst); //pid_rpm
+    }
+    if(Data_Config.PID_no > 1)
+    {
+      json_append_obj(dst, F("pid_mix"));
+        log_io_info(dst, F("ctrl"), CHN_SAMPLE, 4, PID_UPDATE_INTERVAL_ms, F("LSB"), NULL, F("target, actual, error, output"), 0);
+        json_append_close_object(dst);
+        log_io_info(dst, F("params"), CHN_SAMPLE, 3, PID_UPDATE_INTERVAL_ms, F("LSB"), NULL, F("p, i, d"), 0);
+        json_append_close_object(dst);
+        log_io_info(dst, F("coeffs"), CHN_SAMPLE, 3, PID_UPDATE_INTERVAL_ms, F("LSB"), NULL, F("kp, ki, kd"), -PID_FP_FRAC_BITS);
+        json_append_close_object(dst);
+      json_append_close_object(dst); //pid_mix
+    }
     
   json_append_close_object(dst); //header
   
@@ -559,7 +650,6 @@ void write_record(StringBuffer &dst, DATA_RECORD *data_record)
     json_append_arr(dst, F("trq"), data_record->TRQ, data_record->ANA_no_of_slow_samples);
     
     json_append(dst, F("spd_t0"), data_record->RPM_tick_offset_tk);
-    json_append_arr(dst, F("spd"), data_record->RPM_tick_times_tk, data_record->RPM_no_of_ticks);
 
 ////////////////////////////////////////////////////////////////////////// report servo outputs
     if(Data_Config.SRV_no > 0)

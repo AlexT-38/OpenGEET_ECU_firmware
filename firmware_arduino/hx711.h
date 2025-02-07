@@ -1,3 +1,10 @@
+/* Strain guage amplifier/ADC
+ *  24 bits
+ *  gain of 64 or 128
+ *  sample rate of 10 or 80 sps
+ *  with noise of 50 or 90 nV(rms)
+ * 
+ */
 #ifndef __HX711_H__
 #define __HX711_H__
 

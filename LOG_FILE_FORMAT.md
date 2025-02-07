@@ -1,65 +1,97 @@
-Log file format description.
+## Log file format description.
 
-Log file format version: 4
+Log file format version: 5
 
 Base format: JSON
 
-HEADER
+#### HEADER
 Describes the configuration of the test hardware.
 Fields:
 	version : Log file format version number (int, 4)
 	firmware : Firmware name and version number (str)
-	rate_ms : Interval between records in milliseconds (int)
 	date : Date at which recording began (YYYY/MM/DD)
 	time : Time at which recording began (HH:MM:SS 24hr)
-	sensors : Array of sensor descriptors
-	servos : Servo configuration
-	pid : PID controller configuration
+	record_rate_ms : Interval between records in milliseconds (int)
+	channel_groups: Dictionary of Dictionary Channel Descriptors
 	
-	SENSOR Descriptor:
-		name : Name of sensor (str, 3 chars)
-		num : Number of sensors of this type (optional, int)
-		rate : Sample rate for this sensor (optional - if not provided, assumed 1 per record, int)
-		rate_units : Sample rate units, typically milliseconds (ms), but could also be per rotation (pr) etc. (optional - must be provided if rate is specified, str)
-		units : Units measured, eg m.Nm (str)
-		min : Minimum sensor value (optional)
-		max : Maximum sensor value (optional)
+	Channel Descriptor:
+		type: channel sampling type, 'sample', 'interval', 'timestamp' etc. default is 'sample'
+		description: optional description
+		num : Number of sub channels. (optional, default 1)
+		names : Names of sub channels (optional)
+		sample_rate_ms : Sample rate for this sensor for 'sample' type channels.
+		units : Units measured, eg m.Nm (str), defaults to 'LSB' for samples, 'ms' for intervals etc
+		min : Minimum sensor value (optional, before applying scale)
+		max : Maximum sensor value (optional, before applying scale)
 		scale : Power of 2 scale factor
-	
-	SERVOS Configuration :
-		num : Number of servos (int)
-		rate : Servo position update rate (int)
-		rate_units : Servo update rate units, typically milliseconds (str) (Not sure why this would be anything other than ms)
-		units : Servo position units, typically LSB (str)
-		min : Minimum position value
-		max : Maximum position value
-		names : Array of servo channel names, eg "throttle" (str) (length must match 'num')
-	
-	PID Configuration :
-		rate : PID update rate (int)
-		rate_units : PID update rate units, typically milliseconds (str) (Not sure why this would be anything other than ms)
-		k_frac : Number of fractional bits used for coefficients (int)
-		configs : Array of configurations for each PID controller:
-			name : Name of PID controller (str)
-			src : Name of sensor input (str)
-			idx : Index of sensor where there are multiple sensors with the same name (idx)
-			dst : Name of servo output (str)
-			kp : Proportional coefficient (fixed point int)
-			ki : Integral coefficient (fixed point int)
-			kd : Derivitive coefficient (fixed point int)
 
-RECORDS
+
+#### RECORDS
 Records data at fixed intervals.
 Array of RECORD :
 	timestamp : Timestamp of record in milliseconds (int)
-	<xxx> (name of sensor) : 2D Array or sensor index/sensor values for sensor <xxx>, not including sensors without a 'rate' property
-	<xxx>_t0 (name of sensor) : Time offset of first sample for sensor with non fixed update rates, typically 'spd' which records tacho pulse intervals (int)
-	avg: Dictionary of average values for each sensor (including those without a 'rate'), servo and the coefficients of each PID 
-	pid: Array of PID parameter reports:
-		trg : Target value
-		act : Input value
-		err : Difference between trg and act
-		out : Output value (sum of p i and d)
-		p : proportional component (kp * err)
-		i : integral component (need to check if this is pre or post scaled)
-		d : derivative component (kd * (err-err_old)?)
+	"channel_group_name": List of channels, lists of sub channels, lists of data points
+	
+#### Example
+```
+{
+	"header":
+	{
+		"version" : 5,
+		"firmware" : "OpenGEET ECU firmware v0.7.1",
+		"date" : "1/1/2025",
+		"time" : "12:00",
+		"record_rate_ms" : 500
+		"channel_groups" :
+		{
+			"chn_grp_0":
+			{
+				"avg" :
+				{
+					"type" : "sample",
+					"description" : "example channel value average",
+					"num" : 2
+					"names" : ["left", "right"]
+					"units" : "LSB",
+					"scale" : -2,
+					"min" : 0,
+					"max" : 1024
+				},
+				"data" :
+				{
+					"type" : "sample",
+					"description" : "example channel value",
+					"num" : 2
+					"names" : ["left", "right"]
+					"sample_rate_ms" : 50,
+					"units" : "LSB",
+					"scale" : -2,
+					"min" : 0,
+					"max" : 1024
+				}
+				"config" : 
+				{
+					"type" : "sample",
+					"description" : "example channel config"
+					"units" : "LSB",
+					"scale" : -12,
+					"min" : -32768,
+					"max" : 32767,
+				}
+			}
+		}
+	},
+	"records" :
+	[
+		{
+			"timestamp" : 123456,
+			"chn_grp_0" :
+			[
+				[[5],[6]],
+				[[1,2,3,4,5,6,7,8,9,10], [2,3,4,5,6,7,8,9,10,11]],
+				[[-10000]]
+			]
+		}
+	]
+}
+```

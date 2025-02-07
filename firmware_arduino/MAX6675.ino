@@ -1,4 +1,7 @@
-
+/* K-type thermocouple ADC module
+ *  12-bit, 0.25 °C resolution
+ *  8-bit accuracy from 0 to 700 °C
+ */
 #define MAX6675_SPI_SPEED 4000000
 
 static SPISettings MAX6675_SETTINGS(MAX6675_SPI_SPEED, MSBFIRST, SPI_MODE0);

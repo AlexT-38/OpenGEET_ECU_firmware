@@ -6,7 +6,7 @@
  */
 
 #define DATA_RECORD_VERSION     3
-#define JSON_RECORD_VERSION     4
+#define JSON_RECORD_VERSION     5
 typedef struct data_config
 {
   unsigned int data_version;
@@ -52,7 +52,6 @@ typedef struct data_record
 //rpm from flywheel magnet pickup  
   byte RPM_no_of_ticks;
   unsigned int RPM_tick_offset_tk;
-  unsigned int RPM_tick_times_tk[RPM_MAX_TICKS_PER_UPDATE];           //rpm is between 1500 and 4500, giving tick times in ms of 40 and 13.3, 
 
 //servo outputs
   byte SRV_no_of_samples;
@@ -77,6 +76,14 @@ typedef enum log_state {
   LOG_STARTED,
   LOG_STOPPING
 }LOG_STATE;
+
+typedef enum channel_type {
+  CHN_SAMPLE,     //values sampled equally over time
+  CHN_INTERVAL,   //times between two events
+  CHN_TIMESTAMP,  //times of events in system time
+  CHN_TOFFSET,    //times of events relative to current record
+  CHN_COUNT,      //count of events during current record
+}CHANNEL_TYPE;
 
 /* the records to write to */
 extern DATA_RECORD Data_Records[2];
