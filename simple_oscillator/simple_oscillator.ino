@@ -320,6 +320,10 @@ void print_state(Stream *dst)
   dst->print(F("forced_value: "));
   dst->println(forced_value);
 
+  dst->print(F("DAC range: "));
+  if(dac_range == TEST_RANGE_800mV)  dst->println(FS(S_800MV));
+  else dst->println(FS(S_80MV));
+
   dst->println(FS(S_BAR));
 }
 

@@ -51,9 +51,14 @@
  * 
  * Comp threshold test:
  * 1) take a board with the FET driver chip removed or disabled 
- *     (this can be implemented as part of the test harness by looping GND to SD on the UIT connector,
+ *     (this can be implemented as part of the test harness by looping VCC to SD on the UUT connector,
  *      or by shorting pins 8&9, 12&14  Board top, corner opposite PHASE  top row left is 14, L;:;::;;   )
- * 2) connect the test harness to the UIT, and then to the 0V or -V test headers
+ *      
+ *      HOW SHOULD THE CROC CLIP and CRIMP BE CONNECTED???
+ *      It looks like the croc clip is always connected to V_BUS on the UUT,
+ *      and the double-wired crimp goes to V_PHASE.
+ *      
+ * 2) connect the test harness to the UUT, and then to the 0V or -V test headers
  * 3) ensure range is 800mV with command k2
  * 4) run k3 and check the threshold results, 
  *      these should be switch-on states at around 450mV, ignore switch-offs
